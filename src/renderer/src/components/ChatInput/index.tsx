@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { Box, Button, Flex, HStack, Spinner, VStack } from '@chakra-ui/react';
+import { useToast } from '@chakra-ui/react';
 import React, { forwardRef, useEffect, useRef } from 'react';
 import { FaPaperPlane, FaStop, FaTrash } from 'react-icons/fa';
 import { LuScreenShare } from 'react-icons/lu';
@@ -15,6 +16,7 @@ import { ComputerUseUserData } from '@ui-tars/shared/types/data';
 import { useRunAgent } from '@renderer/hooks/useRunAgent';
 import { useStore } from '@renderer/hooks/useStore';
 import { reportHTMLContent } from '@renderer/utils/html';
+import { uploadAndShare } from '@renderer/utils/share';
 
 import reportHTMLUrl from '@resources/report.html?url';
 
@@ -24,11 +26,13 @@ const ChatInput = forwardRef((_props, _ref) => {
     instructions: savedInstructions,
     messages,
     restUserData,
+    settings,
   } = useStore();
   const [localInstructions, setLocalInstructions] = React.useState(
     savedInstructions ?? '',
   );
 
+  const toast = useToast();
   const { run } = useRunAgent();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -75,33 +79,71 @@ const ChatInput = forwardRef((_props, _ref) => {
       ?.value || '';
 
   const handleShare = async () => {
-    const response = await fetch(reportHTMLUrl);
-    const html = await response.text();
+    try {
+      const response = await fetch(reportHTMLUrl);
+      const html = await response.text();
 
-    const userData = {
-      ...restUserData,
-      status,
-      conversations: messages,
-    } as ComputerUseUserData;
+      const userData = {
+        ...restUserData,
+        status,
+        conversations: messages,
+      } as ComputerUseUserData;
 
-    const htmlContent = reportHTMLContent(html, [userData]);
+      const htmlContent = reportHTMLContent(html, [userData]);
 
-    // create Blob object
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+      if (settings?.shareEndpoint) {
+        try {
+          const { url } = await uploadAndShare(
+            htmlContent,
+            settings.shareEndpoint,
+          );
+          // Copy link to clipboard
+          await navigator.clipboard.writeText(url);
+          toast({
+            title: 'Share link copied to clipboard!',
+            status: 'success',
+            position: 'top',
+            duration: 2000,
+            isClosable: true,
+            variant: 'ui-tars-success',
+          });
+          return;
+        } catch (error) {
+          console.error('Share failed:', error);
+          toast({
+            title: 'Failed to share',
+            description:
+              error instanceof Error ? error.message : JSON.stringify(error),
+            status: 'error',
+            position: 'top',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      }
 
-    // create download link
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `report-${Date.now()}.html`;
-
-    // trigger download
-    document.body.appendChild(a);
-    a.click();
-
-    // clean up
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+      // If shareEndpoint is not configured or the upload fails, fall back to downloading the file
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report-${Date.now()}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Share failed:', error);
+      toast({
+        title: 'Failed to generate share content',
+        description:
+          error instanceof Error ? error.message : JSON.stringify(error),
+        status: 'error',
+        position: 'top',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleClearMessages = () => {
