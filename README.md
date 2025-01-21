@@ -10,7 +10,7 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 <p align="center">
         &nbsp&nbsp 📑 <a href="https://arxiv.org/abs/">Paper</a> &nbsp&nbsp
         | 🤗 <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-SFT">Hugging Face Models</a>&nbsp&nbsp
-        | &nbsp&nbsp 🤗 <a href="https://huggingface.co/spaces/">Spaces Demo</a> &nbsp&nbsp
+        | 
 <br>
 🖥️ Desktop Application &nbsp&nbsp
 | &nbsp&nbsp 🤗 <a href="https://github.com/web-infra-dev/midscene">Midscene（Browser Use）</a>
@@ -100,7 +100,7 @@ If you find our paper and code useful in your research, please consider giving a
 
 ```BibTeX
 @article{uitars2025,
-  author    = {Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, Wanjun Zhong, Kuanye Li, Jiale Yang, Yu Miao, Woyu Lin, Longxiang Liu, Xu Jiang, Qianli Ma, Jingyu Li, Xiaojun Xiao, Kai Cai, Chuang Li, Yaowei Zheng, Xin Jin, Chen Li, Xiao Zhou, Minchao Wang, Haoli Chen, Zhaojian Li, Haihua Yang, Haifeng Liu, Feng Lin, Tao Peng, Xin Liu, Guang Shi},
+  author    = {Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, Wanjun Zhong, Kuanye Li, Jiale Yang, Yu Miao, Woyu Lin, Longxiang Liu, Xu Jiang, Qianli Ma, Jingyu Li, Xiaojun Xiao, Kai Cai, Chuang Li, Yaowei Zheng, Chaolin Jin, Chen Li, Xiao Zhou, Minchao Wang, Haoli Chen, Zhaojian Li, Haihua Yang, Haifeng Liu, Feng Lin, Tao Peng, Xin Liu, Guang Shi},
   title     = {UI-TARS: An End-to-End Framework for Autonomous GUI Agents with System-2 Reasoning and Iterative Reflection Tuning},
   url       = {https://github.com/bytedance/UI-TARS},
   year      = {2025}
