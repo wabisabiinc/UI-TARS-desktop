@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { Box, Flex } from '@chakra-ui/react';
 
 import ChatInput from '@renderer/components/ChatInput';
