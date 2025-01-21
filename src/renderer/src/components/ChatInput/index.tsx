@@ -78,8 +78,33 @@ const ChatInput = forwardRef((_props, _ref) => {
       .find((m) => m?.from === 'human' && m?.value !== IMAGE_PLACEHOLDER)
       ?.value || '';
 
+  const [isSharing, setIsSharing] = React.useState(false);
+  const isSharePending = React.useRef(false);
+  const shareTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const SHARE_TIMEOUT = 100000;
+
   const handleShare = async () => {
+    if (isSharePending.current) {
+      return;
+    }
+
     try {
+      setIsSharing(true);
+      isSharePending.current = true;
+
+      shareTimeoutRef.current = setTimeout(() => {
+        setIsSharing(false);
+        isSharePending.current = false;
+        toast({
+          title: 'Share timeout',
+          description: 'Please try again later',
+          status: 'error',
+          position: 'top',
+          duration: 3000,
+          isClosable: true,
+        });
+      }, SHARE_TIMEOUT);
+
       const response = await fetch(reportHTMLUrl);
       const html = await response.text();
 
@@ -143,6 +168,12 @@ const ChatInput = forwardRef((_props, _ref) => {
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      if (shareTimeoutRef.current) {
+        clearTimeout(shareTimeoutRef.current);
+      }
+      setIsSharing(false);
+      isSharePending.current = false;
     }
   };
 
@@ -215,8 +246,9 @@ const ChatInput = forwardRef((_props, _ref) => {
                   variant="tars-ghost"
                   aria-label="Share"
                   onClick={handleShare}
+                  isDisabled={isSharing}
                 >
-                  <LuScreenShare />
+                  {isSharing ? <Spinner size="sm" /> : <LuScreenShare />}
                 </Button>
               )}
               <div />
