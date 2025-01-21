@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { Box, Button, Flex, HStack, Spinner, VStack } from '@chakra-ui/react';
 import React, { forwardRef, useEffect, useRef } from 'react';
 import { FaPaperPlane, FaStop, FaTrash } from 'react-icons/fa';

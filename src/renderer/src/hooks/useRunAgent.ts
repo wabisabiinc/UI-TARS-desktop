@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { useToast } from '@chakra-ui/react';
 import { useDispatch } from 'zutron';
 

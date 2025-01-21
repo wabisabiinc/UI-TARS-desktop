@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 /* eslint-disable max-lines-per-function */
 import retry from 'async-retry';
 import mitt, { Emitter, Handler } from 'mitt';

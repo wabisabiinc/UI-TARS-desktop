@@ -1,3 +1,4 @@
+
 <p align="center">
   <img alt="UI-TARS"  width="260" src="resources/icon.png">
 </p>
@@ -16,7 +17,7 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 | &nbsp&nbsp 🤗 <a href="https://github.com/web-infra-dev/midscene">Midscene（Browser Use）</a>
 </p>
 
-## Demo Showcase
+## Showcases
 
 | Instruction  | Video |
 | :---:  | :---: |

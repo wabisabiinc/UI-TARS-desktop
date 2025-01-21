@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { Flex, FlexProps, Text } from '@chakra-ui/react';
 import ms from 'ms';
 import React from 'react';
