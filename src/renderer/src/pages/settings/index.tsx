@@ -168,6 +168,16 @@ const Settings = () => {
                           />
                         </FormControl>
 
+                        <FormControl>
+                          <FormLabel color="gray.700">Share Provider Endpoint (Optional)</FormLabel>
+                          <Field
+                            as={Input} 
+                            name="shareEndpoint"
+                            value={values.shareEndpoint}
+                            placeholder="https://your-share-endpoint.com/upload"
+                          />
+                        </FormControl>
+
                         <HStack spacing={4}>
                           <Button
                             type="submit"
