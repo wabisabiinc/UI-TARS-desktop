@@ -87,4 +87,4 @@ pnpm run dev
 
 ## License
 
-UI-TARS is [MIT licensed](./LICENSE).
+UI-TARS Desktop is licensed under the Apache License 2.0.
