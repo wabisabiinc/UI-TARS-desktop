@@ -4,7 +4,8 @@
 
 # UI-TARS Desktop
 
-UI-TARS Desktop is an GUI Agent application based on UI-TARS(Vision-Lanuage Model) that allows you to control your computer using natural language.
+UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Model)](https://github.com/bytedance/UI-TARS) that allows you to control your computer using natural language.
+
 
 <p align="center">
         &nbsp&nbsp 📑 <a href="https://arxiv.org/abs/">Paper</a> &nbsp&nbsp
