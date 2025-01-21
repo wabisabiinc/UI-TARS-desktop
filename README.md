@@ -45,12 +45,12 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 1. Drag **UI TARS** application into the **Applications** folder
   <img src="./images/mac_install.png" width="500px" />
 
-1. Enable the permission of **UI TARS** in MacOS:
+2. Enable the permission of **UI TARS** in MacOS:
   - System Settings -> Privacy & Security -> **Accessibility**
   - System Settings -> Privacy & Security -> **Screen Recording**
   <img src="./images/mac_permission.png" width="500px" />
 
-1. Then open **UI TARS** application, you can see the following interface:
+3. Then open **UI TARS** application, you can see the following interface:
   <img src="./images/mac_app.png" width="500px" />
 
 > **Note**: If app broken, you can use `sudo xattr -dr com.apple.quarantine /Applications/UI\ TARS.app`  in Terminal to fix it.
