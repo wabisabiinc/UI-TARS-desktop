@@ -12,7 +12,7 @@ UI-TARS Desktop is an GUI Agent application based on UI-TARS(Vision-Lanuage Mode
         | &nbsp&nbsp 🤗 <a href="https://huggingface.co/spaces/">Spaces Demo</a> &nbsp&nbsp
 <br>
 🖥️ Desktop Application &nbsp&nbsp
-| &nbsp&nbsp 🤗 <a href="">Midscene（Browser Use）</a>
+| &nbsp&nbsp 🤗 <a href="https://github.com/web-infra-dev/midscene">Midscene（Browser Use）</a>
 </p>
 
 ## Demo Showcase
@@ -41,15 +41,15 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 #### MacOS
 
 1. Drag **UI TARS** application into the **Applications** folder
-  ![](./images/mac_install.png)
+  <img src="./images/mac_install.png" width="500px" />
 
-2. Enable the permission of **UI TARS** in MacOS:
+1. Enable the permission of **UI TARS** in MacOS:
   - System Settings -> Privacy & Security -> **Accessibility**
   - System Settings -> Privacy & Security -> **Screen Recording**
-  ![](./images/mac_permission.png)
+  <img src="./images/mac_permission.png" width="500px" />
 
-3. Then open **UI TARS** application, you can see the following interface:
-  ![](./images/mac_app.png)
+1. Then open **UI TARS** application, you can see the following interface:
+  <img src="./images/mac_app.png" width="500px" />
 
 > **Note**: If app broken, you can use `sudo xattr -dr com.apple.quarantine /Applications/UI\ TARS.app`  in Terminal to fix it.
 
@@ -57,17 +57,22 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 
 **Still to run** the application, you can see the following interface:
 
-![](./images/windows_install.png)
+<img src="./images/windows_install.png" width="400px" />
 
 ### Settings
 
 #### VLM (Vision-Language Model)
 
-Support **Hugging Face(Cloud)** and **Ollama(Local)** deployment.
+Support HuggingFace(Cloud) and Ollama(Local) deployment.
 
-![](./images/settings_model.png)
+We recommend using HuggingFace Inference Endpoints for fast deployment. We provide two docs for users to refer:
 
-> **Note**: VLM Base Url is OpenAI compatible API endpoints, data format refer to [OpenAI Chat Completion API](https://platform.openai.com/docs/api-reference/chat/create).
+[GUI Model Deployment Guide](https://juniper-switch-f10.notion.site/GUI-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
+
+
+<img src="./images/settings_model.png" width="500px" />
+
+> **Note**: VLM Base Url is OpenAI compatible API endpoints (see [OpenAI API protocol document](https://platform.openai.com/docs/guides/vision/uploading-base-64-encoded-images) for more details).
 
 ## Development
 
