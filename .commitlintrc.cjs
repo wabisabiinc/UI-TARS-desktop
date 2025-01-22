@@ -21,6 +21,7 @@ module.exports = {
         'test',
         'revert',
         'perf',
+        'release',
       ],
     ],
   },
