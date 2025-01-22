@@ -102,7 +102,7 @@ If you find our paper and code useful in your research, please consider giving a
 ```BibTeX
 @article{uitars2025,
   author    = {Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, Wanjun Zhong, Kuanye Li, Jiale Yang, Yu Miao, Woyu Lin, Longxiang Liu, Xu Jiang, Qianli Ma, Jingyu Li, Xiaojun Xiao, Kai Cai, Chuang Li, Yaowei Zheng, Chaolin Jin, Chen Li, Xiao Zhou, Minchao Wang, Haoli Chen, Zhaojian Li, Haihua Yang, Haifeng Liu, Feng Lin, Tao Peng, Xin Liu, Guang Shi},
-  title     = {UI-TARS: An End-to-End Framework for Autonomous GUI Agents with System-2 Reasoning and Iterative Reflection Tuning},
+  title     = {UI-TARS: Pioneering Automated GUI Interaction with Native Agents},
   journal   = {arXiv preprint arXiv:2501.12326},
   url       = {https://github.com/bytedance/UI-TARS},
   year      = {2025}
