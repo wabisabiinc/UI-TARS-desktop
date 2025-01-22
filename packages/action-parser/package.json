@@ -1,6 +1,6 @@
 {
   "name": "@ui-tars/action-parser",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Action parser SDK for UI-TARS",
   "keywords": [
     "AI",
@@ -13,7 +13,6 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsup --watch",
-    "prepublishOnly": "npm run build",
     "prepare": "npm run build",
     "build": "tsup",
     "test": "vitest",
