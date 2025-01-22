@@ -1,6 +1,7 @@
 {
-  "name": "@ui-tars/desktop-shared",
-  "version": "1.0.0",
+  "name": "@ui-tars/shared",
+  "version": "0.0.1",
+  "description": "Shared types for UI-TARS",
   "exports": {
     "./types": {
       "import": "./dist/types/index.mjs",
@@ -24,21 +25,23 @@
     }
   },
   "scripts": {
+    "prepublishOnly": "npm run build",
     "prepare": "npm run build",
     "dev": "tsup --watch",
     "build": "tsup",
     "prepack": "npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": [
+    "UI-TARS"
+  ],
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "files": [
     "dist"
   ],
-  "dependencies": {
-    "nanoid": "3.3.5"
-  },
+  "dependencies": {},
   "devDependencies": {
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"

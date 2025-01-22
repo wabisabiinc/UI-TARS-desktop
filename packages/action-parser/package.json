@@ -1,25 +1,33 @@
 {
   "name": "@ui-tars/action-parser",
-  "version": "1.0.0",
+  "version": "0.0.1",
+  "description": "Action parser SDK for UI-TARS",
+  "keywords": [
+    "AI",
+    "Action",
+    "Parser",
+    "UI-TARS"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsup --watch",
+    "prepublishOnly": "npm run build",
     "prepare": "npm run build",
     "build": "tsup",
     "test": "vitest",
     "prepack": "npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "Apache-2.0",
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
   "dependencies": {
-    "@ui-tars/desktop-shared": "workspace:*"
+    "@ui-tars/shared": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.3.5",
