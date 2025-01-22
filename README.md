@@ -9,7 +9,7 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 
 
 <p align="center">
-        &nbsp&nbsp 📑 <a href="https://github.com/bytedance/UI-TARS/blob/main/UI_TARS_paper_preview.pdf">Paper</a> &nbsp&nbsp
+        &nbsp&nbsp 📑 <a href="https://arxiv.org/abs/2501.12326">Paper</a> &nbsp&nbsp
         | 🤗 <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-SFT">Hugging Face Models</a>&nbsp&nbsp
         | 
 <br>
@@ -103,6 +103,7 @@ If you find our paper and code useful in your research, please consider giving a
 @article{uitars2025,
   author    = {Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, Wanjun Zhong, Kuanye Li, Jiale Yang, Yu Miao, Woyu Lin, Longxiang Liu, Xu Jiang, Qianli Ma, Jingyu Li, Xiaojun Xiao, Kai Cai, Chuang Li, Yaowei Zheng, Chaolin Jin, Chen Li, Xiao Zhou, Minchao Wang, Haoli Chen, Zhaojian Li, Haihua Yang, Haifeng Liu, Feng Lin, Tao Peng, Xin Liu, Guang Shi},
   title     = {UI-TARS: An End-to-End Framework for Autonomous GUI Agents with System-2 Reasoning and Iterative Reflection Tuning},
+  journal   = {arXiv preprint arXiv:2501.12326},
   url       = {https://github.com/bytedance/UI-TARS},
   year      = {2025}
 }
