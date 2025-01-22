@@ -54,6 +54,8 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
   <img src="./images/mac_app.png" width="500px" />
 
 > **Note**: If app broken, you can use `sudo xattr -dr com.apple.quarantine /Applications/UI\ TARS.app`  in Terminal to fix it.
+>
+> <img src="./images/mac_broken.png" width="400px" />
 
 #### Windows
 

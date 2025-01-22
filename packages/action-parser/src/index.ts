@@ -79,7 +79,8 @@ function parseActionVlm(
   const actions: PredictionParsed[] = [];
 
   for (const rawStr of allActions) {
-    const actionInstance = parseAction(rawStr.replace(/\n/g, '\\n').trim());
+    // prettier-ignore
+    const actionInstance = parseAction(rawStr.replace(/\n/g, String.raw`\n`).trimStart());
     if (!actionInstance) {
       console.log(`Action can't parse: ${rawStr}`);
       continue;

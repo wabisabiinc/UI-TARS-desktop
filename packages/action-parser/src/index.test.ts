@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+// @prettier
 import { describe, expect, it } from 'vitest';
 
 import { actionParser } from './index';
@@ -89,5 +94,21 @@ describe('actionParser', () => {
         },
       ],
     });
+  });
+
+  it('should return parsed action with newline', () => {
+    const result = actionParser({
+      // prettier-ignore
+      prediction: "Thought: 我已经点击了地址栏，现在需要输入网址doubao.com。地址栏已经被激活，可以直接输入网址。\nAction: type(content='doubao.com\n')",
+      factor: 1000,
+    });
+
+    expect(result.parsed[0].thought).toBe(
+      '我已经点击了地址栏，现在需要输入网址doubao.com。地址栏已经被激活，可以直接输入网址。',
+    );
+    expect(result.parsed[0].action_type).toBe('type');
+    expect(result.parsed[0].action_inputs.content).toEqual(
+      String.raw`doubao.com\n`,
+    );
   });
 });
