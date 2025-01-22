@@ -14,7 +14,7 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
         | 
 <br>
 🖥️ Desktop Application &nbsp&nbsp
-| &nbsp&nbsp 🤗 <a href="https://github.com/web-infra-dev/midscene">Midscene（Browser Use）</a>
+| &nbsp&nbsp 👓 <a href="https://github.com/web-infra-dev/midscene">Midscene (use in browser)</a>
 </p>
 
 ## Showcases
