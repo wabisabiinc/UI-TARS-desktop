@@ -68,8 +68,6 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 
 #### VLM (Vision-Language Model)
 
-Support HuggingFace(Cloud) and Ollama(Local) deployment.
-
 We recommend using HuggingFace Inference Endpoints for fast deployment. We provide two docs for users to refer:
 
 [GUI Model Deployment Guide](https://juniper-switch-f10.notion.site/GUI-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
@@ -77,14 +75,14 @@ We recommend using HuggingFace Inference Endpoints for fast deployment. We provi
 
 <img src="./images/settings_model.png" width="500px" />
 
-If you use Ollama, you can use the following settings to start the server:
+<!-- If you use Ollama, you can use the following settings to start the server:
 
 ```yaml
 VLM Provider: ollama
 VLM Base Url: http://localhost:11434/v1
 VLM API Key: api_key
 VLM Model Name: ui-tars
-```
+``` -->
 
 > **Note**: VLM Base Url is OpenAI compatible API endpoints (see [OpenAI API protocol document](https://platform.openai.com/docs/guides/vision/uploading-base-64-encoded-images) for more details).
 
