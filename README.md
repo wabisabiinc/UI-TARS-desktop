@@ -10,7 +10,7 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 
 <p align="center">
         &nbsp&nbsp 📑 <a href="https://arxiv.org/abs/2501.12326">Paper</a> &nbsp&nbsp
-        | 🤗 <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-SFT">Hugging Face Models</a>&nbsp&nbsp
+        | 🤗 <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-DPO">Hugging Face Models</a>&nbsp&nbsp
         |
 <br>
 🖥️ Desktop Application &nbsp&nbsp
