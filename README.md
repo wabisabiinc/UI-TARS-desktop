@@ -22,7 +22,7 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 The **GGUF model** has undergone quantization, but unfortunately, its performance cannot be guaranteed. As a result, we have decided to **downgrade** it. 
 
 💡 **Alternative Solution**:  
-You can use **[Cloud Deployment](#cloud-deployment)** or **[Local Deployment [vLLM]](#local-deployment-vllm)** instead. 
+You can use **[Cloud Deployment](#cloud-deployment)** or **[Local Deployment [vLLM]](#local-deployment-vllm)**(If you have enough GPU resources) instead. 
 
 We appreciate your understanding and patience as we work to ensure the best possible experience.
 
@@ -109,7 +109,7 @@ Run the command below to start an OpenAI-compatible API service:
 python -m vllm.entrypoints.openai.api_server --served-model-name ui-tars --model <path to your model>
 ```
 
-##### Input your API key
+##### Input your API information
 
 <img src="./images/settings_model.png" width="500px" />
 
