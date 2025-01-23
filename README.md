@@ -75,7 +75,7 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 
 ### Deployment
 
-### Cloud Deployment
+#### Cloud Deployment
 We recommend using HuggingFace Inference Endpoints for fast deployment.
 We provide two docs for users to refer:
 
@@ -83,7 +83,7 @@ English version: [GUI Model Deployment Guide](https://juniper-switch-f10.notion.
 
 中文版: [GUI模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb)
 
-### Local Deployment [vLLM]
+#### Local Deployment [vLLM]
 We recommend using vLLM for fast deployment and inference. You need to use `vllm>=0.6.1`.
 ```bash
 pip install -U transformers
@@ -92,7 +92,7 @@ CUDA_VERSION=cu124
 pip install vllm==${VLLM_VERSION} --extra-index-url https://download.pytorch.org/whl/${CUDA_VERSION}
 
 ```
-#### Download the Model
+##### Download the Model
 We provide three model sizes on Hugging Face: **2B**, **7B**, and **72B**. To achieve the best performance, we recommend using the **7B-DPO** or **72B-DPO** model (based on your hardware configuration):
 
 - [2B-SFT](https://huggingface.co/bytedance-research/UI-TARS-2B-SFT)
@@ -102,13 +102,14 @@ We provide three model sizes on Hugging Face: **2B**, **7B**, and **72B**. To ac
 - [72B-DPO](https://huggingface.co/bytedance-research/UI-TARS-72B-DPO)
 
 
-#### Start an OpenAI API Service
+##### Start an OpenAI API Service
 Run the command below to start an OpenAI-compatible API service:
 
 ```bash
 python -m vllm.entrypoints.openai.api_server --served-model-name ui-tars --model <path to your model>
 ```
 
+##### Input your API key
 
 <img src="./images/settings_model.png" width="500px" />
 
