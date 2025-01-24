@@ -87,7 +87,7 @@ const config: ForgeConfig = {
       unpack: [
         '**/node_modules/sharp/**/*',
         '**/node_modules/@img/**/*',
-        '**/node_modules/mac-screen-capture-permissions/**/*',
+        '**/node_modules/@computer-use/mac-screen-capture-permissions/**/*',
       ],
     },
     afterCopy: [
@@ -99,6 +99,23 @@ const config: ForgeConfig = {
     prune: true,
     executableName: 'UI-TARS',
     extraResource: ['./resources/app-update.yml', './resources/report.html'],
+    ...(process.env.APPLE_ID &&
+    process.env.APPLE_PASSWORD &&
+    process.env.APPLE_TEAM_ID
+      ? {
+          osxSign: {
+            keychain: process.env.KEYCHAIN_PATH,
+            optionsForFile: () => ({
+              entitlements: 'build/entitlements.mac.plist',
+            }),
+          },
+          osxNotarize: {
+            appleId: process.env.APPLE_ID,
+            appleIdPassword: process.env.APPLE_PASSWORD,
+            teamId: process.env.APPLE_TEAM_ID,
+          },
+        }
+      : {}),
   },
   rebuildConfig: {},
   publishers: [
