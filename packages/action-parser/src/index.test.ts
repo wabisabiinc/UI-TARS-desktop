@@ -74,6 +74,50 @@ describe('actionParser', () => {
     });
   });
 
+  it('should return parsed action with square brackets', () => {
+    const result = actionParser({
+      prediction:
+        "Action_Summary: 左键单击窗口右上角的最小化按钮（图标为横线），将当前窗口最小化到任务栏。\nAction: click(start_box='[948,57]')",
+      factor: 1000,
+    });
+
+    expect(result).toEqual({
+      parsed: [
+        {
+          action_inputs: {
+            start_box: '[0.948,0.057,0.948,0.057]',
+          },
+          action_type: 'click',
+          reflection: '',
+          thought:
+            '左键单击窗口右上角的最小化按钮（图标为横线），将当前窗口最小化到任务栏。',
+        },
+      ],
+    });
+  });
+
+  it('should return parsed action english with square brackets', () => {
+    const result = actionParser({
+      prediction:
+        'Thought: The task is to open Chrome, but the current screen shows a GitHub repository page in a different browser. To proceed, I need to close this window and open Chrome. The most efficient way to do this is by clicking the "X" button in the top-right corner of the current window to close it, which will allow me to access the desktop and open Chrome from there.\nClick on the "X" button in the top-right corner of the current window to close it.\nAction: click(start_box=\'[962,108]\')',
+      factor: 1000,
+    });
+
+    expect(result).toEqual({
+      parsed: [
+        {
+          action_inputs: {
+            start_box: '[0.962,0.108,0.962,0.108]',
+          },
+          action_type: 'click',
+          reflection: '',
+          thought:
+            'The task is to open Chrome, but the current screen shows a GitHub repository page in a different browser. To proceed, I need to close this window and open Chrome. The most efficient way to do this is by clicking the "X" button in the top-right corner of the current window to close it, which will allow me to access the desktop and open Chrome from there.\nClick on the "X" button in the top-right corner of the current window to close it.',
+        },
+      ],
+    });
+  });
+
   it('should return Action_Summary', () => {
     const result = actionParser({
       prediction:

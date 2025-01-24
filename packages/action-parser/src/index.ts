@@ -98,7 +98,7 @@ function parseActionVlm(
       if (paramName.includes('start_box') || paramName.includes('end_box')) {
         const oriBox = trimmedParam;
         // Remove parentheses and split
-        const numbers = oriBox.replace(/[()]/g, '').split(',');
+        const numbers = oriBox.replace(/[()[\]]/g, '').split(',');
 
         // Convert to float and scale
         const floatNumbers = numbers.map(
