@@ -26,6 +26,10 @@ You can use **[Cloud Deployment](#cloud-deployment)** or **[Local Deployment [vL
 
 We appreciate your understanding and patience as we work to ensure the best possible experience.
 
+## Updates
+
+- 🚀 01.25: We updated the **[Cloud Deployment](#cloud-deployment)** section in the 中文版: [GUI模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb) with new information related to the ModelScope platform. You can now use the ModelScope platform for deployment.
+
 ## Showcases
 
 | Instruction  | Video |
