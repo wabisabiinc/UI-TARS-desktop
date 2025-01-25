@@ -40,6 +40,7 @@ We appreciate your understanding and patience as we work to ensure the best poss
 - 🎯 Precise mouse and keyboard control
 - 💻 Cross-platform support (Windows/MacOS)
 - 🔄 Real-time feedback and status display
+- 🔐 Private and secure - fully local processing
 
 ## Quick Start
 
