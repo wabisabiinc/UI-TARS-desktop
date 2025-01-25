@@ -81,6 +81,10 @@ export const store = createStore<AppState>(
       },
 
       RUN_AGENT: async () => {
+        if (get().thinking) {
+          return;
+        }
+
         set({ abortController: new AbortController(), thinking: true });
 
         await runAgent(set, get);
@@ -91,6 +95,7 @@ export const store = createStore<AppState>(
         set({ status: StatusEnum.END, thinking: false });
         showWindow();
         get().abortController?.abort();
+
         closeScreenMarker();
       },
       SET_INSTRUCTIONS: (instructions) => {
