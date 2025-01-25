@@ -156,11 +156,10 @@ UI-TARS Desktop is licensed under the Apache License 2.0.
 If you find our paper and code useful in your research, please consider giving a star :star: and citation :pencil:
 
 ```BibTeX
-@article{uitars2025,
-  author    = {Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, Wanjun Zhong, Kuanye Li, Jiale Yang, Yu Miao, Woyu Lin, Longxiang Liu, Xu Jiang, Qianli Ma, Jingyu Li, Xiaojun Xiao, Kai Cai, Chuang Li, Yaowei Zheng, Chaolin Jin, Chen Li, Xiao Zhou, Minchao Wang, Haoli Chen, Zhaojian Li, Haihua Yang, Haifeng Liu, Feng Lin, Tao Peng, Xin Liu, Guang Shi},
-  title     = {UI-TARS: Pioneering Automated GUI Interaction with Native Agents},
-  journal   = {arXiv preprint arXiv:2501.12326},
-  url       = {https://github.com/bytedance/UI-TARS},
-  year      = {2025}
+@article{qin2025ui,
+  title={UI-TARS: Pioneering Automated GUI Interaction with Native Agents},
+  author={Qin, Yujia and Ye, Yining and Fang, Junjie and Wang, Haoming and Liang, Shihao and Tian, Shizuo and Zhang, Junda and Li, Jiahao and Li, Yunxin and Huang, Shijue and others},
+  journal={arXiv preprint arXiv:2501.12326},
+  year={2025}
 }
 ```
