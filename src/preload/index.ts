@@ -5,6 +5,8 @@
 import { IpcRendererEvent, contextBridge, ipcRenderer } from 'electron';
 import { preloadZustandBridge } from 'zutron/preload';
 
+import type { UTIOPayload } from '@ui-tars/utio';
+
 import type { AppState } from '@main/store/types';
 
 export type Channels = 'ipc-example';
@@ -32,6 +34,10 @@ const electronHandler = {
     minimize: () => ipcRenderer.invoke('minimize-window'),
     maximize: () => ipcRenderer.invoke('maximize-window'),
     close: () => ipcRenderer.invoke('close-window'),
+  },
+  utio: {
+    shareReport: (params: UTIOPayload<'shareReport'>) =>
+      ipcRenderer.invoke('utio:shareReport', params),
   },
 };
 

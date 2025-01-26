@@ -15,9 +15,12 @@ import { ScreenshotResult, StatusEnum } from '@ui-tars/shared/types';
 import { ComputerUseUserData, Conversation } from '@ui-tars/shared/types/data';
 import { ShareVersion } from '@ui-tars/shared/types/share';
 import sleep from '@ui-tars/shared/utils/sleep';
+import { UTIO } from '@ui-tars/utio';
 
 import { logger } from '@main/logger';
 
+import { UTIOService } from '../services/utio';
+import { store } from '../store/create';
 import { markClickPosition } from '../utils/image';
 import { Desktop } from './device';
 import { VLM, VlmRequest } from './llm/base';
@@ -110,6 +113,9 @@ export class ComputerUseAgent {
   }) {
     const { config, logger } = this;
     const { abortController, device, vlm, instruction } = config;
+
+    // Send instruction data to UTIO
+    await UTIOService.getInstance().sendInstruction(instruction);
 
     // init
     this.mode = VlmModeEnum.Agent;

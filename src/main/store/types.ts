@@ -65,4 +65,5 @@ export type LocalStore = {
   vlmModelName: string;
   screenshotScale: number; // 0.1 ~ 1.0
   reportStorageBaseUrl?: string;
+  utioBaseUrl?: string;
 };

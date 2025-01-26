@@ -130,13 +130,15 @@ const ChatInput = forwardRef((_props, _ref) => {
 
       const htmlContent = reportHTMLContent(html, [userData]);
 
+      let reportUrl: string | undefined;
+
       if (settings?.reportStorageBaseUrl) {
         try {
           const { url } = await uploadReport(
             htmlContent,
             settings.reportStorageBaseUrl,
           );
-          // Copy link to clipboard
+          reportUrl = url;
           await navigator.clipboard.writeText(url);
           toast({
             title: 'Report link copied to clipboard!',
@@ -146,7 +148,6 @@ const ChatInput = forwardRef((_props, _ref) => {
             isClosable: true,
             variant: 'ui-tars-success',
           });
-          return;
         } catch (error) {
           console.error('Share failed:', error);
           toast({
@@ -159,6 +160,20 @@ const ChatInput = forwardRef((_props, _ref) => {
             isClosable: true,
           });
         }
+      }
+
+      // Send UTIO data through IPC
+      if (settings?.utioBaseUrl) {
+        const lastScreenshot = messages
+          .filter((m) => m.screenshotBase64)
+          .pop()?.screenshotBase64;
+
+        await window.electron.utio.shareReport({
+          type: 'shareReport',
+          instruction: lastHumanMessage,
+          lastScreenshot,
+          report: reportUrl,
+        });
       }
 
       // If shareEndpoint is not configured or the upload fails, fall back to downloading the file
