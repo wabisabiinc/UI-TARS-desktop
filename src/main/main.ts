@@ -26,6 +26,7 @@ import {
 
 import { UTIOService } from './services/utio';
 import { store } from './store/create';
+import { SettingStore } from './store/setting';
 import { createTray } from './tray';
 
 const { isProd } = env;
@@ -164,6 +165,19 @@ const initializeApp = async () => {
   app.on('quit', unsubscribe);
 
   logger.info('initializeApp end');
+
+  // Check and update remote presets
+  const settings = SettingStore.getStore();
+  if (
+    settings.presetSource?.type === 'remote' &&
+    settings.presetSource.autoUpdate
+  ) {
+    try {
+      await SettingStore.importPresetFromUrl(settings.presetSource.url!, true);
+    } catch (error) {
+      logger.error('Failed to update preset:', error);
+    }
+  }
 };
 
 /**
@@ -180,6 +194,34 @@ const registerIPCHandlers = () => {
       screenWidth: primaryDisplay.size.width,
       screenHeight: primaryDisplay.size.height,
     };
+  });
+
+  ipcMain.handle('utio:importPresetFromFile', async (_, yamlContent) => {
+    await SettingStore.importPresetFromText(yamlContent);
+    return SettingStore.getStore();
+  });
+
+  ipcMain.handle('utio:importPresetFromUrl', async (_, url, autoUpdate) => {
+    await SettingStore.importPresetFromUrl(url, autoUpdate);
+    return SettingStore.getStore();
+  });
+
+  ipcMain.handle('utio:updatePresetFromRemote', async () => {
+    const settings = SettingStore.getStore();
+    if (settings.presetSource?.type === 'remote' && settings.presetSource.url) {
+      await SettingStore.importPresetFromUrl(
+        settings.presetSource.url,
+        settings.presetSource.autoUpdate,
+      );
+      return SettingStore.getStore();
+    } else {
+      throw new Error('No remote preset configured');
+    }
+  });
+
+  ipcMain.handle('utio:resetPreset', async () => {
+    SettingStore.resetPreset();
+    return SettingStore.getStore();
   });
 };
 
@@ -214,3 +256,5 @@ app
     logger.info('app.whenReady end');
   })
   .catch(console.log);
+
+// ... 保留其他代码 ...

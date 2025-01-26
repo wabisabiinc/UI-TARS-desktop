@@ -5,6 +5,7 @@
 import { ComputerUseUserData, Conversation } from '@ui-tars/shared/types';
 
 import { SettingStore } from './setting';
+import { LocalStore, PresetSource } from './validate';
 
 export type NextAction =
   | { type: 'key'; text: string }
@@ -57,13 +58,4 @@ export enum VlmProvider {
   vLLM = 'vLLM',
 }
 
-export type LocalStore = {
-  language: 'zh' | 'en';
-  vlmProvider: VlmProvider;
-  vlmBaseUrl: string;
-  vlmApiKey: string;
-  vlmModelName: string;
-  screenshotScale?: number; // 0.1 ~ 1.0
-  reportStorageBaseUrl?: string;
-  utioBaseUrl?: string;
-};
+export type { PresetSource, LocalStore };
