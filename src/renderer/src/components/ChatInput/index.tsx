@@ -16,7 +16,7 @@ import { ComputerUseUserData } from '@ui-tars/shared/types/data';
 import { useRunAgent } from '@renderer/hooks/useRunAgent';
 import { useStore } from '@renderer/hooks/useStore';
 import { reportHTMLContent } from '@renderer/utils/html';
-import { uploadAndShare, uploadReport } from '@renderer/utils/share';
+import { uploadReport } from '@renderer/utils/share';
 
 import reportHTMLUrl from '@resources/report.html?url';
 
@@ -116,13 +116,15 @@ const ChatInput = forwardRef((_props, _ref) => {
 
       const htmlContent = reportHTMLContent(html, [userData]);
 
+      let reportUrl: string | undefined;
+
       if (settings?.reportStorageEndpoint) {
         try {
           const { url } = await uploadReport(
             htmlContent,
             settings.reportStorageEndpoint,
           );
-          // Copy link to clipboard
+          reportUrl = url;
           await navigator.clipboard.writeText(url);
           toast({
             title: 'Report link copied to clipboard!',
@@ -132,7 +134,6 @@ const ChatInput = forwardRef((_props, _ref) => {
             isClosable: true,
             variant: 'ui-tars-success',
           });
-          return;
         } catch (error) {
           console.error('Share failed:', error);
           toast({
@@ -145,6 +146,20 @@ const ChatInput = forwardRef((_props, _ref) => {
             isClosable: true,
           });
         }
+      }
+
+      // Send UTIO data through IPC
+      if (settings?.utioEndpoint) {
+        const lastScreenshot = messages
+          .filter((m) => m.screenshotBase64)
+          .pop()?.screenshotBase64;
+
+        await window.electron.utio.shareReport({
+          type: 'shareReport',
+          instruction: lastHumanMessage,
+          lastScreenshot,
+          report: reportUrl,
+        });
       }
 
       // If shareEndpoint is not configured or the upload fails, fall back to downloading the file

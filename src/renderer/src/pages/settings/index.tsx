@@ -203,13 +203,23 @@ const Settings = () => {
 
                         <FormControl>
                           <FormLabel color="gray.700">
-                            Report Storage Provider Endpoint (Optional)
+                            Report Storage Endpoint
                           </FormLabel>
                           <Field
                             as={Input}
                             name="reportStorageEndpoint"
                             value={values.reportStorageEndpoint}
                             placeholder="https://your-report-storage-endpoint.com/upload"
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <FormLabel color="gray.700">UTIO Endpoint</FormLabel>
+                          <Field
+                            as={Input}
+                            name="utioEndpoint"
+                            value={values.utioEndpoint}
+                            placeholder="https://your-utio-endpoint.com/collect"
                           />
                         </FormControl>
 
