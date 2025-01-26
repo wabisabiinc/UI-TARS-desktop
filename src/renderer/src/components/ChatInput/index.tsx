@@ -16,7 +16,7 @@ import { ComputerUseUserData } from '@ui-tars/shared/types/data';
 import { useRunAgent } from '@renderer/hooks/useRunAgent';
 import { useStore } from '@renderer/hooks/useStore';
 import { reportHTMLContent } from '@renderer/utils/html';
-import { uploadAndShare } from '@renderer/utils/share';
+import { uploadAndShare, uploadReport } from '@renderer/utils/share';
 
 import reportHTMLUrl from '@resources/report.html?url';
 
@@ -116,16 +116,16 @@ const ChatInput = forwardRef((_props, _ref) => {
 
       const htmlContent = reportHTMLContent(html, [userData]);
 
-      if (settings?.shareEndpoint) {
+      if (settings?.reportStorageEndpoint) {
         try {
-          const { url } = await uploadAndShare(
+          const { url } = await uploadReport(
             htmlContent,
-            settings.shareEndpoint,
+            settings.reportStorageEndpoint,
           );
           // Copy link to clipboard
           await navigator.clipboard.writeText(url);
           toast({
-            title: 'Share link copied to clipboard!',
+            title: 'Report link copied to clipboard!',
             status: 'success',
             position: 'top',
             duration: 2000,
@@ -136,7 +136,7 @@ const ChatInput = forwardRef((_props, _ref) => {
         } catch (error) {
           console.error('Share failed:', error);
           toast({
-            title: 'Failed to share',
+            title: 'Failed to upload report',
             description:
               error instanceof Error ? error.message : JSON.stringify(error),
             status: 'error',

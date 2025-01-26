@@ -1,4 +1,4 @@
-export async function uploadAndShare(
+export async function uploadReport(
   htmlContent: string,
   endpoint: string,
 ): Promise<{ url: string }> {
@@ -19,7 +19,7 @@ export async function uploadAndShare(
     return await response.json();
   } catch (error) {
     throw new Error(
-      `Failed to upload file: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+      `Failed to upload report: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
     );
   }
 }

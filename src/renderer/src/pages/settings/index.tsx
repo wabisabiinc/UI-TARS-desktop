@@ -202,12 +202,14 @@ const Settings = () => {
                         </FormControl>
 
                         <FormControl>
-                          <FormLabel color="gray.700">Share Provider Endpoint (Optional)</FormLabel>
+                          <FormLabel color="gray.700">
+                            Report Storage Provider Endpoint (Optional)
+                          </FormLabel>
                           <Field
-                            as={Input} 
-                            name="shareEndpoint"
-                            value={values.shareEndpoint}
-                            placeholder="https://your-share-endpoint.com/upload"
+                            as={Input}
+                            name="reportStorageEndpoint"
+                            value={values.reportStorageEndpoint}
+                            placeholder="https://your-report-storage-endpoint.com/upload"
                           />
                         </FormControl>
 
