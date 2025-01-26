@@ -48,12 +48,25 @@ export type AppState = {
   SET_INSTRUCTIONS: (instructions: string) => void;
   SET_MESSAGES: (messages: Conversation[]) => void;
   CLEAR_HISTORY: () => void;
+
+  // === 新增 preset 相关 actions ===
+  IMPORT_PRESET_FROM_FILE: (file: File) => Promise<void>;
+  IMPORT_PRESET_FROM_URL: (url: string, autoUpdate?: boolean) => Promise<void>;
+  UPDATE_PRESET_FROM_REMOTE: () => Promise<void>;
+  RESET_PRESET: () => void;
 };
 
 export enum VlmProvider {
   // Ollama = 'ollama',
   Huggingface = 'Hugging Face',
   vLLM = 'vLLM',
+}
+
+export interface PresetSource {
+  type: 'local' | 'remote';
+  url?: string;
+  autoUpdate?: boolean;
+  lastUpdated?: number;
 }
 
 export type LocalStore = {
@@ -65,4 +78,5 @@ export type LocalStore = {
   screenshotScale: number; // 0.1 ~ 1.0
   reportStorageEndpoint?: string;
   utioEndpoint?: string;
+  presetSource?: PresetSource;
 };

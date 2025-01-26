@@ -20,6 +20,7 @@ import {
 import { UTIOService } from './services/utio';
 import { store } from './store/create';
 import { createTray } from './tray';
+import { SettingStore } from './store/setting';
 
 const { isProd } = env;
 
@@ -132,6 +133,16 @@ const initializeApp = async () => {
   app.on('quit', unsubscribe);
 
   logger.info('initializeApp end');
+
+  // 检查并更新远程预设
+  const settings = SettingStore.getStore();
+  if (settings.presetSource?.type === 'remote' && settings.presetSource.autoUpdate) {
+    try {
+      await SettingStore.importPresetFromUrl(settings.presetSource.url!, true);
+    } catch (error) {
+      logger.error('Failed to update preset:', error);
+    }
+  }
 };
 
 /**

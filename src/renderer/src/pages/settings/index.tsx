@@ -9,6 +9,7 @@ import {
   FormControl,
   FormLabel,
   HStack,
+  IconButton,
   Input,
   Select,
   Spinner,
@@ -21,7 +22,8 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { Field, Form, Formik } from 'formik';
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useState } from 'react';
+import { IoAdd } from 'react-icons/io5';
 import { useDispatch } from 'zutron';
 
 import { VlmProvider } from '@main/store/types';
@@ -29,8 +31,11 @@ import { VlmProvider } from '@main/store/types';
 import { useStore } from '@renderer/hooks/useStore';
 import { isWindows } from '@renderer/utils/os';
 
+import PresetImport from './PresetImport';
+
 const Settings = () => {
   const { settings, thinking } = useStore();
+  const [isPresetModalOpen, setPresetModalOpen] = useState(false);
   const toast = useToast();
   const dispatch = useDispatch(window.zutron);
 
@@ -73,7 +78,25 @@ const Settings = () => {
     });
   };
 
-  console.log('initialValues', settings);
+  const handleUpdatePreset = async () => {
+    try {
+      await dispatch('UPDATE_PRESET_FROM_REMOTE');
+      toast({
+        title: 'Preset updated successfully',
+        status: 'success',
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to update preset',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
+
+  const isPresetEnabled = !!settings?.presetSource;
 
   return (
     <Box px={4} py={!isWindows ? 8 : 0} position="relative" overflow="hidden">
@@ -89,11 +112,49 @@ const Settings = () => {
       <Tabs variant="line">
         <TabList>
           <Tab>General</Tab>
+          <Box ml="auto" display="flex" alignItems="center">
+            {settings?.presetSource?.type === 'remote' && (
+              <Button
+                size="sm"
+                mr={2}
+                onClick={handleUpdatePreset}
+                variant="tars-ghost"
+              >
+                Update Preset
+              </Button>
+            )}
+            <IconButton
+              icon={<IoAdd />}
+              aria-label="Import Preset"
+              variant="ghost"
+              onClick={() => setPresetModalOpen(true)}
+            />
+          </Box>
         </TabList>
 
         <TabPanels>
           <TabPanel>
             <VStack spacing={8} align="stretch">
+              {settings?.presetSource && (
+                <Box p={4} bg="gray.50" borderRadius="md">
+                  <Text fontSize="sm" color="gray.600">
+                    Settings managed by {settings.presetSource.type} preset
+                    {settings.presetSource.url &&
+                      ` from ${settings.presetSource.url}`}
+                    {settings.presetSource.lastUpdated &&
+                      ` (Last updated: ${new Date(settings.presetSource.lastUpdated).toLocaleString()})`}
+                  </Text>
+                  <Button
+                    size="sm"
+                    mt={2}
+                    onClick={() => dispatch('RESET_PRESET')}
+                    variant="ghost"
+                  >
+                    Reset to Manual
+                  </Button>
+                </Box>
+              )}
+
               {settings ? (
                 <Formik initialValues={settings} onSubmit={handleSubmit}>
                   {({ values = {}, setFieldValue }) => (
@@ -253,6 +314,10 @@ const Settings = () => {
           </TabPanel>
         </TabPanels>
       </Tabs>
+      <PresetImport
+        isOpen={isPresetModalOpen}
+        onClose={() => setPresetModalOpen(false)}
+      />
     </Box>
   );
 };
