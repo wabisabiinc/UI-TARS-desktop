@@ -18,6 +18,7 @@ import sleep from '@ui-tars/shared/utils/sleep';
 
 import { logger } from '@main/logger';
 
+import { UTIOService } from '../services/utio';
 import { markClickPosition } from '../utils/image';
 import { Desktop } from './device';
 import { VLM, VlmRequest } from './llm/base';
@@ -110,6 +111,9 @@ export class ComputerUseAgent {
   }) {
     const { config, logger } = this;
     const { abortController, device, vlm, instruction } = config;
+
+    // Send instruction data to UTIO
+    await UTIOService.getInstance().sendInstruction(instruction);
 
     // init
     this.mode = VlmModeEnum.Agent;
