@@ -6,6 +6,7 @@ import assert from 'assert';
 
 import { logger } from '@main/logger';
 import { hideWindowBlock } from '@main/window/index';
+import { StatusEnum } from '@ui-tars/shared/types';
 
 import { ComputerUseAgent } from '../agent';
 import { Desktop } from '../agent/device';
@@ -13,8 +14,11 @@ import { UITARS } from '../agent/llm/ui-tars';
 import { getSystemPrompt } from '../agent/prompts';
 import {
   closeScreenMarker,
+  hidePauseButton,
+  hideScreenWaterFlow,
   showPauseButton,
   showPredictionMarker,
+  showScreenWaterFlow,
 } from './ScreenMarker';
 import { SettingStore } from './setting';
 import { AppState } from './types';
@@ -40,7 +44,8 @@ export const runAgent = async (
     vlm,
   });
 
-  await showPauseButton();
+  showPauseButton();
+  showScreenWaterFlow();
 
   agent.on('data', (data) => {
     const { status, conversations, ...restUserData } = data;
@@ -88,9 +93,16 @@ export const runAgent = async (
       })
       .catch((e) => {
         logger.error('[runAgentLoop error]', e);
+        setState({
+          ...getState(),
+          status: StatusEnum.ERROR,
+          errorMsg: e.message,
+        });
       })
       .finally(() => {
         closeScreenMarker();
+        hidePauseButton();
+        hideScreenWaterFlow();
       });
   }).catch((e) => {
     logger.error('[runAgent error hideWindowBlock]', settings, e);
