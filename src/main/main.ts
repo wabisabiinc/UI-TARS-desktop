@@ -17,6 +17,7 @@ import {
   createSettingsWindow,
 } from '@main/window/index';
 
+import { UTIOService } from './services/utio';
 import { store } from './store/create';
 import { createTray } from './tray';
 
@@ -103,6 +104,9 @@ const initializeApp = async () => {
   // Tray
   await createTray();
 
+  // Send app launched event
+  await UTIOService.getInstance().appLaunched();
+
   const launcherWindowIns = LauncherWindow.getInstance();
 
   globalShortcut.register('Alt+T', () => {
@@ -142,6 +146,15 @@ const initializeApp = async () => {
 };
 
 /**
+ * Register IPC handlers
+ */
+const registerIPCHandlers = () => {
+  ipcMain.handle('utio:shareReport', async (_, params) => {
+    await UTIOService.getInstance().shareReport(params);
+  });
+};
+
+/**
  * Add event listeners...
  */
 
@@ -166,6 +179,8 @@ app
     });
 
     await initializeApp();
+
+    registerIPCHandlers();
 
     logger.info('app.whenReady end');
   })
