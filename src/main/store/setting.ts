@@ -102,6 +102,18 @@ export class SettingStore {
   public static resetPreset(): void {
     const store = SettingStore.getStore();
     const { presetSource, ...settings } = store;
-    SettingStore.setStore(settings);
+
+    // 1. 先清空所有数据
+    SettingStore.clear();
+
+    // 2. 重新设置基础数据
+    SettingStore.setStore({
+      ...settings,
+      language: settings.language || 'en',
+      vlmProvider: settings.vlmProvider || VlmProvider.Huggingface,
+      vlmBaseUrl: settings.vlmBaseUrl || '',
+      vlmApiKey: settings.vlmApiKey || '',
+      vlmModelName: settings.vlmModelName || '',
+    });
   }
 }

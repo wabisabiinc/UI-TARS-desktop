@@ -209,7 +209,19 @@ export default function Settings() {
                         size="sm"
                         variant="outline"
                         colorScheme="red"
-                        onClick={() => window.electron.utio.resetPreset()}
+                        onClick={async () => {
+                          await window.electron.utio.resetPreset();
+                          // refresh setting
+                          dispatch({
+                            type: 'GET_SETTINGS',
+                            payload: null,
+                          });
+                          toast({
+                            title: 'Reset to manual mode successfully',
+                            status: 'success',
+                            duration: 2000,
+                          });
+                        }}
                         alignSelf="flex-start"
                       >
                         Reset to Manual
@@ -241,7 +253,7 @@ export default function Settings() {
                       };
 
                       return (
-                        <Form>
+                        <Form id="settings-form">
                           <VStack spacing={4} align="stretch">
                             <FormControl>
                               <FormLabel color="gray.700">Language</FormLabel>
@@ -400,7 +412,13 @@ export default function Settings() {
           flexShrink={0}
         >
           <HStack spacing={4} justify="flex-start">
-            <Button type="submit" rounded="base" variant="tars-ghost">
+            <Button
+              form="settings-form"
+              as="button"
+              type="submit"
+              rounded="base"
+              variant="tars-ghost"
+            >
               Save
             </Button>
             <Button
