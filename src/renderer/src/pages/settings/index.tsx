@@ -101,7 +101,13 @@ const Settings = () => {
   };
 
   return (
-    <Box px={4} py={!isWindows ? 8 : 0} position="relative" overflow="hidden">
+    <Box
+      px={4}
+      py={!isWindows ? 8 : 0}
+      position="relative"
+      overflow="auto"
+      maxH="100vh"
+    >
       {!isWindows && (
         <Box
           className="draggable-area"
