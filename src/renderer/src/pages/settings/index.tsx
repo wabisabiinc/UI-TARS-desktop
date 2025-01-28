@@ -19,12 +19,13 @@ import {
   TabPanels,
   Tabs,
   Text,
+  Tooltip,
   VStack,
   useToast,
 } from '@chakra-ui/react';
 import { Field, Form, Formik } from 'formik';
 import { useLayoutEffect, useState } from 'react';
-import { IoAdd } from 'react-icons/io5';
+import { IoAdd, IoInformationCircle } from 'react-icons/io5';
 import { useDispatch } from 'zutron';
 
 import { VlmProvider } from '@main/store/types';
@@ -102,12 +103,7 @@ export default function Settings() {
 
   return (
     <Box h="100vh" overflow="hidden" px={6} pt={6} pb={0}>
-      <Tabs
-        display="flex"
-        flexDirection="column"
-        h="full"
-        pt={4} // 添加顶部间距
-      >
+      <Tabs display="flex" flexDirection="column" h="full" pt={4}>
         <Box
           borderColor="gray.200"
           bg="white"
@@ -175,13 +171,20 @@ export default function Settings() {
                   >
                     <VStack spacing={3} align="stretch">
                       <HStack spacing={3} justify="space-between">
-                        <Text fontWeight="medium" color="gray.700">
-                          Remote Preset Management
-                        </Text>
+                        <HStack>
+                          <Text fontWeight="medium" color="gray.700">
+                            Remote Preset Management
+                          </Text>
+                          <Tooltip label="When using remote preset, settings will be read-only">
+                            <Box display="inline-block">
+                              <IoInformationCircle color="gray.500" />
+                            </Box>
+                          </Tooltip>
+                        </HStack>
                         <Button
+                          colorScheme="blue"
                           size="sm"
                           variant="outline"
-                          colorScheme="gray"
                           onClick={handleUpdatePreset}
                         >
                           Update Preset
@@ -204,8 +207,8 @@ export default function Settings() {
 
                       <Button
                         size="sm"
-                        variant="ghost"
-                        colorScheme="gray"
+                        variant="outline"
+                        colorScheme="red"
                         onClick={() => window.electron.utio.resetPreset()}
                         alignSelf="flex-start"
                       >
@@ -217,139 +220,163 @@ export default function Settings() {
 
                 {settings ? (
                   <Formik initialValues={settings} onSubmit={handleSubmit}>
-                    {({ values = {}, setFieldValue }) => (
-                      <Form>
-                        <VStack spacing={4} align="stretch">
-                          <FormControl>
-                            <FormLabel color="gray.700">Language</FormLabel>
-                            <Field
-                              as={Select}
-                              name="language"
-                              value={values.language}
-                              bg="white"
-                              borderColor="gray.200"
-                              _hover={{ borderColor: 'gray.300' }}
-                              _focus={{
-                                borderColor: 'gray.400',
-                                boxShadow: 'none',
-                              }}
-                            >
-                              <option key="en" value="en">
-                                English
-                              </option>
-                              <option key="zh" value="zh">
-                                中文
-                              </option>
-                            </Field>
-                          </FormControl>
+                    {({ values = {}, setFieldValue }) => {
+                      const isRemotePreset =
+                        settings?.presetSource?.type === 'remote';
+                      const inputProps = {
+                        bg: 'white',
+                        borderColor: 'gray.200',
+                        _hover: isRemotePreset
+                          ? {}
+                          : { borderColor: 'gray.300' },
+                        _focus: isRemotePreset
+                          ? {}
+                          : {
+                              borderColor: 'gray.400',
+                              boxShadow: 'none',
+                            },
+                        isReadOnly: isRemotePreset,
+                        opacity: isRemotePreset ? 0.7 : 1,
+                        cursor: isRemotePreset ? 'not-allowed' : 'pointer',
+                      };
 
-                          <FormControl>
-                            <FormLabel color="gray.700">VLM Provider</FormLabel>
-                            <Field
-                              as={Select}
-                              name="vlmProvider"
-                              value={values.vlmProvider}
-                              bg="white"
-                              borderColor="gray.200"
-                              _hover={{ borderColor: 'gray.300' }}
-                              _focus={{
-                                borderColor: 'gray.400',
-                                boxShadow: 'none',
-                              }}
-                              onChange={(e) => {
-                                const newValue = e.target.value;
-                                setFieldValue('vlmProvider', newValue);
-
-                                if (!settings.vlmBaseUrl) {
-                                  setFieldValue('vlmProvider', newValue);
-                                  if (newValue === VlmProvider.vLLM) {
-                                    setFieldValue(
-                                      'vlmBaseUrl',
-                                      'http://localhost:8000/v1',
-                                    );
-                                    setFieldValue('vlmModelName', 'ui-tars');
-                                  } else if (
-                                    newValue === VlmProvider.Huggingface
-                                  ) {
-                                    setFieldValue(
-                                      'vlmBaseUrl',
-                                      'https://<your_service>.us-east-1.aws.endpoints.huggingface.cloud/v1',
-                                    );
-                                    setFieldValue('vlmApiKey', 'your_api_key');
-                                    setFieldValue(
-                                      'vlmModelName',
-                                      'your_model_name',
-                                    );
-                                  }
-                                }
-                              }}
-                            >
-                              {Object.values(VlmProvider).map((item) => (
-                                <option key={item} value={item}>
-                                  {item}
+                      return (
+                        <Form>
+                          <VStack spacing={4} align="stretch">
+                            <FormControl>
+                              <FormLabel color="gray.700">Language</FormLabel>
+                              <Field
+                                as={Select}
+                                name="language"
+                                value={values.language}
+                                {...inputProps}
+                              >
+                                <option key="en" value="en">
+                                  English
                                 </option>
-                              ))}
-                            </Field>
-                          </FormControl>
+                                <option key="zh" value="zh">
+                                  中文
+                                </option>
+                              </Field>
+                            </FormControl>
 
-                          <FormControl>
-                            <FormLabel color="gray.700">VLM Base URL</FormLabel>
-                            <Field
-                              as={Input}
-                              name="vlmBaseUrl"
-                              value={values.vlmBaseUrl}
-                              placeholder="please input VLM Base URL"
-                            />
-                          </FormControl>
+                            <FormControl>
+                              <FormLabel color="gray.700">
+                                VLM Provider
+                              </FormLabel>
+                              <Field
+                                as={Select}
+                                name="vlmProvider"
+                                value={values.vlmProvider}
+                                {...inputProps}
+                                onChange={(e) => {
+                                  if (isRemotePreset) return;
+                                  const newValue = e.target.value;
+                                  setFieldValue('vlmProvider', newValue);
 
-                          <FormControl>
-                            <FormLabel color="gray.700">VLM API Key</FormLabel>
-                            <Field
-                              as={Input}
-                              name="vlmApiKey"
-                              value={values.vlmApiKey}
-                              placeholder="please input VLM API_Key"
-                            />
-                          </FormControl>
+                                  if (!settings.vlmBaseUrl) {
+                                    setFieldValue('vlmProvider', newValue);
+                                    if (newValue === VlmProvider.vLLM) {
+                                      setFieldValue(
+                                        'vlmBaseUrl',
+                                        'http://localhost:8000/v1',
+                                      );
+                                      setFieldValue('vlmModelName', 'ui-tars');
+                                    } else if (
+                                      newValue === VlmProvider.Huggingface
+                                    ) {
+                                      setFieldValue(
+                                        'vlmBaseUrl',
+                                        'https://<your_service>.us-east-1.aws.endpoints.huggingface.cloud/v1',
+                                      );
+                                      setFieldValue(
+                                        'vlmApiKey',
+                                        'your_api_key',
+                                      );
+                                      setFieldValue(
+                                        'vlmModelName',
+                                        'your_model_name',
+                                      );
+                                    }
+                                  }
+                                }}
+                              >
+                                {Object.values(VlmProvider).map((item) => (
+                                  <option key={item} value={item}>
+                                    {item}
+                                  </option>
+                                ))}
+                              </Field>
+                            </FormControl>
 
-                          <FormControl>
-                            <FormLabel color="gray.700">
-                              VLM Model Name
-                            </FormLabel>
-                            <Field
-                              as={Input}
-                              name="vlmModelName"
-                              value={values.vlmModelName}
-                              placeholder="please input VLM Model Name"
-                            />
-                          </FormControl>
+                            <FormControl>
+                              <FormLabel color="gray.700">
+                                VLM Base URL
+                              </FormLabel>
+                              <Field
+                                as={Input}
+                                name="vlmBaseUrl"
+                                value={values.vlmBaseUrl}
+                                placeholder="please input VLM Base URL"
+                                {...inputProps}
+                              />
+                            </FormControl>
 
-                          <FormControl>
-                            <FormLabel color="gray.700">
-                              Report Storage Base URL
-                            </FormLabel>
-                            <Field
-                              as={Input}
-                              name="reportStorageBaseUrl"
-                              value={values.reportStorageBaseUrl}
-                              placeholder="https://your-report-storage-endpoint.com/upload"
-                            />
-                          </FormControl>
+                            <FormControl>
+                              <FormLabel color="gray.700">
+                                VLM API Key
+                              </FormLabel>
+                              <Field
+                                as={Input}
+                                name="vlmApiKey"
+                                value={values.vlmApiKey}
+                                placeholder="please input VLM API_Key"
+                                {...inputProps}
+                              />
+                            </FormControl>
 
-                          <FormControl>
-                            <FormLabel color="gray.700">
-                              UTIO Base URL
-                            </FormLabel>
-                            <Field
-                              as={Input}
-                              name="utioBaseUrl"
-                              value={values.utioBaseUrl}
-                              placeholder="https://your-utio-endpoint.com/collect"
-                            />
-                          </FormControl>
-                        </VStack>
-                      </Form>
-                    )}
+                            <FormControl>
+                              <FormLabel color="gray.700">
+                                VLM Model Name
+                              </FormLabel>
+                              <Field
+                                as={Input}
+                                name="vlmModelName"
+                                value={values.vlmModelName}
+                                placeholder="please input VLM Model Name"
+                                {...inputProps}
+                              />
+                            </FormControl>
+
+                            <FormControl>
+                              <FormLabel color="gray.700">
+                                Report Storage Base URL
+                              </FormLabel>
+                              <Field
+                                as={Input}
+                                name="reportStorageBaseUrl"
+                                value={values.reportStorageBaseUrl}
+                                placeholder="https://your-report-storage-endpoint.com/upload"
+                                {...inputProps}
+                              />
+                            </FormControl>
+
+                            <FormControl>
+                              <FormLabel color="gray.700">
+                                UTIO Base URL
+                              </FormLabel>
+                              <Field
+                                as={Input}
+                                name="utioBaseUrl"
+                                value={values.utioBaseUrl}
+                                placeholder="https://your-utio-endpoint.com/collect"
+                                {...inputProps}
+                              />
+                            </FormControl>
+                          </VStack>
+                        </Form>
+                      );
+                    }}
                   </Formik>
                 ) : (
                   <Center>
