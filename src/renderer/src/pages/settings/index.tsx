@@ -120,16 +120,6 @@ export default function Settings() {
           <TabList>
             <Tab>General</Tab>
             <Box ml="auto" display="flex" alignItems="center">
-              {settings?.presetSource?.type === 'remote' && (
-                <Button
-                  size="sm"
-                  mr={2}
-                  onClick={handleUpdatePreset}
-                  variant="tars-ghost"
-                >
-                  Update Preset
-                </Button>
-              )}
               <IconButton
                 icon={<IoAdd />}
                 aria-label="Import Preset"
@@ -175,21 +165,53 @@ export default function Settings() {
             >
               <VStack spacing={2} align="stretch" py={4}>
                 {settings?.presetSource?.type === 'remote' && (
-                  <Box p={4} bg="gray.50" borderRadius="md">
-                    <Text fontSize="sm" color="gray.600">
-                      Settings managed by remote preset from{' '}
-                      {settings.presetSource.url}
-                      {settings.presetSource.lastUpdated &&
-                        ` (Last updated: ${new Date(settings.presetSource.lastUpdated).toLocaleString()})`}
-                    </Text>
-                    <Button
-                      size="sm"
-                      mt={2}
-                      onClick={() => window.electron.utio.resetPreset()}
-                      variant="ghost"
-                    >
-                      Reset to Manual
-                    </Button>
+                  <Box
+                    p={4}
+                    bg="gray.50"
+                    borderRadius="md"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    mb={4}
+                  >
+                    <VStack spacing={3} align="stretch">
+                      <HStack spacing={3} justify="space-between">
+                        <Text fontWeight="medium" color="gray.700">
+                          Remote Preset Management
+                        </Text>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          colorScheme="gray"
+                          onClick={handleUpdatePreset}
+                        >
+                          Update Preset
+                        </Button>
+                      </HStack>
+
+                      <Box>
+                        <Text fontSize="sm" color="gray.600" noOfLines={2}>
+                          {settings.presetSource.url}
+                        </Text>
+                        {settings.presetSource.lastUpdated && (
+                          <Text fontSize="xs" color="gray.500" mt={1}>
+                            Last updated:{' '}
+                            {new Date(
+                              settings.presetSource.lastUpdated,
+                            ).toLocaleString()}
+                          </Text>
+                        )}
+                      </Box>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="gray"
+                        onClick={() => window.electron.utio.resetPreset()}
+                        alignSelf="flex-start"
+                      >
+                        Reset to Manual
+                      </Button>
+                    </VStack>
                   </Box>
                 )}
 
