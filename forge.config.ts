@@ -7,7 +7,7 @@ import { readdir } from 'node:fs/promises';
 import path, { resolve } from 'node:path';
 
 import { MakerDMG } from '@electron-forge/maker-dmg';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
+import MakerNSIS from '@electron-addons/electron-forge-maker-nsis';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
@@ -133,11 +133,8 @@ const config: ForgeConfig = {
     },
   ],
   makers: [
+    new MakerNSIS({}),
     new MakerZIP({}, ['darwin']),
-    new MakerSquirrel({
-      name: 'UI-TARS',
-      setupIcon: 'resources/icon.ico',
-    }),
     // https://github.com/electron/forge/issues/3712
     new MakerDMG({
       overwrite: true,
