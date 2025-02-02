@@ -40,15 +40,15 @@ const electronHandler = {
   utio: {
     shareReport: (params: UTIOPayload<'shareReport'>) =>
       ipcRenderer.invoke('utio:shareReport', params),
-    importPresetFromFile: (yamlContent: string) =>
-      ipcRenderer.invoke('utio:importPresetFromFile', yamlContent),
-    importPresetFromUrl: (url: string, autoUpdate: boolean) =>
-      ipcRenderer.invoke('utio:importPresetFromUrl', url, autoUpdate),
-    updatePresetFromRemote: () =>
-      ipcRenderer.invoke('utio:updatePresetFromRemote'),
-    resetPreset: () => ipcRenderer.invoke('utio:resetPreset'),
   },
   setting: {
+    importPresetFromFile: (yamlContent: string) =>
+      ipcRenderer.invoke('setting:importPresetFromFile', yamlContent),
+    importPresetFromUrl: (url: string, autoUpdate: boolean) =>
+      ipcRenderer.invoke('setting:importPresetFromUrl', url, autoUpdate),
+    updatePresetFromRemote: () =>
+      ipcRenderer.invoke('setting:updatePresetFromRemote'),
+    resetPreset: () => ipcRenderer.invoke('setting:resetPreset'),
     clear: () => ipcRenderer.invoke('setting:clear'),
   },
 };

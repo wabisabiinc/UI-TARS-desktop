@@ -50,7 +50,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
       });
 
       // Send text content via IPC
-      await window.electron.utio.importPresetFromFile(yamlText);
+      await window.electron.setting.importPresetFromFile(yamlText);
       dispatch({ type: 'GET_SETTINGS', payload: null });
 
       toast({
@@ -71,7 +71,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
 
   const handleRemoteImport = async () => {
     try {
-      await window.electron.utio.importPresetFromUrl(remoteUrl, autoUpdate);
+      await window.electron.setting.importPresetFromUrl(remoteUrl, autoUpdate);
       dispatch({ type: 'GET_SETTINGS', payload: null });
 
       toast({

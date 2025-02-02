@@ -196,17 +196,17 @@ const registerIPCHandlers = () => {
     };
   });
 
-  ipcMain.handle('utio:importPresetFromFile', async (_, yamlContent) => {
+  ipcMain.handle('setting:importPresetFromFile', async (_, yamlContent) => {
     await SettingStore.importPresetFromText(yamlContent);
     return SettingStore.getStore();
   });
 
-  ipcMain.handle('utio:importPresetFromUrl', async (_, url, autoUpdate) => {
+  ipcMain.handle('setting:importPresetFromUrl', async (_, url, autoUpdate) => {
     await SettingStore.importPresetFromUrl(url, autoUpdate);
     return SettingStore.getStore();
   });
 
-  ipcMain.handle('utio:updatePresetFromRemote', async () => {
+  ipcMain.handle('setting:updatePresetFromRemote', async () => {
     const settings = SettingStore.getStore();
     if (settings.presetSource?.type === 'remote' && settings.presetSource.url) {
       await SettingStore.importPresetFromUrl(
@@ -219,7 +219,7 @@ const registerIPCHandlers = () => {
     }
   });
 
-  ipcMain.handle('utio:resetPreset', async () => {
+  ipcMain.handle('setting:resetPreset', async () => {
     SettingStore.resetPreset();
     return SettingStore.getStore();
   });

@@ -85,7 +85,7 @@ export default function Settings() {
   console.log('initialValues', settings);
   const handleUpdatePreset = async () => {
     try {
-      await window.electron.utio.updatePresetFromRemote();
+      await window.electron.setting.updatePresetFromRemote();
       toast({
         title: 'Preset updated successfully',
         status: 'success',
@@ -233,7 +233,7 @@ export default function Settings() {
                         variant="outline"
                         colorScheme="red"
                         onClick={async () => {
-                          await window.electron.utio.resetPreset();
+                          await window.electron.setting.resetPreset();
                           // refresh setting
                           dispatch({
                             type: 'GET_SETTINGS',
