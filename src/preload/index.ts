@@ -48,6 +48,9 @@ const electronHandler = {
       ipcRenderer.invoke('utio:updatePresetFromRemote'),
     resetPreset: () => ipcRenderer.invoke('utio:resetPreset'),
   },
+  setting: {
+    clear: () => ipcRenderer.invoke('setting:clear'),
+  },
 };
 
 // Initialize Zutron bridge

@@ -25,7 +25,7 @@ import {
 } from '@chakra-ui/react';
 import { Field, Form, Formik } from 'formik';
 import { useLayoutEffect, useState } from 'react';
-import { IoAdd, IoInformationCircle } from 'react-icons/io5';
+import { IoAdd, IoInformationCircle, IoTrash } from 'react-icons/io5';
 import { useDispatch } from 'zutron';
 
 import { VlmProvider } from '@main/store/types';
@@ -94,6 +94,29 @@ export default function Settings() {
     } catch (error) {
       toast({
         title: 'Failed to update preset',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleClearSettings = async () => {
+    try {
+      await window.electron.setting.clear();
+      // 刷新设置
+      dispatch({
+        type: 'GET_SETTINGS',
+        payload: null,
+      });
+      toast({
+        title: 'All settings cleared successfully',
+        status: 'success',
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to clear settings',
         description: error.message,
         status: 'error',
         duration: 3000,
@@ -231,7 +254,11 @@ export default function Settings() {
                 )}
 
                 {settings ? (
-                  <Formik initialValues={settings} onSubmit={handleSubmit}>
+                  <Formik
+                    initialValues={settings}
+                    onSubmit={handleSubmit}
+                    enableReinitialize
+                  >
                     {({ values = {}, setFieldValue }) => {
                       const isRemotePreset =
                         settings?.presetSource?.type === 'remote';
@@ -411,24 +438,34 @@ export default function Settings() {
           zIndex={1}
           flexShrink={0}
         >
-          <HStack spacing={4} justify="flex-start">
-            <Button
-              form="settings-form"
-              as="button"
-              type="submit"
-              rounded="base"
-              variant="tars-ghost"
-            >
-              Save
-            </Button>
-            <Button
-              onClick={handleCancel}
-              rounded="base"
+          <HStack spacing={4} justify="space-between">
+            <HStack spacing={4}>
+              <Button
+                form="settings-form"
+                as="button"
+                type="submit"
+                rounded="base"
+                variant="tars-ghost"
+              >
+                Save
+              </Button>
+              <Button
+                onClick={handleCancel}
+                rounded="base"
+                variant="ghost"
+                fontWeight="normal"
+              >
+                Cancel
+              </Button>
+            </HStack>
+
+            <IconButton
+              aria-label="Clear all settings"
+              icon={<IoTrash />}
               variant="ghost"
-              fontWeight="normal"
-            >
-              Cancel
-            </Button>
+              colorScheme="red"
+              onClick={handleClearSettings}
+            />
           </HStack>
         </Box>
       </Tabs>

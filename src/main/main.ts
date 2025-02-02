@@ -13,7 +13,7 @@ import {
 } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import ElectronStore from 'electron-store';
-import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
+import { UpdateSourceType, updateElectronApp } from 'update-electron-app';
 import { mainZustandBridge } from 'zutron/main';
 
 import * as env from '@main/env';
@@ -222,6 +222,10 @@ const registerIPCHandlers = () => {
   ipcMain.handle('utio:resetPreset', async () => {
     SettingStore.resetPreset();
     return SettingStore.getStore();
+  });
+
+  ipcMain.handle('setting:clear', async () => {
+    SettingStore.clear();
   });
 };
 
