@@ -4,7 +4,6 @@
  */
 import ElectronStore from 'electron-store';
 import yaml from 'js-yaml';
-import z from 'zod';
 
 import * as env from '@main/env';
 import { logger } from '@main/logger';
@@ -76,7 +75,9 @@ export class SettingStore {
       });
     } catch (error) {
       logger.error(error);
-      throw new Error(`Failed to import preset: ${error.message}`);
+      throw new Error(
+        `Failed to import preset: ${error instanceof Error ? error.message : error}`,
+      );
     }
   }
 
@@ -95,7 +96,9 @@ export class SettingStore {
       });
     } catch (error) {
       logger.error(error);
-      throw new Error(`Failed to import preset: ${error.message}`);
+      throw new Error(
+        `Failed to import preset: ${error instanceof Error ? error.message : error}`,
+      );
     }
   }
 

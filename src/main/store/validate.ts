@@ -22,7 +22,7 @@ export const PresetSchema = z.object({
   vlmModelName: z.string().min(1),
 
   // Optional fields
-  screenshotScale: z.number().min(0.1).max(1).optional().default(1),
+  screenshotScale: z.number().min(0.1).max(1).optional(),
   reportStorageBaseUrl: z.string().url().optional(),
   utioBaseUrl: z.string().url().optional(),
   presetSource: PresetSourceSchema.optional(),

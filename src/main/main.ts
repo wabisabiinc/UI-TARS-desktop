@@ -260,5 +260,3 @@ app
     logger.info('app.whenReady end');
   })
   .catch(console.log);
-
-// ... 保留其他代码 ...
