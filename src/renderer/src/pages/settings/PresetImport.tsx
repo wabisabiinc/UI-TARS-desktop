@@ -22,6 +22,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
+import { useDispatch } from 'zutron';
 
 interface PresetImportProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
   const [autoUpdate, setAutoUpdate] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+  const dispatch = useDispatch(window.zutron);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -49,6 +51,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
 
       // Send text content via IPC
       await window.electron.utio.importPresetFromFile(yamlText);
+      dispatch({ type: 'GET_SETTINGS', payload: null });
 
       toast({
         title: 'Preset imported successfully',
@@ -69,6 +72,8 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
   const handleRemoteImport = async () => {
     try {
       await window.electron.utio.importPresetFromUrl(remoteUrl, autoUpdate);
+      dispatch({ type: 'GET_SETTINGS', payload: null });
+
       toast({
         title: 'Preset imported successfully',
         status: 'success',
