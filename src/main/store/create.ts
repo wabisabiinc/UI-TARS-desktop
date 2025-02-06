@@ -19,6 +19,13 @@ import { closeScreenMarker } from '@main/window/ScreenMarker';
 import { runAgent } from './runAgent';
 import { SettingStore } from './setting';
 import { AppState } from './types';
+import { logger } from '@main/logger';
+
+SettingStore.instance.onDidAnyChange((newValue, oldValue) => {
+  logger.log(
+    `SettingStore: ${JSON.stringify(oldValue)} changed to ${JSON.stringify(newValue)}`,
+  );
+});
 
 export const store = createStore<AppState>(
   (set, get) =>
