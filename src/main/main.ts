@@ -220,8 +220,7 @@ const registerIPCHandlers = () => {
   });
 
   ipcMain.handle('setting:resetPreset', async () => {
-    SettingStore.resetPreset();
-    return SettingStore.getStore();
+    SettingStore.remove('presetSource');
   });
 
   ipcMain.handle('setting:clear', async () => {
