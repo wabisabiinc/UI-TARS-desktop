@@ -11,16 +11,18 @@ import { logger } from '@main/logger';
 import { LocalStore, VlmProvider } from './types';
 import { validatePreset } from './validate';
 
+const DEFAULT_SETTING: LocalStore = {
+  language: 'en',
+  vlmProvider: (env.vlmProvider as VlmProvider) || VlmProvider.Huggingface,
+  vlmBaseUrl: env.vlmBaseUrl || '',
+  vlmApiKey: env.vlmApiKey || '',
+  vlmModelName: env.vlmModelName || '',
+};
+
 export class SettingStore {
-  private static instance = new ElectronStore<LocalStore>({
+  public static instance = new ElectronStore<LocalStore>({
     name: 'ui_tars.setting',
-    defaults: {
-      language: 'en',
-      vlmProvider: (env.vlmProvider as VlmProvider) || VlmProvider.Huggingface,
-      vlmBaseUrl: env.vlmBaseUrl || '',
-      vlmApiKey: env.vlmApiKey || '',
-      vlmModelName: env.vlmModelName || '',
-    },
+    defaults: DEFAULT_SETTING,
   });
 
   public static set<K extends keyof LocalStore>(
@@ -38,12 +40,16 @@ export class SettingStore {
     return SettingStore.instance.get(key);
   }
 
+  public static remove<K extends keyof LocalStore>(key: K): void {
+    SettingStore.instance.delete(key);
+  }
+
   public static getStore(): LocalStore {
     return SettingStore.instance.store;
   }
 
   public static clear(): void {
-    SettingStore.instance.clear();
+    SettingStore.instance.set(DEFAULT_SETTING);
   }
 
   public static openInEditor(): void {
@@ -100,23 +106,5 @@ export class SettingStore {
         `Failed to import preset: ${error instanceof Error ? error.message : error}`,
       );
     }
-  }
-
-  public static resetPreset(): void {
-    const store = SettingStore.getStore();
-    const { presetSource, ...settings } = store;
-
-    // 1. 先清空所有数据
-    SettingStore.clear();
-
-    // 2. 重新设置基础数据
-    SettingStore.setStore({
-      ...settings,
-      language: settings.language || 'en',
-      vlmProvider: settings.vlmProvider || VlmProvider.Huggingface,
-      vlmBaseUrl: settings.vlmBaseUrl || '',
-      vlmApiKey: settings.vlmApiKey || '',
-      vlmModelName: settings.vlmModelName || '',
-    });
   }
 }
