@@ -28,6 +28,7 @@ import { UTIOService } from './services/utio';
 import { store } from './store/create';
 import { SettingStore } from './store/setting';
 import { createTray } from './tray';
+import { registerSettingsHandlers } from './services/settings';
 
 const { isProd } = env;
 
@@ -196,36 +197,7 @@ const registerIPCHandlers = () => {
     };
   });
 
-  ipcMain.handle('setting:importPresetFromFile', async (_, yamlContent) => {
-    await SettingStore.importPresetFromText(yamlContent);
-    return SettingStore.getStore();
-  });
-
-  ipcMain.handle('setting:importPresetFromUrl', async (_, url, autoUpdate) => {
-    await SettingStore.importPresetFromUrl(url, autoUpdate);
-    return SettingStore.getStore();
-  });
-
-  ipcMain.handle('setting:updatePresetFromRemote', async () => {
-    const settings = SettingStore.getStore();
-    if (settings.presetSource?.type === 'remote' && settings.presetSource.url) {
-      await SettingStore.importPresetFromUrl(
-        settings.presetSource.url,
-        settings.presetSource.autoUpdate,
-      );
-      return SettingStore.getStore();
-    } else {
-      throw new Error('No remote preset configured');
-    }
-  });
-
-  ipcMain.handle('setting:resetPreset', async () => {
-    SettingStore.remove('presetSource');
-  });
-
-  ipcMain.handle('setting:clear', async () => {
-    SettingStore.clear();
-  });
+  registerSettingsHandlers();
 };
 
 /**

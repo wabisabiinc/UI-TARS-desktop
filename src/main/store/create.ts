@@ -17,11 +17,11 @@ import {
 
 import { closeScreenMarker } from '@main/window/ScreenMarker';
 import { runAgent } from './runAgent';
-import { SettingStore } from './setting';
-import { AppState } from './types';
+import { SettingStore, DEFAULT_SETTING } from './setting';
 import { logger } from '@main/logger';
+import type { AppState } from './types';
 
-SettingStore.instance.onDidAnyChange((newValue, oldValue) => {
+SettingStore.getInstance().onDidAnyChange((newValue, oldValue) => {
   logger.log(
     `SettingStore: ${JSON.stringify(oldValue)} changed to ${JSON.stringify(newValue)}`,
   );
@@ -66,9 +66,47 @@ export const store = createStore<AppState>(
         set({ settings });
       },
 
-      SET_SETTINGS: (state) => {
-        SettingStore.setStore(state);
-        set({ settings: SettingStore.getStore() });
+      SET_SETTINGS: (settings) => {
+        console.log('SET_SETTINGS', settings);
+        SettingStore.getInstance().set(settings);
+        set((state) => ({ ...state, settings }));
+      },
+
+      CLEAR_SETTINGS: () => {
+        debugger;
+        SettingStore.getInstance().set(DEFAULT_SETTING);
+        set((state) => {
+          return {
+            ...state,
+            settings: DEFAULT_SETTING,
+          };
+        });
+      },
+
+      REMOVE_SETTING: (key) => {
+        SettingStore.getInstance().delete(key);
+        const newSettings = { ...SettingStore.getInstance().store };
+        set((state) => ({ ...state, settings: newSettings }));
+      },
+
+      IMPORT_PRESET: (settings) => {
+        SettingStore.getInstance().set(settings);
+        set((state) => ({ ...state, settings }));
+      },
+
+      UPDATE_PRESET_FROM_REMOTE: async () => {
+        const settings = SettingStore.getStore();
+        if (
+          settings.presetSource?.type === 'remote' &&
+          settings.presetSource.url
+        ) {
+          const newSettings = await SettingStore.fetchPresetFromUrl(
+            settings.presetSource.url,
+          );
+          store.getState().IMPORT_PRESET(newSettings);
+        } else {
+          throw new Error('No remote preset configured');
+        }
       },
 
       GET_ENSURE_PERMISSIONS: async () => {

@@ -37,9 +37,8 @@ import { PresetImport } from './PresetImport';
 
 export default function Settings() {
   const { settings, thinking } = useStore();
-  console.log('settings', settings);
-
   const [isPresetModalOpen, setPresetModalOpen] = useState(false);
+  const [retrieveSetting, setRetrieveSetting] = useState(true);
   const toast = useToast();
   const dispatch = useDispatch(window.zutron);
 
@@ -103,12 +102,7 @@ export default function Settings() {
 
   const handleClearSettings = async () => {
     try {
-      await window.electron.setting.clear();
-      // 刷新设置
-      dispatch({
-        type: 'GET_SETTINGS',
-        payload: null,
-      });
+      dispatch({ type: 'CLEAR_SETTINGS', payload: null });
       toast({
         title: 'All settings cleared successfully',
         status: 'success',

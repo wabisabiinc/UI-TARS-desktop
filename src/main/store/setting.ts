@@ -11,7 +11,7 @@ import { logger } from '@main/logger';
 import { LocalStore, VlmProvider } from './types';
 import { validatePreset } from './validate';
 
-const DEFAULT_SETTING: LocalStore = {
+export const DEFAULT_SETTING: LocalStore = {
   language: 'en',
   vlmProvider: (env.vlmProvider as VlmProvider) || VlmProvider.Huggingface,
   vlmBaseUrl: env.vlmBaseUrl || '',
@@ -20,40 +20,47 @@ const DEFAULT_SETTING: LocalStore = {
 };
 
 export class SettingStore {
-  public static instance = new ElectronStore<LocalStore>({
-    name: 'ui_tars.setting',
-    defaults: DEFAULT_SETTING,
-  });
+  private static instance: ElectronStore<LocalStore>;
+
+  public static getInstance(): ElectronStore<LocalStore> {
+    if (!SettingStore.instance) {
+      SettingStore.instance = new ElectronStore<LocalStore>({
+        name: 'ui_tars.setting',
+        defaults: DEFAULT_SETTING,
+      });
+    }
+    return SettingStore.instance;
+  }
 
   public static set<K extends keyof LocalStore>(
     key: K,
     value: LocalStore[K],
   ): void {
-    SettingStore.instance.set(key, value);
+    SettingStore.getInstance().set(key, value);
   }
 
   public static setStore(state: LocalStore): void {
-    SettingStore.instance.set(state);
+    SettingStore.getInstance().set(state);
   }
 
   public static get<K extends keyof LocalStore>(key: K): LocalStore[K] {
-    return SettingStore.instance.get(key);
+    return SettingStore.getInstance().get(key);
   }
 
   public static remove<K extends keyof LocalStore>(key: K): void {
-    SettingStore.instance.delete(key);
+    SettingStore.getInstance().delete(key);
   }
 
   public static getStore(): LocalStore {
-    return SettingStore.instance.store;
+    return SettingStore.getInstance().store;
   }
 
   public static clear(): void {
-    SettingStore.instance.set(DEFAULT_SETTING);
+    SettingStore.getInstance().set(DEFAULT_SETTING);
   }
 
   public static openInEditor(): void {
-    SettingStore.instance.openInEditor();
+    SettingStore.getInstance().openInEditor();
   }
 
   public static async importPresetFromUrl(
@@ -87,24 +94,32 @@ export class SettingStore {
     }
   }
 
-  public static async importPresetFromText(yamlText: string): Promise<void> {
+  public static async importPresetFromText(
+    yamlContent: string,
+  ): Promise<LocalStore> {
     try {
-      const preset = yaml.load(yamlText);
-      const validatedPreset = validatePreset(preset);
-      console.log('validatedPreset', validatedPreset);
-
-      SettingStore.setStore({
-        ...validatedPreset,
-        presetSource: {
-          type: 'local',
-          lastUpdated: Date.now(),
-        },
-      });
+      const settings = await parsePresetYaml(yamlContent);
+      return settings;
     } catch (error) {
-      logger.error(error);
-      throw new Error(
-        `Failed to import preset: ${error instanceof Error ? error.message : error}`,
-      );
+      logger.error('Failed to import preset from text:', error);
+      throw error;
     }
   }
+
+  public static async fetchPresetFromUrl(url: string): Promise<LocalStore> {
+    try {
+      const response = await fetch(url);
+      const yamlContent = await response.text();
+      return await this.importPresetFromText(yamlContent);
+    } catch (error) {
+      logger.error('Failed to fetch preset from URL:', error);
+      throw error;
+    }
+  }
+}
+
+async function parsePresetYaml(yamlContent: string): Promise<LocalStore> {
+  const preset = yaml.load(yamlContent);
+  const validatedPreset = validatePreset(preset);
+  return validatedPreset;
 }

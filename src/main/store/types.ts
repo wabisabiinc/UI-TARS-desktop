@@ -42,7 +42,6 @@ export type AppState = {
   CLOSE_SETTINGS_WINDOW: () => void;
   OPEN_LAUNCHER: () => void;
   CLOSE_LAUNCHER: () => void;
-  SET_SETTINGS: typeof SettingStore.setStore;
   GET_SETTINGS: () => void;
   GET_ENSURE_PERMISSIONS: () => void;
   RUN_AGENT: () => void;
@@ -50,6 +49,11 @@ export type AppState = {
   SET_INSTRUCTIONS: (instructions: string) => void;
   SET_MESSAGES: (messages: Conversation[]) => void;
   CLEAR_HISTORY: () => void;
+  SET_SETTINGS: (state: LocalStore) => void;
+  CLEAR_SETTINGS: () => void;
+  REMOVE_SETTING: (key: keyof LocalStore) => void;
+  IMPORT_PRESET: (settings: LocalStore) => void;
+  UPDATE_PRESET_FROM_REMOTE: () => Promise<void>;
 };
 
 export enum VlmProvider {
