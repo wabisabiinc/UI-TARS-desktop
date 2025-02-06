@@ -47,7 +47,7 @@ export const runAgent = async (
   showPauseButton();
   showScreenWaterFlow();
 
-  agent.on('data', (data) => {
+  agent.on('data', async (data) => {
     const { status, conversations, ...restUserData } = data;
 
     const {
@@ -65,7 +65,13 @@ export const runAgent = async (
       '\n========',
     );
 
-    // 使用封装后的方法显示标记
+    setState({
+      ...getState(),
+      status,
+      restUserData,
+      messages: [...(getState().messages || []), ...conversations],
+    });
+
     if (
       predictionParsed?.length &&
       screenshotContext?.size &&
@@ -73,13 +79,6 @@ export const runAgent = async (
     ) {
       showPredictionMarker(predictionParsed, screenshotContext.size);
     }
-
-    setState({
-      ...getState(),
-      status,
-      restUserData,
-      messages: [...(getState().messages || []), ...conversations],
-    });
   });
 
   agent.on('error', (e) => {
