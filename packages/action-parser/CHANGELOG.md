@@ -1,5 +1,16 @@
 # @ui-tars/action-parser
 
+## 1.1.0
+
+### Minor Changes
+
+- fix(actionParser): no action text return null not error
+
+### Patch Changes
+
+- Updated dependencies
+  - @ui-tars/shared@1.1.0
+
 ## 1.0.1
 
 ### Patch Changes
