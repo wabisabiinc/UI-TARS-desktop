@@ -34,6 +34,8 @@
     "publish:mac-arm64": "npm run build && electron-forge publish --arch=arm64 --platform=darwin",
     "publish:win32": "npm run build && electron-forge publish --arch=x64 --platform=win32",
     "publish:win32-arm64": "npm run build && electron-forge publish --arch=arm64 --platform=win32",
+    "publish:linux-x64": "npm run build && electron-forge publish --arch=x64 --platform=linux",
+    "publish:linux-arm64": "npm run build && electron-forge publish --arch=arm64 --platform=linux",
     "publish": "npm run build && electron-forge publish",
     "publish:packages": "bash scripts/release-pkgs.sh",
     "prepare": "husky"

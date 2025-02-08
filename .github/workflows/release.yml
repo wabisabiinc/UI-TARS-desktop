@@ -110,3 +110,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm run publish:win32
+
+  publish_on_linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show operating system info
+        run: |
+          echo "Operating System:"
+          uname -a
+      - name: Install pnpm
+        run: npm install -g pnpm@9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - name: install dependencies
+        run: pnpm install
+      - name: publish arm64
+        if: matrix.os == 'ubuntu-24.04-arm'
+        run: |
+          pnpm run publish:linux-arm64
+      - name: publish x64
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pnpm run publish:linux-x64
