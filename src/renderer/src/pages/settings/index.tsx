@@ -201,7 +201,7 @@ const Settings = () => {
                           />
                         </FormControl>
 
-                        <FormControl>
+                        {/* <FormControl>
                           <FormLabel color="gray.700">
                             Report Storage Base URL
                           </FormLabel>
@@ -221,7 +221,7 @@ const Settings = () => {
                             value={values.utioBaseUrl}
                             placeholder="https://your-utio-endpoint.com/collect"
                           />
-                        </FormControl>
+                        </FormControl> */}
 
                         <HStack spacing={4}>
                           <Button
