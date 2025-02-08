@@ -9,6 +9,7 @@ import path, { resolve } from 'node:path';
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
+import { MakerDeb } from '@electron-forge/maker-deb';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import type { ForgeConfig } from '@electron-forge/shared-types';
@@ -167,6 +168,11 @@ const config: ForgeConfig = {
           path: '/Applications',
         },
       ],
+    }),
+    new MakerDeb({
+      options: {
+        maintainer: pkgs.author,
+      },
     }),
   ],
   plugins: [
