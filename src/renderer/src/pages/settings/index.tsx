@@ -57,12 +57,6 @@ const Settings = () => {
       duration: 1500,
       isClosable: true,
       variant: 'ui-tars-success',
-      onCloseComplete: () => {
-        dispatch({
-          type: 'CLOSE_SETTINGS_WINDOW',
-          payload: null,
-        });
-      },
     });
   };
 
