@@ -82,7 +82,7 @@ const noopAfterCopy = (
 
 const config: ForgeConfig = {
   packagerConfig: {
-    name: 'UI TARS',
+    name: 'UI-TARS',
     icon: 'resources/icon',
     asar: {
       // @ts-ignore
