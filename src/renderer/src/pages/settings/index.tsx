@@ -57,12 +57,12 @@ const Settings = () => {
       duration: 1500,
       isClosable: true,
       variant: 'ui-tars-success',
-      onCloseComplete: () => {
-        dispatch({
-          type: 'CLOSE_SETTINGS_WINDOW',
-          payload: null,
-        });
-      },
+      // onCloseComplete: () => {
+      //   dispatch({
+      //     type: 'CLOSE_SETTINGS_WINDOW',
+      //     payload: null,
+      //   });
+      // },
     });
   };
 
@@ -201,7 +201,7 @@ const Settings = () => {
                           />
                         </FormControl>
 
-                        <FormControl>
+                        {/* <FormControl>
                           <FormLabel color="gray.700">
                             Report Storage Base URL
                           </FormLabel>
@@ -221,7 +221,7 @@ const Settings = () => {
                             value={values.utioBaseUrl}
                             placeholder="https://your-utio-endpoint.com/collect"
                           />
-                        </FormControl>
+                        </FormControl> */}
 
                         <HStack spacing={4}>
                           <Button
