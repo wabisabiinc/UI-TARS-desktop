@@ -10,6 +10,7 @@ import { logger } from '@main/logger';
 
 import { LocalStore, VlmProvider } from './types';
 import { validatePreset } from './validate';
+import { BrowserWindow } from 'electron';
 
 export const DEFAULT_SETTING: LocalStore = {
   language: 'en',
@@ -17,6 +18,8 @@ export const DEFAULT_SETTING: LocalStore = {
   vlmBaseUrl: env.vlmBaseUrl || '',
   vlmApiKey: env.vlmApiKey || '',
   vlmModelName: env.vlmModelName || '',
+  reportStorageBaseUrl: '',
+  utioBaseUrl: '',
 };
 
 export class SettingStore {
@@ -27,6 +30,16 @@ export class SettingStore {
       SettingStore.instance = new ElectronStore<LocalStore>({
         name: 'ui_tars.setting',
         defaults: DEFAULT_SETTING,
+      });
+
+      SettingStore.instance.onDidAnyChange((newValue, oldValue) => {
+        logger.log(
+          `SettingStore: ${JSON.stringify(oldValue)} changed to ${JSON.stringify(newValue)}`,
+        );
+        // Notify that value updated
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('setting-updated', newValue);
+        });
       });
     }
     return SettingStore.instance;

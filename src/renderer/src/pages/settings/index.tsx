@@ -24,40 +24,30 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { Field, Form, Formik } from 'formik';
-import { useLayoutEffect, useState } from 'react';
+import { useState } from 'react';
 import { IoAdd, IoInformationCircle, IoTrash } from 'react-icons/io5';
-import { useDispatch } from 'zutron';
 
 import { VlmProvider } from '@main/store/types';
 
-import { useStore } from '@renderer/hooks/useStore';
-import { isWindows } from '@renderer/utils/os';
-
 import { PresetImport } from './PresetImport';
+import { useSetting } from '@renderer/hooks/useSetting';
+import { useDispatch } from 'zutron';
 
 export default function Settings() {
-  const { settings, thinking } = useStore();
+  const { settings, updateSetting, clearSetting, updatePresetFromRemote } =
+    useSetting();
   const [isPresetModalOpen, setPresetModalOpen] = useState(false);
-  const [retrieveSetting, setRetrieveSetting] = useState(true);
   const toast = useToast();
   const dispatch = useDispatch(window.zutron);
+  const isRemoteAutoUpdatedPreset =
+    settings?.presetSource &&
+    settings.presetSource.type === 'remote' &&
+    settings.presetSource.autoUpdate;
 
-  useLayoutEffect(() => {
-    console.log('get_settings');
-    dispatch({
-      type: 'GET_SETTINGS',
-      payload: null,
-    });
-  }, []);
-
-  console.log('settings', settings, 'thinking', thinking);
+  console.log('settings', settings);
 
   const handleSubmit = async (values) => {
-    dispatch({
-      type: 'SET_SETTINGS',
-      payload: values,
-    });
-
+    updateSetting(values);
     toast({
       title: 'Settings saved successfully',
       position: 'top',
@@ -84,7 +74,7 @@ export default function Settings() {
   console.log('initialValues', settings);
   const handleUpdatePreset = async () => {
     try {
-      await window.electron.setting.updatePresetFromRemote();
+      await updatePresetFromRemote();
       toast({
         title: 'Preset updated successfully',
         status: 'success',
@@ -93,7 +83,8 @@ export default function Settings() {
     } catch (error) {
       toast({
         title: 'Failed to update preset',
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : 'Unknown error occurred',
         status: 'error',
         duration: 3000,
       });
@@ -102,7 +93,7 @@ export default function Settings() {
 
   const handleClearSettings = async () => {
     try {
-      dispatch({ type: 'CLEAR_SETTINGS', payload: null });
+      await clearSetting();
       toast({
         title: 'All settings cleared successfully',
         status: 'success',
@@ -111,7 +102,8 @@ export default function Settings() {
     } catch (error) {
       toast({
         title: 'Failed to clear settings',
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : 'Unknown error occurred',
         status: 'error',
         duration: 3000,
       });
@@ -170,14 +162,14 @@ export default function Settings() {
                     backgroundColor: 'rgba(0, 0, 0, 0.4)',
                   },
                 },
-                // 只在滚动时显示滚动条
+                // Show scrollbars only when scrolling
                 '&::-webkit-scrollbar-thumb:window-inactive': {
                   backgroundColor: 'transparent',
                 },
               }}
             >
               <VStack spacing={2} align="stretch" py={4}>
-                {settings?.presetSource?.type === 'remote' && (
+                {isRemoteAutoUpdatedPreset && (
                   <Box
                     p={4}
                     bg="gray.50"
@@ -210,13 +202,13 @@ export default function Settings() {
 
                       <Box>
                         <Text fontSize="sm" color="gray.600" noOfLines={2}>
-                          {settings.presetSource.url}
+                          {settings.presetSource!.url}
                         </Text>
-                        {settings.presetSource.lastUpdated && (
+                        {settings.presetSource!.lastUpdated && (
                           <Text fontSize="xs" color="gray.500" mt={1}>
                             Last updated:{' '}
                             {new Date(
-                              settings.presetSource.lastUpdated,
+                              settings.presetSource!.lastUpdated,
                             ).toLocaleString()}
                           </Text>
                         )}
@@ -254,23 +246,23 @@ export default function Settings() {
                     enableReinitialize
                   >
                     {({ values = {}, setFieldValue }) => {
-                      const isRemotePreset =
-                        settings?.presetSource?.type === 'remote';
                       const inputProps = {
                         bg: 'white',
                         borderColor: 'gray.200',
-                        _hover: isRemotePreset
+                        _hover: isRemoteAutoUpdatedPreset
                           ? {}
                           : { borderColor: 'gray.300' },
-                        _focus: isRemotePreset
+                        _focus: isRemoteAutoUpdatedPreset
                           ? {}
                           : {
                               borderColor: 'gray.400',
                               boxShadow: 'none',
                             },
-                        isReadOnly: isRemotePreset,
-                        opacity: isRemotePreset ? 0.7 : 1,
-                        cursor: isRemotePreset ? 'not-allowed' : 'pointer',
+                        isReadOnly: isRemoteAutoUpdatedPreset,
+                        opacity: isRemoteAutoUpdatedPreset ? 0.7 : 1,
+                        cursor: isRemoteAutoUpdatedPreset
+                          ? 'not-allowed'
+                          : 'pointer',
                       };
 
                       return (
@@ -303,7 +295,7 @@ export default function Settings() {
                                 value={values.vlmProvider}
                                 {...inputProps}
                                 onChange={(e) => {
-                                  if (isRemotePreset) return;
+                                  if (isRemoteAutoUpdatedPreset) return;
                                   const newValue = e.target.value;
                                   setFieldValue('vlmProvider', newValue);
 

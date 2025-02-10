@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {
-  Box,
   Button,
   FormControl,
   FormLabel,
@@ -25,8 +24,8 @@ import {
   VStack,
   useToast,
 } from '@chakra-ui/react';
+import { useSetting } from '@renderer/hooks/useSetting';
 import { useRef, useState } from 'react';
-import { useDispatch } from 'zutron';
 
 interface PresetImportProps {
   isOpen: boolean;
@@ -38,7 +37,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
   const [autoUpdate, setAutoUpdate] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
-  const dispatch = useDispatch(window.zutron);
+  const { importPresetFromText, importPresetFromUrl } = useSetting();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,10 +52,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
         reader.readAsText(file);
       });
 
-      // Send text content via IPC
-      await window.electron.setting.importPresetFromFile(yamlText);
-      dispatch({ type: 'GET_SETTINGS', payload: null });
-
+      await importPresetFromText(yamlText);
       toast({
         title: 'Preset imported successfully',
         status: 'success',
@@ -66,7 +62,8 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
     } catch (error) {
       toast({
         title: 'Failed to import preset',
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : 'Unknown error occurred',
         status: 'error',
         duration: 3000,
       });
@@ -75,9 +72,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
 
   const handleRemoteImport = async () => {
     try {
-      await window.electron.setting.importPresetFromUrl(remoteUrl, autoUpdate);
-      dispatch({ type: 'GET_SETTINGS', payload: null });
-
+      await importPresetFromUrl(remoteUrl, autoUpdate);
       toast({
         title: 'Preset imported successfully',
         status: 'success',
@@ -87,7 +82,8 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
     } catch (error) {
       toast({
         title: 'Failed to import preset',
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : 'Unknown error occurred',
         status: 'error',
         duration: 3000,
       });

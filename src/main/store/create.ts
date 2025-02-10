@@ -17,15 +17,7 @@ import {
 
 import { closeScreenMarker } from '@main/window/ScreenMarker';
 import { runAgent } from './runAgent';
-import { SettingStore, DEFAULT_SETTING } from './setting';
-import { logger } from '@main/logger';
 import type { AppState } from './types';
-
-SettingStore.getInstance().onDidAnyChange((newValue, oldValue) => {
-  logger.log(
-    `SettingStore: ${JSON.stringify(oldValue)} changed to ${JSON.stringify(newValue)}`,
-  );
-});
 
 export const store = createStore<AppState>(
   (set, get) =>
@@ -35,9 +27,7 @@ export const store = createStore<AppState>(
       instructions: '',
       status: StatusEnum.INIT,
       messages: [],
-      settings: null,
       errorMsg: null,
-      getSetting: (key) => SettingStore.get(key),
       ensurePermissions: {},
 
       abortController: null,
@@ -59,54 +49,6 @@ export const store = createStore<AppState>(
       CLOSE_LAUNCHER: () => {
         LauncherWindow.getInstance().blur();
         LauncherWindow.getInstance().hide();
-      },
-
-      GET_SETTINGS: () => {
-        const settings = SettingStore.getStore();
-        set({ settings });
-      },
-
-      SET_SETTINGS: (settings) => {
-        console.log('SET_SETTINGS', settings);
-        SettingStore.getInstance().set(settings);
-        set((state) => ({ ...state, settings }));
-      },
-
-      CLEAR_SETTINGS: () => {
-        debugger;
-        SettingStore.getInstance().set(DEFAULT_SETTING);
-        set((state) => {
-          return {
-            ...state,
-            settings: DEFAULT_SETTING,
-          };
-        });
-      },
-
-      REMOVE_SETTING: (key) => {
-        SettingStore.getInstance().delete(key);
-        const newSettings = { ...SettingStore.getInstance().store };
-        set((state) => ({ ...state, settings: newSettings }));
-      },
-
-      IMPORT_PRESET: (settings) => {
-        SettingStore.getInstance().set(settings);
-        set((state) => ({ ...state, settings }));
-      },
-
-      UPDATE_PRESET_FROM_REMOTE: async () => {
-        const settings = SettingStore.getStore();
-        if (
-          settings.presetSource?.type === 'remote' &&
-          settings.presetSource.url
-        ) {
-          const newSettings = await SettingStore.fetchPresetFromUrl(
-            settings.presetSource.url,
-          );
-          store.getState().IMPORT_PRESET(newSettings);
-        } else {
-          throw new Error('No remote preset configured');
-        }
       },
 
       GET_ENSURE_PERMISSIONS: async () => {
