@@ -55,12 +55,6 @@ export default function Settings() {
       duration: 1500,
       isClosable: true,
       variant: 'ui-tars-success',
-      // onCloseComplete: () => {
-      //   dispatch({
-      //     type: 'CLOSE_SETTINGS_WINDOW',
-      //     payload: null,
-      //   });
-      // },
     });
   };
 
@@ -220,11 +214,6 @@ export default function Settings() {
                         colorScheme="red"
                         onClick={async () => {
                           await window.electron.setting.resetPreset();
-                          // refresh setting
-                          dispatch({
-                            type: 'GET_SETTINGS',
-                            payload: null,
-                          });
                           toast({
                             title: 'Reset to manual mode successfully',
                             status: 'success',
