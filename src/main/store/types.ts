@@ -4,7 +4,7 @@
  */
 import { ComputerUseUserData, Conversation } from '@ui-tars/shared/types';
 
-import { SettingStore } from './setting';
+import { LocalStore, PresetSource } from './validate';
 
 export type NextAction =
   | { type: 'key'; text: string }
@@ -31,8 +31,6 @@ export type AppState = {
   status: ComputerUseUserData['status'];
   errorMsg: string | null;
   messages: ComputerUseUserData['conversations'];
-  settings: Partial<LocalStore> | null;
-  getSetting: typeof SettingStore.get;
   abortController: AbortController | null;
   thinking: boolean;
 
@@ -41,8 +39,6 @@ export type AppState = {
   CLOSE_SETTINGS_WINDOW: () => void;
   OPEN_LAUNCHER: () => void;
   CLOSE_LAUNCHER: () => void;
-  SET_SETTINGS: typeof SettingStore.setStore;
-  GET_SETTINGS: () => void;
   GET_ENSURE_PERMISSIONS: () => void;
   RUN_AGENT: () => void;
   STOP_RUN: () => void;
@@ -57,13 +53,4 @@ export enum VlmProvider {
   vLLM = 'vLLM',
 }
 
-export type LocalStore = {
-  language: 'zh' | 'en';
-  vlmProvider: VlmProvider;
-  vlmBaseUrl: string;
-  vlmApiKey: string;
-  vlmModelName: string;
-  screenshotScale?: number; // 0.1 ~ 1.0
-  reportStorageBaseUrl?: string;
-  utioBaseUrl?: string;
-};
+export type { PresetSource, LocalStore };

@@ -7,7 +7,7 @@ import { preloadZustandBridge } from 'zutron/preload';
 
 import type { UTIOPayload } from '@ui-tars/utio';
 
-import type { AppState } from '@main/store/types';
+import type { AppState, LocalStore } from '@main/store/types';
 
 export type Channels = 'ipc-example';
 
@@ -40,6 +40,22 @@ const electronHandler = {
   utio: {
     shareReport: (params: UTIOPayload<'shareReport'>) =>
       ipcRenderer.invoke('utio:shareReport', params),
+  },
+  setting: {
+    getSetting: () => ipcRenderer.invoke('setting:get'),
+    clearSetting: () => ipcRenderer.invoke('setting:clear'),
+    updateSetting: (setting: Partial<LocalStore>) =>
+      ipcRenderer.invoke('setting:update', setting),
+    importPresetFromText: (yamlContent: string) =>
+      ipcRenderer.invoke('setting:importPresetFromText', yamlContent),
+    importPresetFromUrl: (url: string, autoUpdate: boolean) =>
+      ipcRenderer.invoke('setting:importPresetFromUrl', url, autoUpdate),
+    updatePresetFromRemote: () =>
+      ipcRenderer.invoke('setting:updatePresetFromRemote'),
+    resetPreset: () => ipcRenderer.invoke('setting:resetPreset'),
+    onUpdate: (callback: (setting: LocalStore) => void) => {
+      ipcRenderer.on('setting-updated', (_, state) => callback(state));
+    },
   },
 };
 

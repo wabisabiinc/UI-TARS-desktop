@@ -13,7 +13,7 @@ import {
 } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import ElectronStore from 'electron-store';
-import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
+import { UpdateSourceType, updateElectronApp } from 'update-electron-app';
 import { mainZustandBridge } from 'zutron/main';
 
 import * as env from '@main/env';
@@ -26,7 +26,9 @@ import {
 
 import { UTIOService } from './services/utio';
 import { store } from './store/create';
+import { SettingStore } from './store/setting';
 import { createTray } from './tray';
+import { registerSettingsHandlers } from './services/settings';
 
 const { isProd } = env;
 
@@ -164,6 +166,19 @@ const initializeApp = async () => {
   app.on('quit', unsubscribe);
 
   logger.info('initializeApp end');
+
+  // Check and update remote presets
+  const settings = SettingStore.getStore();
+  if (
+    settings.presetSource?.type === 'remote' &&
+    settings.presetSource.autoUpdate
+  ) {
+    try {
+      await SettingStore.importPresetFromUrl(settings.presetSource.url!, true);
+    } catch (error) {
+      logger.error('Failed to update preset:', error);
+    }
+  }
 };
 
 /**
@@ -181,6 +196,8 @@ const registerIPCHandlers = () => {
       screenHeight: primaryDisplay.size.height,
     };
   });
+
+  registerSettingsHandlers();
 };
 
 /**

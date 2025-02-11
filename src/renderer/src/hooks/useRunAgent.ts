@@ -10,11 +10,13 @@ import { Conversation } from '@ui-tars/shared/types';
 import { useStore } from '@renderer/hooks/useStore';
 
 import { usePermissions } from './usePermissions';
+import { useSetting } from './useSetting';
 
 export const useRunAgent = () => {
   const dispatch = useDispatch();
   const toast = useToast();
-  const { messages, settings } = useStore();
+  const { settings } = useSetting();
+  const { messages } = useStore();
   const { ensurePermissions } = usePermissions();
 
   const run = (value: string, callback: () => void = () => {}) => {

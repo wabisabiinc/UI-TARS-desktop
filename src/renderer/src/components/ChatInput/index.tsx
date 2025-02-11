@@ -35,6 +35,7 @@ import { uploadReport } from '@renderer/utils/share';
 
 import { isCallUserMessage } from '@renderer/utils/message';
 import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
+import { useSetting } from '@renderer/hooks/useSetting';
 
 const ChatInput = forwardRef((_props, _ref) => {
   const {
@@ -42,8 +43,8 @@ const ChatInput = forwardRef((_props, _ref) => {
     instructions: savedInstructions,
     messages,
     restUserData,
-    settings,
   } = useStore();
+  const { settings } = useSetting();
 
   const [localInstructions, setLocalInstructions] = React.useState(
     savedInstructions ?? '',

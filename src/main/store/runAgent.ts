@@ -29,12 +29,12 @@ export const runAgent = async (
 ) => {
   logger.info('runAgent');
   const settings = SettingStore.getStore();
-  const { instructions, abortController, getSetting } = getState();
+  const { instructions, abortController } = getState();
   const device = new Desktop();
   const vlm = new UITARS();
   assert(instructions, 'instructions is required');
 
-  const language = getSetting('language') || 'en';
+  const language = settings.language ?? 'en';
 
   const agent = new ComputerUseAgent({
     systemPrompt: getSystemPrompt(language),

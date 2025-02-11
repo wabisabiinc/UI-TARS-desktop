@@ -17,8 +17,7 @@ import {
 
 import { closeScreenMarker } from '@main/window/ScreenMarker';
 import { runAgent } from './runAgent';
-import { SettingStore } from './setting';
-import { AppState } from './types';
+import type { AppState } from './types';
 
 export const store = createStore<AppState>(
   (set, get) =>
@@ -28,9 +27,7 @@ export const store = createStore<AppState>(
       instructions: '',
       status: StatusEnum.INIT,
       messages: [],
-      settings: null,
       errorMsg: null,
-      getSetting: (key) => SettingStore.get(key),
       ensurePermissions: {},
 
       abortController: null,
@@ -52,16 +49,6 @@ export const store = createStore<AppState>(
       CLOSE_LAUNCHER: () => {
         LauncherWindow.getInstance().blur();
         LauncherWindow.getInstance().hide();
-      },
-
-      GET_SETTINGS: () => {
-        const settings = SettingStore.getStore();
-        set({ settings });
-      },
-
-      SET_SETTINGS: (state) => {
-        SettingStore.setStore(state);
-        set({ settings: SettingStore.getStore() });
       },
 
       GET_ENSURE_PERMISSIONS: async () => {
