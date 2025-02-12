@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { ComputerUseUserData, Conversation } from '@ui-tars/shared/types';
+import { ComputerUseUserData } from '@ui-tars/shared/types';
 
 import { LocalStore, PresetSource } from './validate';
 
@@ -22,10 +22,7 @@ export type NextAction =
 
 export type AppState = {
   theme: 'dark' | 'light';
-  ensurePermissions: {
-    screenCapture?: boolean;
-    accessibility?: boolean;
-  };
+  ensurePermissions: { screenCapture?: boolean; accessibility?: boolean };
   instructions: string | null;
   restUserData: Omit<ComputerUseUserData, 'status' | 'conversations'> | null;
   status: ComputerUseUserData['status'];
@@ -33,18 +30,6 @@ export type AppState = {
   messages: ComputerUseUserData['conversations'];
   abortController: AbortController | null;
   thinking: boolean;
-
-  // === dispatch ===
-  OPEN_SETTINGS_WINDOW: () => void;
-  CLOSE_SETTINGS_WINDOW: () => void;
-  OPEN_LAUNCHER: () => void;
-  CLOSE_LAUNCHER: () => void;
-  GET_ENSURE_PERMISSIONS: () => void;
-  RUN_AGENT: () => void;
-  STOP_RUN: () => void;
-  SET_INSTRUCTIONS: (instructions: string) => void;
-  SET_MESSAGES: (messages: Conversation[]) => void;
-  CLEAR_HISTORY: () => void;
 };
 
 export enum VlmProvider {
