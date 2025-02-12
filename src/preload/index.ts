@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { IpcRendererEvent, contextBridge, ipcRenderer } from 'electron';
-import { preloadZustandBridge } from 'zutron/preload';
+// import { preloadZustandBridge } from 'zutron/preload';
 
 import type { UTIOPayload } from '@ui-tars/utio';
 
-import type { AppState } from '@main/store/types';
+import type { AppState, LocalStore } from '@main/store/types';
 
-export type Channels = 'ipc-example';
+export type Channels = '';
 
 const electronHandler = {
   ipcRenderer: {
@@ -31,24 +31,42 @@ const electronHandler = {
       ipcRenderer.once(channel, (_event, ...args) => func(...args));
     },
   },
-  // Add window controls
-  windowControls: {
-    minimize: () => ipcRenderer.invoke('minimize-window'),
-    maximize: () => ipcRenderer.invoke('maximize-window'),
-    close: () => ipcRenderer.invoke('close-window'),
-  },
   utio: {
     shareReport: (params: UTIOPayload<'shareReport'>) =>
       ipcRenderer.invoke('utio:shareReport', params),
   },
+  setting: {
+    getSetting: () => ipcRenderer.invoke('setting:get'),
+    clearSetting: () => ipcRenderer.invoke('setting:clear'),
+    updateSetting: (setting: Partial<LocalStore>) =>
+      ipcRenderer.invoke('setting:update', setting),
+    importPresetFromText: (yamlContent: string) =>
+      ipcRenderer.invoke('setting:importPresetFromText', yamlContent),
+    importPresetFromUrl: (url: string, autoUpdate: boolean) =>
+      ipcRenderer.invoke('setting:importPresetFromUrl', url, autoUpdate),
+    updatePresetFromRemote: () =>
+      ipcRenderer.invoke('setting:updatePresetFromRemote'),
+    resetPreset: () => ipcRenderer.invoke('setting:resetPreset'),
+    onUpdate: (callback: (setting: LocalStore) => void) => {
+      ipcRenderer.on('setting-updated', (_, state) => callback(state));
+    },
+  },
 };
 
-// Initialize Zutron bridge
-const { handlers } = preloadZustandBridge<AppState>(ipcRenderer);
+// Initialize zustand bridge
+const zustandBridge = {
+  getState: () => ipcRenderer.invoke('getState'),
+  subscribe: (callback) => {
+    const subscription = (_: unknown, state: AppState) => callback(state);
+    ipcRenderer.on('subscribe', subscription);
+
+    return () => ipcRenderer.off('subscribe', subscription);
+  },
+};
 
 // Expose both electron and zutron handlers
 contextBridge.exposeInMainWorld('electron', electronHandler);
-contextBridge.exposeInMainWorld('zutron', handlers);
+contextBridge.exposeInMainWorld('zustandBridge', zustandBridge);
 contextBridge.exposeInMainWorld('platform', process.platform);
 
 export type ElectronHandler = typeof electronHandler;

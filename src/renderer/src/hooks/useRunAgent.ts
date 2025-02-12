@@ -3,21 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useToast } from '@chakra-ui/react';
-import { useDispatch } from '@renderer/hooks/useDispatch';
 
 import { Conversation } from '@ui-tars/shared/types';
 
 import { useStore } from '@renderer/hooks/useStore';
 
 import { usePermissions } from './usePermissions';
+import { useSetting } from './useSetting';
+import { api } from '@renderer/api';
 
 export const useRunAgent = () => {
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const toast = useToast();
-  const { messages, settings } = useStore();
+  const { settings } = useSetting();
+  const { messages } = useStore();
   const { ensurePermissions } = usePermissions();
 
-  const run = (value: string, callback: () => void = () => {}) => {
+  console.log('messages', messages);
+
+  const run = async (value: string, callback: () => void = () => {}) => {
     if (
       !ensurePermissions?.accessibility ||
       !ensurePermissions?.screenCapture
@@ -48,11 +52,8 @@ export const useRunAgent = () => {
         status: 'warning',
         duration: 2000,
         isClosable: true,
-        onCloseComplete: () => {
-          dispatch({
-            type: 'OPEN_SETTINGS_WINDOW',
-            payload: null,
-          });
+        onCloseComplete: async () => {
+          await api.openSettingsWindow();
         },
       });
       return;
@@ -62,27 +63,20 @@ export const useRunAgent = () => {
       {
         from: 'human',
         value,
-        timing: {
-          start: Date.now(),
-          end: Date.now(),
-          cost: 0,
-        },
+        timing: { start: Date.now(), end: Date.now(), cost: 0 },
       },
     ];
+    console.log('initialMessages', initialMessages);
 
-    dispatch({ type: 'SET_INSTRUCTIONS', payload: value });
+    await Promise.all([
+      api.setInstructions({ instructions: value }),
+      api.setMessages({ messages: [...messages, ...initialMessages] }),
+    ]);
 
-    dispatch({
-      type: 'SET_MESSAGES',
-      payload: [...messages, ...initialMessages],
-    });
-
-    dispatch({ type: 'RUN_AGENT', payload: null });
+    api.runAgent();
 
     callback();
   };
 
-  return {
-    run,
-  };
+  return { run };
 };

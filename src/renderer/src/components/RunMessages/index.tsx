@@ -4,7 +4,6 @@
  */
 import { Box, Center, Flex, Spinner } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
-import { useDispatch } from 'zutron';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
 import { Conversation } from '@ui-tars/shared/types';
@@ -16,6 +15,7 @@ import LoadingText from '@renderer/components/LoadingText';
 import Prompts from '../Prompts';
 import ThoughtChain from '../ThoughtChain';
 import './index.scss';
+import { api } from '@renderer/api';
 
 interface RunMessagesProps {
   highlightedFrame?: number;
@@ -39,7 +39,7 @@ const DurationWrapper = (props: { timing: Conversation['timing'] }) => (
 
 const RunMessages: React.FC<RunMessagesProps> = (props) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const dispatch = useDispatch(window.zutron);
+  // const dispatch = useDispatch(window.zutron);
   const {
     messages,
     thinking,
@@ -51,8 +51,9 @@ const RunMessages: React.FC<RunMessagesProps> = (props) => {
 
   const suggestions = [];
 
-  const handleSelect = (suggestion: string) => {
-    dispatch({ type: 'SET_INSTRUCTIONS', payload: suggestion });
+  const handleSelect = async (suggestion: string) => {
+    console.log('suggestion', suggestion);
+    await api.setInstructions({ instructions: suggestion });
   };
 
   useEffect(() => {

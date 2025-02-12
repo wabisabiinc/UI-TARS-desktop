@@ -5,16 +5,17 @@
 import { electronApp, optimizer } from '@electron-toolkit/utils';
 import {
   app,
+  BrowserView,
+  BrowserWindow,
   desktopCapturer,
   globalShortcut,
   ipcMain,
-  screen,
   session,
+  WebContentsView,
 } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import ElectronStore from 'electron-store';
 import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
-import { mainZustandBridge } from 'zutron/main';
 
 import * as env from '@main/env';
 import { logger } from '@main/logger';
@@ -23,10 +24,15 @@ import {
   createMainWindow,
   createSettingsWindow,
 } from '@main/window/index';
+import { registerIpcMain } from '@ui-tars/electron-ipc/main';
+import { ipcRoutes } from './ipcRoutes';
 
 import { UTIOService } from './services/utio';
 import { store } from './store/create';
+import { SettingStore } from './store/setting';
 import { createTray } from './tray';
+import { registerSettingsHandlers } from './services/settings';
+import { sanitizeState } from './utils/sanitizeState';
 
 const { isProd } = env;
 
@@ -53,18 +59,12 @@ class AppUpdater {
           repo: 'bytedance/UI-TARS-desktop',
           host: 'https://update.electronjs.org',
         },
-        updateInterval: '10 minutes',
+        updateInterval: '20 minutes',
         logger,
       });
     }
   }
 }
-
-ipcMain.on('ipc-example', async (event, arg) => {
-  const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-  console.log(msgTemplate(arg));
-  event.reply('ipc-example', msgTemplate('pong'));
-});
 
 if (isProd) {
   import('source-map-support').then(({ default: sourceMapSupport }) => {
@@ -103,7 +103,7 @@ const initializeApp = async () => {
     logger.info('ensureScreenCapturePermission', ensureScreenCapturePermission);
   }
 
-  // if (isDev) {
+  // if (env.isDev) {
   await loadDevDebugTools();
   // }
 
@@ -121,10 +121,8 @@ const initializeApp = async () => {
   });
 
   logger.info('createMainWindow');
-  const mainWindow = createMainWindow();
-  const settingsWindow = createSettingsWindow({
-    showInBackground: true,
-  });
+  let mainWindow = createMainWindow();
+  const settingsWindow = createSettingsWindow({ showInBackground: true });
 
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
@@ -146,41 +144,97 @@ const initializeApp = async () => {
 
   logger.info('mainZustandBridge');
 
-  const { unsubscribe } = mainZustandBridge(
-    ipcMain,
-    store,
-    [
-      mainWindow,
-      settingsWindow,
-      ...(launcherWindowIns.getWindow()
-        ? [launcherWindowIns.getWindow()!]
-        : []),
-    ],
-    {
-      // reducer: rootReducer,
-    },
-  );
+  const { unsubscribe } = registerIPCHandlers([
+    mainWindow,
+    settingsWindow,
+    ...(launcherWindowIns.getWindow() ? [launcherWindowIns.getWindow()!] : []),
+  ]);
 
-  app.on('quit', unsubscribe);
+  app.on('window-all-closed', () => {
+    logger.info('window-all-closed');
+    if (!env.isMacOS) {
+      app.quit();
+    }
+  });
+
+  app.on('before-quit', () => {
+    logger.info('before-quit');
+    const windows = BrowserWindow.getAllWindows();
+    windows.forEach((window) => window.destroy());
+  });
+
+  app.on('quit', () => {
+    logger.info('app quit');
+    unsubscribe();
+  });
+
+  app.on('activate', () => {
+    logger.info('app activate');
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      mainWindow = createMainWindow();
+    } else {
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+      }
+      mainWindow.focus();
+    }
+  });
 
   logger.info('initializeApp end');
+
+  // Check and update remote presets
+  const settings = SettingStore.getStore();
+  if (
+    settings.presetSource?.type === 'remote' &&
+    settings.presetSource.autoUpdate
+  ) {
+    try {
+      await SettingStore.importPresetFromUrl(settings.presetSource.url!, true);
+    } catch (error) {
+      logger.error('Failed to update preset:', error);
+    }
+  }
 };
 
 /**
  * Register IPC handlers
  */
-const registerIPCHandlers = () => {
+const registerIPCHandlers = (
+  wrappers: (BrowserWindow | WebContentsView | BrowserView)[],
+) => {
+  ipcMain.handle('getState', () => {
+    const state = store.getState();
+    return sanitizeState(state);
+  });
+
+  // only send state to the wrappers that are not destroyed
+  ipcMain.on('subscribe', (state: unknown) => {
+    for (const wrapper of wrappers) {
+      const webContents = wrapper?.webContents;
+      if (webContents?.isDestroyed()) {
+        break;
+      }
+      webContents?.send(
+        'subscribe',
+        sanitizeState(state as Record<string, unknown>),
+      );
+    }
+  });
+
+  const unsubscribe = store.subscribe((state: unknown) =>
+    ipcMain.emit('subscribe', state),
+  );
+
+  // TODO: move to ipc routes
   ipcMain.handle('utio:shareReport', async (_, params) => {
     await UTIOService.getInstance().shareReport(params);
   });
 
-  ipcMain.handle('get-screen-size', () => {
-    const primaryDisplay = screen.getPrimaryDisplay();
-    return {
-      screenWidth: primaryDisplay.size.width,
-      screenHeight: primaryDisplay.size.height,
-    };
-  });
+  registerSettingsHandlers();
+  // register ipc services routes
+  registerIpcMain(ipcRoutes);
+
+  return { unsubscribe };
 };
 
 /**
@@ -208,8 +262,6 @@ app
     });
 
     await initializeApp();
-
-    registerIPCHandlers();
 
     logger.info('app.whenReady end');
   })

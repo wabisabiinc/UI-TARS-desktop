@@ -23,7 +23,6 @@ import { FaPaperPlane, FaStop, FaTrash } from 'react-icons/fa';
 import { HiChevronDown } from 'react-icons/hi';
 import { FaRegShareFromSquare } from 'react-icons/fa6';
 import { IoPlay } from 'react-icons/io5';
-import { useDispatch } from 'zutron';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
 import { StatusEnum, ComputerUseUserData } from '@ui-tars/shared/types';
@@ -35,6 +34,8 @@ import { uploadReport } from '@renderer/utils/share';
 
 import { isCallUserMessage } from '@renderer/utils/message';
 import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
+import { useSetting } from '@renderer/hooks/useSetting';
+import { api } from '@renderer/api';
 
 const ChatInput = forwardRef((_props, _ref) => {
   const {
@@ -42,12 +43,10 @@ const ChatInput = forwardRef((_props, _ref) => {
     instructions: savedInstructions,
     messages,
     restUserData,
-    settings,
   } = useStore();
+  const { settings } = useSetting();
 
-  const [localInstructions, setLocalInstructions] = React.useState(
-    savedInstructions ?? '',
-  );
+  const [localInstructions, setLocalInstructions] = React.useState('');
 
   const toast = useToast();
   const { run } = useRunAgent();
@@ -67,7 +66,7 @@ const ChatInput = forwardRef((_props, _ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const running = status === 'running';
   const maxLoop = status === 'max_loop';
-  const dispatch = useDispatch(window.zutron);
+  // const dispatch = useDispatch(window.zutron);
 
   const startRun = () => {
     startRecording().catch((e) => {
@@ -178,7 +177,7 @@ const ChatInput = forwardRef((_props, _ref) => {
         } as ComputerUseUserData;
 
         const htmlContent = reportHTMLContent(html, [userData]);
-
+        let uploadSuccess = false;
         let reportUrl: string | undefined;
 
         if (settings?.reportStorageBaseUrl) {
@@ -188,6 +187,7 @@ const ChatInput = forwardRef((_props, _ref) => {
               settings.reportStorageBaseUrl,
             );
             reportUrl = url;
+            uploadSuccess = true;
             await navigator.clipboard.writeText(url);
             toast({
               title: 'Report link copied to clipboard!',
@@ -198,7 +198,7 @@ const ChatInput = forwardRef((_props, _ref) => {
               variant: 'ui-tars-success',
             });
           } catch (error) {
-            console.error('Share failed:', error);
+            console.error('Upload report failed:', error);
             toast({
               title: 'Failed to upload report',
               description:
@@ -211,7 +211,7 @@ const ChatInput = forwardRef((_props, _ref) => {
           }
         }
 
-        // Send UTIO data through IPC
+        // Send UTIO data through IPC if configured
         if (settings?.utioBaseUrl) {
           const lastScreenshot = messages
             .filter((m) => m.screenshotBase64)
@@ -225,21 +225,24 @@ const ChatInput = forwardRef((_props, _ref) => {
           });
         }
 
-        // If shareEndpoint is not configured or the upload fails, fall back to downloading the file
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `report-${Date.now()}.html`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        // Only fall back to file download if upload was not configured or failed
+        if (!settings?.reportStorageBaseUrl || !uploadSuccess) {
+          const blob = new Blob([htmlContent], { type: 'text/html' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `report-${Date.now()}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }
       }
     } catch (error) {
       console.error('Share failed:', error);
       toast({
         title: 'Failed to generate share content',
+
         description:
           error instanceof Error ? error.message : JSON.stringify(error),
         status: 'error',
@@ -256,8 +259,12 @@ const ChatInput = forwardRef((_props, _ref) => {
     }
   };
 
-  const handleClearMessages = () => {
-    dispatch('CLEAR_HISTORY');
+  const handleClearMessages = async () => {
+    await api.clearHistory();
+  };
+
+  const stopRun = async () => {
+    await api.stopRun();
   };
 
   return (
@@ -386,7 +393,7 @@ const ChatInput = forwardRef((_props, _ref) => {
               )}
               <Button
                 variant="tars-ghost"
-                onClick={running ? () => dispatch('STOP_RUN') : startRun}
+                onClick={running ? stopRun : startRun}
                 isDisabled={!running && localInstructions?.trim() === ''}
               >
                 {(() => {

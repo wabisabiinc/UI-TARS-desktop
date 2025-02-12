@@ -6,11 +6,11 @@ import OpenAI from 'openai';
 
 import { convertToOpenAIMessages } from '@main/agent/utils';
 import { logger } from '@main/logger';
-import { store } from '@main/store/create';
 import { preprocessResizeImage } from '@main/utils/image';
 
 import { MAX_PIXELS } from '../constant';
 import { VLM, VlmRequest, VlmRequestOptions, VlmResponse } from './base';
+import { SettingStore } from '@main/store/setting';
 
 export interface UITARSOptions {
   reflection: boolean;
@@ -26,7 +26,7 @@ export interface UITARSOptions {
 
 export class UITARS implements VLM<VlmRequest, VlmResponse> {
   get vlmModel() {
-    return store.getState().getSetting('vlmModelName');
+    return SettingStore.getStore().vlmModelName;
   }
 
   // [image, prompt]
@@ -44,8 +44,8 @@ export class UITARS implements VLM<VlmRequest, VlmResponse> {
       conversations,
       images: compressedImages,
     });
-    const vlmBaseUrl = store.getState().getSetting('vlmBaseUrl');
-    const vlmApiKey = store.getState().getSetting('vlmApiKey');
+    const vlmBaseUrl = SettingStore.getStore().vlmBaseUrl;
+    const vlmApiKey = SettingStore.getStore().vlmApiKey;
     logger.info('vlmBaseUrl', vlmBaseUrl, 'vlmApiKey', vlmApiKey);
 
     const openai = new OpenAI({

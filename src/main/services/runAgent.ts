@@ -20,8 +20,8 @@ import {
   showPredictionMarker,
   showScreenWaterFlow,
 } from '@main/window/ScreenMarker';
-import { SettingStore } from './setting';
-import { AppState } from './types';
+import { SettingStore } from '@main/store/setting';
+import { AppState } from '@main/store/types';
 
 export const runAgent = async (
   setState: (state: AppState) => void,
@@ -29,12 +29,12 @@ export const runAgent = async (
 ) => {
   logger.info('runAgent');
   const settings = SettingStore.getStore();
-  const { instructions, abortController, getSetting } = getState();
+  const { instructions, abortController } = getState();
   const device = new Desktop();
   const vlm = new UITARS();
   assert(instructions, 'instructions is required');
 
-  const language = getSetting('language') || 'en';
+  const language = settings.language ?? 'en';
 
   const agent = new ComputerUseAgent({
     systemPrompt: getSystemPrompt(language),
@@ -87,9 +87,7 @@ export const runAgent = async (
 
   await hideWindowBlock(async () => {
     await agent
-      .runAgentLoop({
-        loopWaitTime: () => 800,
-      })
+      .runAgentLoop({ loopWaitTime: () => 800 })
       .catch((e) => {
         logger.error('[runAgentLoop error]', e);
         setState({

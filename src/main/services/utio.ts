@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import os from 'node:os';
 
 import { screen } from 'electron';
@@ -5,7 +9,7 @@ import { screen } from 'electron';
 import { UTIO, UTIOPayload } from '@ui-tars/utio';
 
 import { logger } from '../logger';
-import { store } from '../store/create';
+import { SettingStore } from '@main/store/setting';
 
 export class UTIOService {
   private static instance: UTIOService;
@@ -19,7 +23,7 @@ export class UTIOService {
   }
 
   private getEndpoint(): string | undefined {
-    const endpoint = store.getState().getSetting('utioBaseUrl');
+    const endpoint = SettingStore.getStore().utioBaseUrl;
     logger.debug('[UTIO] endpoint:', endpoint);
     return endpoint;
   }
