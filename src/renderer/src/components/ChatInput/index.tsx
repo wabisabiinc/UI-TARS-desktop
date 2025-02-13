@@ -160,7 +160,7 @@ const ChatInput = forwardRef((_props, _ref) => {
       return;
     }
 
-    if (type === 'report' && settings?.utioBaseUrl) {
+    if (type === 'report' && settings?.reportStorageBaseUrl) {
       setPendingShareType(type);
       setIsShareConfirmOpen(true);
       return;
