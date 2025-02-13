@@ -1,7 +1,15 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { EventPayload, EventType } from './types';
 
 export type { EventPayload as UTIOPayload };
 
+/**
+ * UTIO (UI-TARS Insights and Observation) is a data collection mechanism
+ * for insights into UI-TARS Desktop,
+ */
 export class UTIO {
   constructor(private readonly endpoint: string) {}
 
