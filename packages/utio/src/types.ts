@@ -18,7 +18,7 @@ interface BaseEvent<T extends EventType> {
 export interface AppLaunchedEvent extends BaseEvent<'appLaunched'> {
   /** Platform type */
   platform: string;
-  /** OS version in "major.minor.patch" format */
+  /** OS version, e.g. "major.minor.patch" format */
   osVersion: string;
   /** Screen width in pixels */
   screenWidth: number;
@@ -30,7 +30,7 @@ export interface AppLaunchedEvent extends BaseEvent<'appLaunched'> {
  * User-sent instruction event
  */
 export interface SendInstructionEvent extends BaseEvent<'sendInstruction'> {
-  /** Instruction content */
+  /** User-submitted instruction content */
   instruction: string;
 }
 
@@ -38,9 +38,9 @@ export interface SendInstructionEvent extends BaseEvent<'sendInstruction'> {
  * Report sharing event
  */
 export interface ShareReportEvent extends BaseEvent<'shareReport'> {
-  /** Optional last screenshot path */
+  /** Optional last screenshot url or base64 content */
   lastScreenshot?: string;
-  /** Optional report content */
+  /** Optional report url */
   report?: string;
   /** Related instruction */
   instruction: string;

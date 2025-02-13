@@ -162,9 +162,13 @@ The server handles three types of events:
 ```typescript
 interface AppLaunchedEvent {
   type: 'appLaunched';
-  platform: 'iOS' | 'Android' | 'Web';
+  /** Platform type */
+  platform: string;
+  /** OS version, e.g. "major.minor.patch" format */
   osVersion: string;
+  /** Screen width in pixels */
   screenWidth: number;
+  /** Screen height in pixels */
   screenHeight: number;
 }
 ```
@@ -173,6 +177,7 @@ interface AppLaunchedEvent {
 ```typescript
 interface SendInstructionEvent {
   type: 'sendInstruction';
+  /** User-submitted instruction content */
   instruction: string;
 }
 ```
@@ -181,8 +186,11 @@ interface SendInstructionEvent {
 ```typescript
 interface ShareReportEvent {
   type: 'shareReport';
+  /** Optional last screenshot url or base64 content */
   lastScreenshot?: string;
+  /** Optional report url */
   report?: string;
+  /** Related instruction */
   instruction: string;
 }
 ```
