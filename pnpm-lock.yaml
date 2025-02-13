@@ -296,11 +296,49 @@ importers:
         specifier: ^3.0.2
         version: 3.0.5(@types/node@20.17.17)(sass-embedded@1.83.4)
 
+  packages/core:
+    dependencies:
+      '@ui-tars/action-parser':
+        specifier: workspace:*
+        version: link:../action-parser
+      '@ui-tars/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      tsup:
+        specifier: ^8.3.5
+        version: 8.3.6(jiti@2.4.2)(postcss@8.5.2)(tsx@4.19.2)(typescript@5.7.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.3
+      vitest:
+        specifier: ^3.0.2
+        version: 3.0.5(@types/node@20.17.17)(sass-embedded@1.83.4)
+
   packages/electron-ipc:
     devDependencies:
       electron:
         specifier: ^30.0.0
         version: 30.5.1
+      tsup:
+        specifier: ^8.3.5
+        version: 8.3.6(jiti@2.4.2)(postcss@8.5.2)(tsx@4.19.2)(typescript@5.7.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.3
+      vitest:
+        specifier: ^3.0.2
+        version: 3.0.5(@types/node@20.17.17)(sass-embedded@1.83.4)
+
+  packages/operator-nut-js:
+    dependencies:
+      '@ui-tars/action-parser':
+        specifier: workspace:*
+        version: link:../action-parser
+      '@ui-tars/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
       tsup:
         specifier: ^8.3.5
         version: 8.3.6(jiti@2.4.2)(postcss@8.5.2)(tsx@4.19.2)(typescript@5.7.3)
