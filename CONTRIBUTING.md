@@ -58,6 +58,7 @@ This is a [Monorepo](https://pnpm.io/workspaces) project including the following
 ├── package.json            # Electron application dependencies
 ├── forge.config.ts         # Electron pack and publish configuration
 ├── electron.vite.config.ts # Electron bundle configuration
+│
 ├── src                     # Electron application source code
 │   ├── main                # Main process source code(Like backend)
 │   ├── preload             # Preload script source code
@@ -65,10 +66,14 @@ This is a [Monorepo](https://pnpm.io/workspaces) project including the following
 │
 ├── packages                # Packages or Modules or SDK for UI-TARS Desktop
 │   ├── action-parser       # Action parser for parsing UI-TARS model output into actions
+│   ├── core                # Core SDK package for UI-TARS Agent
 │   ├── electron-ipc        # Electron IPC for communication between main and renderer processes
 │   ├── shared              # Shared code of the project(including types, utils, constants, etc.)
 │   ├── utio                # UTIO (UI-TARS Insights and Observation)
-│   └── visualizer          # Sharing HTML Visualization Reporter
+│   ├── visualizer          # Sharing HTML Visualization Reporter
+│   └── operators           # Automation operators
+│       └── nut-js          # Nut.js is a framework for building automation operators
+│
 ├── docs                    # Documentation of the project
 ├── rfcs                    # RFCs (Request for Comments) for the project
 ├── e2e                     # E2E test cases for the project

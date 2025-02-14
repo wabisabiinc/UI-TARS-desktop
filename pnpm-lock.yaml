@@ -330,14 +330,14 @@ importers:
         specifier: ^3.0.2
         version: 3.0.5(@types/node@20.17.17)(sass-embedded@1.83.4)
 
-  packages/operator-nut-js:
+  packages/operators/nut-js:
     dependencies:
       '@ui-tars/action-parser':
         specifier: workspace:*
-        version: link:../action-parser
+        version: link:../../action-parser
       '@ui-tars/shared':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../shared
     devDependencies:
       tsup:
         specifier: ^8.3.5
