@@ -37,6 +37,15 @@ import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
 import { useSetting } from '@renderer/hooks/useSetting';
 import { api } from '@renderer/api';
 
+import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+} from '@chakra-ui/react';
+
 const ChatInput = forwardRef((_props, _ref) => {
   const {
     status,
@@ -140,10 +149,31 @@ const ChatInput = forwardRef((_props, _ref) => {
   const shareTimeoutRef = React.useRef<NodeJS.Timeout>();
   const SHARE_TIMEOUT = 100000;
 
+  const [isShareConfirmOpen, setIsShareConfirmOpen] = React.useState(false);
+  const [pendingShareType, setPendingShareType] = React.useState<
+    'report' | 'video' | null
+  >(null);
+  const cancelShareRef = React.useRef<HTMLButtonElement>(null);
+
   const handleShare = async (type: 'report' | 'video') => {
     if (isSharePending.current) {
       return;
     }
+
+    if (type === 'report' && settings?.reportStorageBaseUrl) {
+      setPendingShareType(type);
+      setIsShareConfirmOpen(true);
+      return;
+    }
+
+    await processShare(type, false);
+  };
+
+  const processShare = async (
+    type: 'report' | 'video',
+    allowCollectShareReport: boolean,
+  ) => {
+    if (isSharePending.current) return;
 
     try {
       setIsSharing(true);
@@ -177,52 +207,59 @@ const ChatInput = forwardRef((_props, _ref) => {
         } as ComputerUseUserData;
 
         const htmlContent = reportHTMLContent(html, [userData]);
-        let uploadSuccess = false;
-        let reportUrl: string | undefined;
 
-        if (settings?.reportStorageBaseUrl) {
-          try {
-            const { url } = await uploadReport(
-              htmlContent,
-              settings.reportStorageBaseUrl,
-            );
-            reportUrl = url;
-            uploadSuccess = true;
-            await navigator.clipboard.writeText(url);
-            toast({
-              title: 'Report link copied to clipboard!',
-              status: 'success',
-              position: 'top',
-              duration: 2000,
-              isClosable: true,
-              variant: 'ui-tars-success',
-            });
-          } catch (error) {
-            console.error('Upload report failed:', error);
-            toast({
-              title: 'Failed to upload report',
-              description:
-                error instanceof Error ? error.message : JSON.stringify(error),
-              status: 'error',
-              position: 'top',
-              duration: 3000,
-              isClosable: true,
+        let uploadSuccess = false;
+
+        if (allowCollectShareReport) {
+          let reportUrl: string | undefined;
+
+          if (settings?.reportStorageBaseUrl) {
+            try {
+              const { url } = await uploadReport(
+                htmlContent,
+                settings.reportStorageBaseUrl,
+              );
+              reportUrl = url;
+              uploadSuccess = true;
+              await navigator.clipboard.writeText(url);
+              toast({
+                title: 'Report link copied to clipboard!',
+                status: 'success',
+                position: 'top',
+                duration: 2000,
+                isClosable: true,
+                variant: 'ui-tars-success',
+              });
+            } catch (error) {
+              console.error('Upload report failed:', error);
+              toast({
+                title: 'Failed to upload report',
+
+                description:
+                  error instanceof Error
+                    ? error.message
+                    : JSON.stringify(error),
+                status: 'error',
+                position: 'top',
+                duration: 3000,
+                isClosable: true,
+              });
+            }
+          }
+
+          // Only send UTIO data if user consented
+          if (settings?.utioBaseUrl) {
+            const lastScreenshot = messages
+              .filter((m) => m.screenshotBase64)
+              .pop()?.screenshotBase64;
+
+            await window.electron.utio.shareReport({
+              type: 'shareReport',
+              instruction: lastHumanMessage,
+              lastScreenshot,
+              report: reportUrl,
             });
           }
-        }
-
-        // Send UTIO data through IPC if configured
-        if (settings?.utioBaseUrl) {
-          const lastScreenshot = messages
-            .filter((m) => m.screenshotBase64)
-            .pop()?.screenshotBase64;
-
-          await window.electron.utio.shareReport({
-            type: 'shareReport',
-            instruction: lastHumanMessage,
-            lastScreenshot,
-            report: reportUrl,
-          });
         }
 
         // Only fall back to file download if upload was not configured or failed
@@ -415,6 +452,54 @@ const ChatInput = forwardRef((_props, _ref) => {
           </HStack>
         </VStack>
       </Flex>
+      <AlertDialog
+        isOpen={isShareConfirmOpen}
+        leastDestructiveRef={cancelShareRef}
+        onClose={() => setIsShareConfirmOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent maxW={'90%'}>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Share Report
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              📢 Would you like to share your report to help us improve{' '}
+              <b>UI-TARS</b>? This includes your screen recordings and actions.
+              <br />
+              <br />
+              💡 We encourage you to create a clean and privacy-free desktop
+              environment before each use.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button
+                ref={cancelShareRef}
+                onClick={() => {
+                  setIsShareConfirmOpen(false);
+                  if (pendingShareType) {
+                    processShare(pendingShareType, false);
+                  }
+                }}
+              >
+                No, just download
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={() => {
+                  setIsShareConfirmOpen(false);
+                  if (pendingShareType) {
+                    processShare(pendingShareType, true);
+                  }
+                }}
+                ml={3}
+              >
+                Yes, continue!
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 });
