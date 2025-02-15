@@ -1,7 +1,7 @@
 {
-  "name": "@ui-tars/core",
+  "name": "@ui-tars/sdk",
   "version": "1.1.0",
-  "description": "GUI Agent Core SDK for UI-TARS",
+  "description": "GUI Agent SDK for UI-TARS",
   "repository": {
     "type": "git",
     "url": "https://github.com/bytedance/UI-TARS-desktop"
@@ -11,7 +11,6 @@
   },
   "keywords": [
     "AI",
-    "Core",
     "SDK",
     "Operator",
     "UI-TARS"
@@ -35,6 +34,7 @@
     "registry": "https://registry.npmjs.org"
   },
   "dependencies": {
+    "on-change": "5.0.1",
     "@ui-tars/shared": "workspace:*",
     "@ui-tars/action-parser": "workspace:*"
   },
