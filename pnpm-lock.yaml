@@ -296,25 +296,6 @@ importers:
         specifier: ^3.0.2
         version: 3.0.5(@types/node@20.17.17)(sass-embedded@1.83.4)
 
-  packages/core:
-    dependencies:
-      '@ui-tars/action-parser':
-        specifier: workspace:*
-        version: link:../action-parser
-      '@ui-tars/shared':
-        specifier: workspace:*
-        version: link:../shared
-    devDependencies:
-      tsup:
-        specifier: ^8.3.5
-        version: 8.3.6(jiti@2.4.2)(postcss@8.5.2)(tsx@4.19.2)(typescript@5.7.3)
-      typescript:
-        specifier: ^5.7.2
-        version: 5.7.3
-      vitest:
-        specifier: ^3.0.2
-        version: 3.0.5(@types/node@20.17.17)(sass-embedded@1.83.4)
-
   packages/electron-ipc:
     devDependencies:
       electron:
@@ -338,6 +319,28 @@ importers:
       '@ui-tars/shared':
         specifier: workspace:*
         version: link:../../shared
+    devDependencies:
+      tsup:
+        specifier: ^8.3.5
+        version: 8.3.6(jiti@2.4.2)(postcss@8.5.2)(tsx@4.19.2)(typescript@5.7.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.3
+      vitest:
+        specifier: ^3.0.2
+        version: 3.0.5(@types/node@20.17.17)(sass-embedded@1.83.4)
+
+  packages/sdk:
+    dependencies:
+      '@ui-tars/action-parser':
+        specifier: workspace:*
+        version: link:../action-parser
+      '@ui-tars/shared':
+        specifier: workspace:*
+        version: link:../shared
+      on-change:
+        specifier: 5.0.1
+        version: 5.0.1
     devDependencies:
       tsup:
         specifier: ^8.3.5
@@ -4931,6 +4934,10 @@ packages:
 
   omggif@1.0.10:
     resolution: {integrity: sha512-LMJTtvgc/nugXj0Vcrrs68Mn2D1r0zf630VNtqtpI1FEO7e+O9FP4gqs9AcnBaSEeoHIPm28u6qgPR0oyEpGSw==}
+
+  on-change@5.0.1:
+    resolution: {integrity: sha512-n7THCP7RkyReRSLkJb8kUWoNsxUIBxTkIp3JKno+sEz6o/9AJ3w3P9fzQkITEkMwyTKJjZciF3v/pVoouxZZMg==}
+    engines: {node: '>=18'}
 
   on-finished@2.4.1:
     resolution: {integrity: sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==}
@@ -12099,6 +12106,8 @@ snapshots:
       es-object-atoms: 1.1.1
 
   omggif@1.0.10: {}
+
+  on-change@5.0.1: {}
 
   on-finished@2.4.1:
     dependencies:
