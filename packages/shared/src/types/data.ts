@@ -21,21 +21,25 @@ export interface Conversation extends Message {
     };
   };
   predictionParsed?: PredictionParsed[];
-  /** exists when predictionParsed exists */
+  /** @deprecated */
   screenshotBase64WithElementMarker?: string;
+  /** @deprecated */
   reflections?: string[];
 }
 
 /**
+ * @deprecated use {@link GUIAgentData} instead
  * Computer Use data structure, can be used for recording and sharing
  */
-export interface ComputerUseUserData {
+export interface ComputerUseUserData extends GUIAgentData {}
+
+export interface GUIAgentData {
   version: ShareVersion;
   /** Share operation instructions */
   instruction: string;
   systemPrompt: string;
   modelName: string;
-  mode: VlmModeEnum;
+  mode?: VlmModeEnum;
   logTime: number;
   status: StatusEnum;
   errMsg?: string;
