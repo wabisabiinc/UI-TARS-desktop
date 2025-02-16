@@ -1,7 +1,7 @@
 {
-  "name": "@ui-tars/operator-nut-js",
+  "name": "@ui-tars/cli",
   "version": "1.1.0",
-  "description": "Operator Nut JS SDK for UI-TARS",
+  "description": "CLI for UI-TARS",
   "repository": {
     "type": "git",
     "url": "https://github.com/bytedance/UI-TARS-desktop"
@@ -9,16 +9,13 @@
   "bugs": {
     "url": "https://github.com/bytedance/UI-TARS-desktop/issues"
   },
+  "bin": {
+    "ui-tars": "./bin/index.js"
+  },
   "keywords": [
-    "AI",
-    "Core",
-    "SDK",
-    "Operator",
+    "CLI",
     "UI-TARS"
   ],
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsup --watch",
     "prepare": "npm run build",
@@ -28,23 +25,23 @@
   },
   "license": "Apache-2.0",
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
   "dependencies": {
-    "@ui-tars/shared": "workspace:*",
-    "@ui-tars/sdk": "workspace:*",
-    "big.js": "^6.2.2",
+    "commander": "^13.1.0",
+    "inquirer": "^12.4.1",
     "jimp": "1.6.0",
-    "@computer-use/nut-js": "^4.2.0"
+    "@ui-tars/operator-nut-js": "workspace:*",
+    "@ui-tars/sdk": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
-    "vitest": "^3.0.2",
-    "@types/big.js": "^6.2.2"
+    "vitest": "^3.0.2"
   }
 }

@@ -18,6 +18,16 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./core": {
+      "import": "./dist/core.mjs",
+      "require": "./dist/core.js"
+    }
+  },
   "scripts": {
     "dev": "tsup --watch",
     "prepare": "npm run build",
@@ -34,6 +44,8 @@
     "registry": "https://registry.npmjs.org"
   },
   "dependencies": {
+    "openai": "4.73.0",
+    "jimp": "1.6.0",
     "on-change": "5.0.1",
     "@ui-tars/shared": "workspace:*",
     "@ui-tars/action-parser": "workspace:*"

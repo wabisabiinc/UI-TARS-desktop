@@ -2,6 +2,7 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
+import { Jimp } from 'jimp';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 import { IMAGE_PLACEHOLDER, MAX_IMAGE_LENGTH } from '@ui-tars/shared/constants';
@@ -12,6 +13,7 @@ export const processVlmParams = (
   images: string[],
 ) => {
   // Check if the images array exceeds the limit
+  // TODO: configurable max image length
   if (images.length > MAX_IMAGE_LENGTH) {
     // Calculate the number of items to remove
     const excessCount = images.length - MAX_IMAGE_LENGTH;
@@ -112,3 +114,36 @@ export const convertToOpenAIMessages = ({
 
   return messages;
 };
+
+export async function preprocessResizeImage(
+  image_base64: string,
+  maxPixels: number,
+): Promise<string> {
+  try {
+    const imageBuffer = Buffer.from(image_base64, 'base64');
+
+    const image = await Jimp.read(imageBuffer);
+    const { width, height } = image.bitmap;
+
+    const currentPixels = width * height;
+    if (currentPixels > maxPixels) {
+      const resizeFactor = Math.sqrt(maxPixels / currentPixels);
+      const newWidth = Math.floor(width * resizeFactor);
+      const newHeight = Math.floor(height * resizeFactor);
+
+      const resized = await image
+        .resize({
+          w: newWidth,
+          h: newHeight,
+        })
+        .getBuffer('image/jpeg', { quality: 75 });
+
+      return resized.toString('base64');
+    }
+
+    return image_base64;
+  } catch (error) {
+    console.error('preprocessResizeImage error:', error);
+    throw error;
+  }
+}
