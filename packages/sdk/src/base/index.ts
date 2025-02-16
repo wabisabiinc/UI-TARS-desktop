@@ -39,7 +39,6 @@ export abstract class BaseModel<
   constructor(protected config: TConfig) {
     this.config = config;
   }
-  abstract get name(): string;
   abstract invoke(params: TParams): Promise<TOutput>;
 }
 
@@ -48,17 +47,11 @@ export abstract class BaseModel<
  * @class BaseOperator
  * @classdesc Abstract base class for Operators.
  */
-export abstract class BaseOperator<
-  TConfig = Record<string, never>,
-  TScreenshotParams = void,
-  TScreenshotOutput = any,
-  TExecuteParams = any,
-  TExecuteOutput = void,
-> {
-  constructor(protected config: TConfig) {
+export abstract class BaseOperator<T = unknown> {
+  constructor(protected config?: T) {
     this.config = config;
   }
 
-  abstract screenshot(params?: TScreenshotParams): Promise<TScreenshotOutput>;
-  abstract execute(params: TExecuteParams): Promise<TExecuteOutput>;
+  abstract screenshot(params?: unknown): Promise<unknown>;
+  abstract execute(params: unknown): Promise<unknown>;
 }
