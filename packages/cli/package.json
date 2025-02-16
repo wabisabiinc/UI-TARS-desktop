@@ -20,8 +20,7 @@
     "dev": "tsup --watch",
     "prepare": "npm run build",
     "build": "tsup",
-    "test": "vitest",
-    "prepack": "npm run build"
+    "test": "vitest"
   },
   "license": "Apache-2.0",
   "files": [
