@@ -127,11 +127,21 @@ Currently, the release workflow supports the following platforms:
 
 #### Packages
 
-If you want to publish the packages to the npm registry, you can run the following command:
+##### Latest version
+
+If you want to publish the `latest` version packages to the npm registry, you can run the following command:
 
 1. `pnpm changeset` to specify the changelogs for the packages you want to publish
 2. Git commit and push to the `release-pkgs/${version}` branch, create a PR targeting `main` branch, titled `release(pkgs): ${version}`
 3. `pnpm run publish:packages` to publish the packages in latest `origin/main` branch after the PR is merged
+
+##### Beta version
+
+If you want to publish the `beta` version packages to the npm registry, you can run the following command:
+
+1. `pnpm changeset` to specify the changelogs for the packages you want to publish
+2. Git commit and push to the branch
+3. `pnpm run publish-beta:packages` to publish the packages in current branch
 
 
 ### Documentation
