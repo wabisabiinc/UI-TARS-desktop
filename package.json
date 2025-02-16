@@ -36,6 +36,7 @@
     "publish:win32-arm64": "npm run build && electron-forge publish --arch=arm64 --platform=win32",
     "publish": "npm run build && electron-forge publish",
     "publish:packages": "bash scripts/release-pkgs.sh",
+    "publish-beta:packages": "bash scripts/release-beta-pkgs.sh",
     "prepare": "husky"
   },
   "dependencies": {
