@@ -7,10 +7,10 @@ import assert from 'assert';
 import { logger } from '@main/logger';
 import { hideWindowBlock } from '@main/window/index';
 import { StatusEnum } from '@ui-tars/shared/types';
-
-import { ComputerUseAgent } from '../agent';
-import { Desktop } from '../agent/device';
-import { UITARS } from '../agent/llm/ui-tars';
+import { type ConversationWithSoM } from '@main/shared/types';
+import { GUIAgent, type GUIAgentConfig } from '@ui-tars/sdk';
+import { markClickPosition } from '@main/utils/image';
+import { NutJSElectronOperator } from '../agent/operator';
 import { getSystemPrompt } from '../agent/prompts';
 import {
   closeScreenMarker,
@@ -30,47 +30,59 @@ export const runAgent = async (
   logger.info('runAgent');
   const settings = SettingStore.getStore();
   const { instructions, abortController } = getState();
-  const device = new Desktop();
-  const vlm = new UITARS();
   assert(instructions, 'instructions is required');
 
   const language = settings.language ?? 'en';
 
-  const agent = new ComputerUseAgent({
-    systemPrompt: getSystemPrompt(language),
-    abortController,
-    instruction: instructions!,
-    device,
-    vlm,
-  });
-
   showPauseButton();
   showScreenWaterFlow();
 
-  agent.on('data', async (data) => {
+  const handleData: GUIAgentConfig<NutJSElectronOperator>['onData'] = async ({
+    data,
+  }) => {
     const { status, conversations, ...restUserData } = data;
+    logger.info('[status]', status, conversations.length);
+
+    const conversationsWithSoM: ConversationWithSoM[] = await Promise.all(
+      conversations.map(async (conv) => {
+        const { screenshotBase64, screenshotContext, predictionParsed } = conv;
+        if (screenshotBase64 && screenshotContext?.size && predictionParsed) {
+          const screenshotBase64WithElementMarker = await markClickPosition({
+            ...screenshotContext.size,
+            base64: screenshotBase64,
+            parsed: predictionParsed,
+          }).catch((e) => {
+            logger.error('[markClickPosition error]:', e);
+            return '';
+          });
+          return {
+            ...conv,
+            screenshotBase64WithElementMarker,
+          };
+        }
+        return conv;
+      }),
+    ).catch((e) => {
+      logger.error('[conversationsWithSoM error]:', e);
+      return conversations;
+    });
+    logger.info('[conversationsWithSoM]', conversationsWithSoM.length, status);
 
     const {
       screenshotBase64,
-      screenshotBase64WithElementMarker,
       predictionParsed,
       screenshotContext,
+      screenshotBase64WithElementMarker,
       ...rest
-    } = data?.conversations?.[data?.conversations.length - 1] || {};
+    } = conversationsWithSoM?.[conversationsWithSoM.length - 1] || {};
     logger.info(
       '======data======\n',
       predictionParsed,
       screenshotContext,
       rest,
+      status,
       '\n========',
     );
-
-    setState({
-      ...getState(),
-      status,
-      restUserData,
-      messages: [...(getState().messages || []), ...conversations],
-    });
 
     if (
       predictionParsed?.length &&
@@ -79,15 +91,34 @@ export const runAgent = async (
     ) {
       showPredictionMarker(predictionParsed, screenshotContext.size);
     }
-  });
 
-  agent.on('error', (e) => {
-    logger.error('[runAgent error]', settings, e);
+    setState({
+      ...getState(),
+      status,
+      restUserData,
+      messages: [...(getState().messages || []), ...conversationsWithSoM],
+    });
+  };
+
+  const guiAgent = new GUIAgent({
+    model: {
+      baseURL: settings.vlmBaseUrl,
+      apiKey: settings.vlmApiKey,
+      model: settings.vlmModelName,
+    },
+    systemPrompt: getSystemPrompt(language),
+    logger,
+    signal: abortController?.signal,
+    operator: new NutJSElectronOperator(),
+    onData: handleData,
+    onError: ({ error }) => {
+      logger.error('[runAgent error]', settings, error);
+    },
   });
 
   await hideWindowBlock(async () => {
-    await agent
-      .runAgentLoop({ loopWaitTime: () => 800 })
+    await guiAgent
+      .run(instructions)
       .catch((e) => {
         logger.error('[runAgentLoop error]', e);
         setState({
@@ -100,6 +131,7 @@ export const runAgent = async (
         closeScreenMarker();
         hidePauseButton();
         hideScreenWaterFlow();
+        console.log('statusstatusstatusstatusstatusstatus', getState().status);
       });
   }).catch((e) => {
     logger.error('[runAgent error hideWindowBlock]', settings, e);

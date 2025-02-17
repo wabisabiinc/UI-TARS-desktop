@@ -44,6 +44,8 @@
     "@computer-use/node-mac-permissions": "2.2.2",
     "@computer-use/nut-js": "^4.2.0",
     "@electron-toolkit/utils": "^3.0.0",
+    "@ui-tars/sdk": "workspace:*",
+    "@ui-tars/operator-nut-js": "workspace:*",
     "@ui-tars/action-parser": "workspace:*",
     "@ui-tars/shared": "workspace:*",
     "@ui-tars/utio": "workspace:*",

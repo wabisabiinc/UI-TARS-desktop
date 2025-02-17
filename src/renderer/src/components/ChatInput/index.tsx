@@ -54,6 +54,7 @@ const ChatInput = forwardRef((_props, _ref) => {
     restUserData,
   } = useStore();
   const { settings } = useSetting();
+  console.log('ChatInput', status);
 
   const [localInstructions, setLocalInstructions] = React.useState('');
 
@@ -73,9 +74,11 @@ const ChatInput = forwardRef((_props, _ref) => {
   } = useScreenRecord();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const running = status === 'running';
-  const maxLoop = status === 'max_loop';
+  const running = status === StatusEnum.RUNNING;
+  const maxLoop = status === StatusEnum.MAX_LOOP;
   // const dispatch = useDispatch(window.zutron);
+
+  console.log('running', 'status', status, running);
 
   const startRun = () => {
     startRecording().catch((e) => {
@@ -136,7 +139,7 @@ const ChatInput = forwardRef((_props, _ref) => {
     return () => {
       stopRecording();
     };
-  }, [isCallUser, status]);
+  }, [isCallUser, status, savedInstructions]);
 
   const lastHumanMessage =
     [...(messages || [])]
@@ -313,9 +316,7 @@ const ChatInput = forwardRef((_props, _ref) => {
               as="textarea"
               ref={textareaRef}
               placeholder={
-                status === StatusEnum.RUNNING &&
-                lastHumanMessage &&
-                messages?.length > 1
+                running && lastHumanMessage && messages?.length > 1
                   ? lastHumanMessage
                   : 'What can I do for you today?'
               }
@@ -362,7 +363,7 @@ const ChatInput = forwardRef((_props, _ref) => {
           </Box>
           <HStack justify="space-between" align="center" w="100%">
             <Box>
-              {status !== StatusEnum.RUNNING && messages?.length > 1 && (
+              {!running && messages?.length > 1 && (
                 <HStack spacing={2}>
                   <Menu isLazy isOpen={isShareOpen} onClose={onShareClose}>
                     <MenuButton

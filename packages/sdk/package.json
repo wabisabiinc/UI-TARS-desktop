@@ -45,7 +45,6 @@
   "dependencies": {
     "openai": "4.73.0",
     "jimp": "1.6.0",
-    "on-change": "5.0.1",
     "@ui-tars/shared": "workspace:*",
     "@ui-tars/action-parser": "workspace:*"
   },

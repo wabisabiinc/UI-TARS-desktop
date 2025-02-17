@@ -6,8 +6,8 @@ import { Box, Center, Flex, Spinner } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
-import { Conversation } from '@ui-tars/shared/types';
 
+import { type ConversationWithSoM } from '@main/shared/types';
 import Duration from '@renderer/components/Duration';
 import Image from '@renderer/components/Image';
 import LoadingText from '@renderer/components/LoadingText';
@@ -19,14 +19,14 @@ import { api } from '@renderer/api';
 
 interface RunMessagesProps {
   highlightedFrame?: number;
-  messages: Conversation[];
+  messages: ConversationWithSoM[];
   thinking?: boolean;
   loading?: boolean;
   autoScroll?: boolean;
   errorMsg?: string | null;
 }
 
-const DurationWrapper = (props: { timing: Conversation['timing'] }) => (
+const DurationWrapper = (props: { timing: ConversationWithSoM['timing'] }) => (
   <Box
     className="duration-component"
     opacity={0}
