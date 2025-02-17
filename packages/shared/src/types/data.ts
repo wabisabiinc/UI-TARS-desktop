@@ -21,10 +21,6 @@ export interface Conversation extends Message {
     };
   };
   predictionParsed?: PredictionParsed[];
-  /** @deprecated */
-  screenshotBase64WithElementMarker?: string;
-  /** @deprecated */
-  reflections?: string[];
 }
 
 /**
