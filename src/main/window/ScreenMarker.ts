@@ -211,7 +211,7 @@ class ScreenMarker {
     // loop predictions
     for (let i = 0; i < overlays.length; i++) {
       const overlay = overlays[i];
-      logger.info('[showPredictionMarker] prediction', overlay);
+      // logger.info('[showPredictionMarker] prediction', overlay);
 
       try {
         this.closeOverlay();

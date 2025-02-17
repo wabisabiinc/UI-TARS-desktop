@@ -68,7 +68,7 @@ export class UITarsModel extends Model<UITarsModelConfig> {
         },
       )
       .finally(() => {
-        logger?.info(`[vlm_invoke_time_cost]: ${Date.now() - startTime}ms`);
+        logger?.info(`[UITarsModel cost]: ${Date.now() - startTime}ms`);
       });
     if (!result.choices[0].message.content) {
       const err = new Error();

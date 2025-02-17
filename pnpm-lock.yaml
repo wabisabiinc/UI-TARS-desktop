@@ -26,6 +26,12 @@ importers:
       '@ui-tars/electron-ipc':
         specifier: workspace:*
         version: link:packages/electron-ipc
+      '@ui-tars/operator-nut-js':
+        specifier: workspace:*
+        version: link:packages/operators/nut-js
+      '@ui-tars/sdk':
+        specifier: workspace:*
+        version: link:packages/sdk
       '@ui-tars/shared':
         specifier: workspace:*
         version: link:packages/shared
@@ -381,9 +387,6 @@ importers:
       jimp:
         specifier: 1.6.0
         version: 1.6.0
-      on-change:
-        specifier: 5.0.1
-        version: 5.0.1
       openai:
         specifier: 4.73.0
         version: 4.73.0(encoding@0.1.13)(zod@3.24.2)
@@ -5245,10 +5248,6 @@ packages:
 
   omggif@1.0.10:
     resolution: {integrity: sha512-LMJTtvgc/nugXj0Vcrrs68Mn2D1r0zf630VNtqtpI1FEO7e+O9FP4gqs9AcnBaSEeoHIPm28u6qgPR0oyEpGSw==}
-
-  on-change@5.0.1:
-    resolution: {integrity: sha512-n7THCP7RkyReRSLkJb8kUWoNsxUIBxTkIp3JKno+sEz6o/9AJ3w3P9fzQkITEkMwyTKJjZciF3v/pVoouxZZMg==}
-    engines: {node: '>=18'}
 
   on-finished@2.4.1:
     resolution: {integrity: sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==}
@@ -12786,8 +12785,6 @@ snapshots:
       es-object-atoms: 1.1.1
 
   omggif@1.0.10: {}
-
-  on-change@5.0.1: {}
 
   on-finished@2.4.1:
     dependencies:
