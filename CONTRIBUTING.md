@@ -109,6 +109,14 @@ After the application starts, you can see the UI-TARS interface within the appli
 
 > **Note**: On MacOS, you need to grant permissions to the app (e.g., iTerm2, Terminal) you are using to run commands.
 
+#### Main process reload
+
+By default, `pnpm run dev` only has frontend Hot Module Replacement (HMR) hot updates. If you need to simultaneously reload the main process during debugging, you can execute `pnpm run dev:w`.
+
+```bash
+$ pnpm run dev:w
+```
+
 ### Release
 
 #### Desktop Application

@@ -2,9 +2,10 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { ComputerUseUserData } from '@ui-tars/shared/types';
+import { GUIAgentData } from '@ui-tars/shared/types';
 
 import { LocalStore, PresetSource } from './validate';
+import { ConversationWithSoM } from '@main/shared/types';
 
 export type NextAction =
   | { type: 'key'; text: string }
@@ -24,10 +25,10 @@ export type AppState = {
   theme: 'dark' | 'light';
   ensurePermissions: { screenCapture?: boolean; accessibility?: boolean };
   instructions: string | null;
-  restUserData: Omit<ComputerUseUserData, 'status' | 'conversations'> | null;
-  status: ComputerUseUserData['status'];
+  restUserData: Omit<GUIAgentData, 'status' | 'conversations'> | null;
+  status: GUIAgentData['status'];
   errorMsg: string | null;
-  messages: ComputerUseUserData['conversations'];
+  messages: ConversationWithSoM[];
   abortController: AbortController | null;
   thinking: boolean;
 };

@@ -3,18 +3,12 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import {
-  GUIAgentData,
-  Conversation,
-  StatusEnum,
-  ShareVersion,
-} from '@ui-tars/shared/types';
+import { GUIAgentData, StatusEnum, ShareVersion } from '@ui-tars/shared/types';
 import { IMAGE_PLACEHOLDER, MAX_LOOP_COUNT } from '@ui-tars/shared/constants';
 import { sleep } from '@ui-tars/shared/utils';
-import onChange from 'on-change';
 
 import { initializeWithConfig } from './context/useConfig';
-import { Operator, GUIAgentConfig } from './types';
+import { Operator, GUIAgentConfig, AgentEvents } from './types';
 import { UITarsModel } from './Model';
 import { BaseGUIAgent } from './base';
 import { getSummary, processVlmParams, toVlmModelFormat } from './utils';
@@ -37,59 +31,6 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
     this.systemPrompt = config.systemPrompt || SYSTEM_PROMPT;
   }
 
-  /**
-   * @description Create a proxy for the GUIAgentData object that emits changes to the onData callback
-   * @param instruction - The instruction to be sent to the model
-   * @returns The GUIAgentData object
-   */
-  private createDataOnChangeProxy(instruction: string): GUIAgentData {
-    const { systemPrompt, onData } = this.config;
-    return onChange(
-      {
-        version: ShareVersion.V1,
-        systemPrompt: this.systemPrompt,
-        instruction,
-        modelName: this.config.model.model,
-        status: StatusEnum.INIT,
-        logTime: Date.now(),
-        conversations: [
-          {
-            from: 'human',
-            value: instruction,
-            timing: {
-              start: Date.now(),
-              end: Date.now(),
-              cost: 0,
-            },
-          },
-        ],
-      } satisfies GUIAgentData,
-      function (path, value, previousValue) {
-        if (['status', 'errMsg'].includes(path)) {
-          onData?.({
-            data: {
-              ...this,
-              conversations: [],
-            },
-          });
-        }
-        // onData delta
-        if (['conversations'].includes(path)) {
-          const newConversations = (value as Conversation[]).slice(
-            (previousValue as Conversation[])?.length || 0,
-          );
-          newConversations.length > 0 &&
-            onData?.({
-              data: {
-                ...this,
-                conversations: newConversations,
-              },
-            });
-        }
-      },
-    );
-  }
-
   async run(instruction: string) {
     return initializeWithConfig<GUIAgentConfig<T>, void>(
       Object.assign(this.config, {
@@ -100,21 +41,43 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
       }),
       async () => {
         const { operator, model, logger } = this;
-        const { signal, onError } = this.config;
+        const { signal, onData, onError } = this.config;
 
-        const data = this.createDataOnChangeProxy(instruction);
+        const data: GUIAgentData = {
+          version: ShareVersion.V1,
+          systemPrompt: this.systemPrompt,
+          instruction,
+          modelName: this.config.model.model,
+          status: StatusEnum.INIT,
+          logTime: Date.now(),
+          conversations: [
+            {
+              from: 'human',
+              value: instruction,
+              timing: {
+                start: Date.now(),
+                end: Date.now(),
+                cost: 0,
+              },
+            },
+          ],
+        };
 
         let loopCnt = 0;
         let snapshotErrCnt = 0;
 
         // start running agent
         data.status = StatusEnum.RUNNING;
+        await onData?.({ data: { ...data, conversations: [] } });
 
         try {
           // eslint-disable-next-line no-constant-condition
           while (true) {
+            console.log('[run_data_status]', data.status);
+
             if (data.status !== StatusEnum.RUNNING || signal?.aborted) {
               signal?.aborted && (data.status = StatusEnum.END);
+              await onData?.({ data: { ...data, conversations: [] } });
               break;
             }
 
@@ -129,6 +92,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                     ? 'Exceeds the maximum number of loops'
                     : 'Too many screenshot failures',
               });
+              await onData?.({ data: { ...data, conversations: [] } });
               break;
             }
 
@@ -163,6 +127,12 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                 start,
                 end: Date.now(),
                 cost: Date.now() - start,
+              },
+            });
+            await onData?.({
+              data: {
+                ...data,
+                conversations: data.conversations.slice(-1),
               },
             });
 
@@ -207,6 +177,12 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
               },
               predictionParsed: parsedPredictions,
             });
+            await onData?.({
+              data: {
+                ...data,
+                conversations: data.conversations.slice(-1),
+              },
+            });
 
             for (const parsedPrediction of parsedPredictions) {
               const actionType = parsedPrediction.action_type;
@@ -222,14 +198,19 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                 case 'max_loop':
                   data.status = StatusEnum.MAX_LOOP;
                   break;
-                default:
-                  data.status = StatusEnum.RUNNING;
               }
+              await onData?.({
+                data: {
+                  ...data,
+                  conversations: [],
+                },
+              });
 
               if (!['wait'].includes(actionType) && !signal?.aborted) {
                 logger.info(
                   'GUIAgent Action Inputs:',
                   parsedPrediction.action_inputs,
+                  parsedPrediction.action_type,
                 );
                 await operator.execute({
                   prediction: parsedPrediction,
@@ -261,6 +242,12 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           throw error;
         } finally {
           data.status = StatusEnum.END;
+          await onData?.({
+            data: {
+              ...data,
+              conversations: [],
+            },
+          });
           logger.info('[GUIAgent] finally: status', data.status);
         }
       },

@@ -23,7 +23,7 @@ import { sleep } from '@ui-tars/shared/utils';
 import { logger } from '@main/logger';
 
 import { UTIOService } from '../services/utio';
-import { markClickPosition } from '../utils/image';
+// import { markClickPosition } from '../utils/image';
 import { Desktop } from './device';
 import { VLM, VlmRequest } from './llm/base';
 import { getSummary, processVlmParams } from './utils';
@@ -245,16 +245,16 @@ export class ComputerUseAgent {
 
         const { parsed } = await device.nl2Command(vlmRes.prediction);
 
-        let eomImage;
-        if (parsed?.length && snapshot) {
-          eomImage = await markClickPosition({
-            ...snapshot,
-            parsed,
-          }).catch((e) => {
-            logger.error('[markClickPosition error]:', e);
-            return '';
-          });
-        }
+        // let eomImage;
+        // if (parsed?.length && snapshot) {
+        //   eomImage = await markClickPosition({
+        //     ...snapshot,
+        //     parsed,
+        //   }).catch((e) => {
+        //     logger.error('[markClickPosition error]:', e);
+        //     return '';
+        //   });
+        // }
         const predictionSummary = getSummary(vlmRes.prediction);
         this.addConversation({
           from: 'gpt',
@@ -270,9 +270,9 @@ export class ComputerUseAgent {
               height: snapshot.height,
             },
           },
-          screenshotBase64WithElementMarker: eomImage,
+          // screenshotBase64WithElementMarker: eomImage,
           predictionParsed: parsed,
-          reflections: vlmRes.reflections,
+          // reflections: vlmRes.reflections,
         });
         this.emitData();
 

@@ -24,7 +24,6 @@ import {
 } from '@computer-use/nut-js';
 import Big from 'big.js';
 import { parseBoxToScreenCoords } from '@ui-tars/shared/utils';
-import { inspect } from 'node:util';
 
 const moveStraightTo = async (startX: number | null, startY: number | null) => {
   if (startX === null || startY === null) {
@@ -59,11 +58,12 @@ const parseBoxToScreenCoordsWithScaleFactor = ({
 };
 
 export class NutJSOperator extends Operator {
-  private scaleFactor = 1;
+  protected scaleFactor = 1;
 
   public async screenshot(): Promise<ScreenshotOutput> {
     const { logger } = useConfig();
-    const screenImage = await screen.grab();
+    const grabImage = await screen.grab();
+    const screenImage = await grabImage.toRGB();
     const width = Math.round(
       screenImage.width / screenImage.pixelDensity.scaleX,
     );
@@ -76,7 +76,7 @@ export class NutJSOperator extends Operator {
     const image = await Jimp.fromBitmap({
       width: screenImage.width,
       height: screenImage.height,
-      data: screenImage.data,
+      data: Buffer.from(screenImage.data),
     });
 
     const resized = await image
