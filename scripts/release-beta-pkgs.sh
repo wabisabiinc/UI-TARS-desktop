@@ -21,13 +21,11 @@ pnpm publish -r --no-git-checks --access public --tag beta
 echo "5. exit changeset..."
 pnpm changeset pre exit
 
-echo "6. commit version update..."
-git add .
-git commit -m "release: publish beta packages"
-
-echo "7. prepare to push to remote git repository..."
+echo "6. prepare to push to remote git repository..."
 read -p "confirm push to remote git repository? (y/N) " confirm
 if [[ $confirm == [yY] ]]; then
+    git add .
+    git commit -m "release: publish beta packages"
     echo "pushing code and tag to remote git repository..."
     git push --follow-tags
     echo "=== release-beta completed ==="
