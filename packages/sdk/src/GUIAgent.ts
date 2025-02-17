@@ -8,7 +8,7 @@ import { IMAGE_PLACEHOLDER, MAX_LOOP_COUNT } from '@ui-tars/shared/constants';
 import { sleep } from '@ui-tars/shared/utils';
 
 import { initializeWithConfig } from './context/useConfig';
-import { Operator, GUIAgentConfig, AgentEvents } from './types';
+import { Operator, GUIAgentConfig } from './types';
 import { UITarsModel } from './Model';
 import { BaseGUIAgent } from './base';
 import { getSummary, processVlmParams, toVlmModelFormat } from './utils';
