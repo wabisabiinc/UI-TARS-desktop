@@ -1,5 +1,17 @@
 # @ui-tars/shared
 
+## 1.2.0-beta.2
+
+### Patch Changes
+
+- chore: publish
+
+## 1.2.0-beta.1
+
+### Patch Changes
+
+- chore: remove unused code
+
 ## 1.2.0-beta.0
 
 ### Minor Changes
