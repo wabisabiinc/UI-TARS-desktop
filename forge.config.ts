@@ -86,7 +86,7 @@ const noopAfterCopy = (
 
 const config: ForgeConfig = {
   packagerConfig: {
-    appBundleId: 'com.bytedance.uitars',
+    // appBundleId: 'com.bytedance.uitars',
     name: 'UI TARS',
     icon: 'resources/icon',
     asar: {
