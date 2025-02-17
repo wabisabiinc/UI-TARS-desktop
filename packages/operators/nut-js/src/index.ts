@@ -58,7 +58,12 @@ const parseBoxToScreenCoordsWithScaleFactor = ({
 };
 
 export class NutJSOperator extends Operator {
-  protected scaleFactor = 1;
+  private scaleFactor?: number;
+
+  constructor(config: { scaleFactor?: number } = {}) {
+    super();
+    this.scaleFactor = config?.scaleFactor;
+  }
 
   public async screenshot(): Promise<ScreenshotOutput> {
     const { logger } = useConfig();
@@ -71,7 +76,10 @@ export class NutJSOperator extends Operator {
       screenImage.height / screenImage.pixelDensity.scaleY,
     );
 
-    this.scaleFactor = screenImage.pixelDensity.scaleX;
+    if (!this.scaleFactor) {
+      this.scaleFactor =
+        process.platform !== 'darwin' ? screenImage.pixelDensity.scaleX : 1;
+    }
 
     const image = await Jimp.fromBitmap({
       width: screenImage.width,
@@ -100,9 +108,8 @@ export class NutJSOperator extends Operator {
 
   async execute(params: ExecuteParams): Promise<void> {
     const { logger, factor } = useConfig();
+    const { scaleFactor = 1 } = this;
     const { prediction, screenWidth, screenHeight } = params;
-
-    const scaleFactor = process.platform !== 'darwin' ? this.scaleFactor : 1;
 
     const { action_type, action_inputs } = prediction;
     const startBoxStr = action_inputs?.start_box || '';
