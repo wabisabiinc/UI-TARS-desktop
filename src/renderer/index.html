@@ -6,11 +6,11 @@
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' *; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:"
+      content="default-src 'self'; connect-src 'self' *; script-src 'self' 'unsafe-eval' node:*; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:"
     />
     <meta
       http-equiv="X-Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' *; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:"
+      content="default-src 'self'; connect-src 'self' *; script-src 'self' 'unsafe-eval' node:*; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:"
     />
     <title>UI-TARS Desktop</title>
     <style>
