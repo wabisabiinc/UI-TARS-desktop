@@ -3,3 +3,4 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 export { GUIAgent } from './GUIAgent';
+export type { GUIAgentConfig } from './types';
