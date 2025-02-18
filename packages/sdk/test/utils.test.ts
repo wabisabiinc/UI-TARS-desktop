@@ -7,7 +7,12 @@ import { describe, expect, it } from 'vitest';
 import { IMAGE_PLACEHOLDER, MAX_IMAGE_LENGTH } from '@ui-tars/shared/constants';
 import type { Message } from '@ui-tars/shared/types';
 
-import { convertToOpenAIMessages, processVlmParams } from './utils';
+import {
+  convertToOpenAIMessages,
+  processVlmParams,
+  preprocessResizeImage,
+} from '../src/utils';
+import { Jimp } from 'jimp';
 
 describe('processVlmParams', () => {
   it('round 1', () => {
@@ -17,7 +22,7 @@ describe('processVlmParams', () => {
       { from: 'human', value: IMAGE_PLACEHOLDER },
     ];
 
-    const result = processVlmParams({ conversations, images });
+    const result = processVlmParams(conversations, images);
 
     expect(result.images.length).toBe(1);
     expect(result.conversations).toEqual(conversations);
@@ -36,7 +41,7 @@ describe('processVlmParams', () => {
       { from: 'human', value: IMAGE_PLACEHOLDER },
     ];
 
-    const result = processVlmParams({ conversations, images });
+    const result = processVlmParams(conversations, images);
 
     expect(result.images.length).toBe(2);
     expect(result.conversations).toEqual(conversations);
@@ -61,7 +66,7 @@ describe('processVlmParams', () => {
       { from: 'human', value: IMAGE_PLACEHOLDER },
     ];
 
-    const result = processVlmParams({ conversations, images });
+    const result = processVlmParams(conversations, images);
 
     expect(result.images.length).toBe(MAX_IMAGE_LENGTH);
     expect(result.conversations).toEqual(conversations);
@@ -88,7 +93,7 @@ describe('processVlmParams', () => {
       { from: 'human', value: IMAGE_PLACEHOLDER },
     ];
 
-    const result = processVlmParams({ conversations, images });
+    const result = processVlmParams(conversations, images);
 
     expect(result.images.length).toBe(MAX_IMAGE_LENGTH);
     expect(result.conversations).toEqual([
@@ -243,5 +248,58 @@ describe('convertToOpenAIMessages', () => {
         ],
       },
     ]);
+  });
+});
+
+describe('preprocessResizeImage', () => {
+  const MAX_PIXELS = 512 * 28 * 28;
+  // Testing util for creating a base64 image
+  async function createTestImage(
+    width: number,
+    height: number,
+  ): Promise<string> {
+    const image = new Jimp({
+      width,
+      height,
+      color: 0xff0000ff,
+    }); // 创建红色图片
+    const buffer = await image.getBuffer('image/png');
+    return buffer.toString('base64');
+  }
+
+  it('should resize image when pixel count exceeds limit', async () => {
+    // Create a large image (1000x1000 = 1,000,000 pixels)
+    const largeImage = await createTestImage(1000, 1000);
+    const result = await preprocessResizeImage(largeImage, MAX_PIXELS);
+
+    // Verify processed image dimensions
+    const resultBuffer = Buffer.from(result, 'base64');
+    const { width, height } = await Jimp.read(resultBuffer);
+
+    // Calculate maximum allowed pixels (512 * 28 * 28 = 401,408)
+    const processedPixels = width! * height!;
+
+    expect(processedPixels).toBeLessThanOrEqual(MAX_PIXELS);
+  });
+
+  it('should not resize small images', async () => {
+    // Create a small image (100x100 = 10,000 pixels)
+    const smallImage = await createTestImage(100, 100);
+    const result = await preprocessResizeImage(smallImage, MAX_PIXELS);
+
+    // Verify processed image dimensions
+    const resultBuffer = Buffer.from(result, 'base64');
+    const { width, height } = await Jimp.read(resultBuffer);
+
+    expect(width).toBe(100);
+    expect(height).toBe(100);
+  });
+
+  it('should throw error when processing invalid image', async () => {
+    const invalidBase64 = 'invalid_base64_string';
+
+    await expect(
+      preprocessResizeImage(invalidBase64, MAX_PIXELS),
+    ).rejects.toThrow();
   });
 });

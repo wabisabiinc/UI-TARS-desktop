@@ -4,7 +4,6 @@
  */
 import { test, expect } from 'vitest';
 import { setOfMarksOverlays } from './setOfMarks';
-// import { sleep } from '@ui-tars/shared/utils';
 
 const testMakeScreenMarker = () => {
   let xPos;

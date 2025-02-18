@@ -6,6 +6,7 @@
 import { GUIAgentData, StatusEnum, ShareVersion } from '@ui-tars/shared/types';
 import { IMAGE_PLACEHOLDER, MAX_LOOP_COUNT } from '@ui-tars/shared/constants';
 import { sleep } from '@ui-tars/shared/utils';
+import asyncRetry from 'async-retry';
 
 import { initializeWithConfig } from './context/useConfig';
 import { Operator, GUIAgentConfig } from './types';
@@ -37,11 +38,11 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         logger: this.logger,
         // TODO: whether to pass default system prompt
         systemPrompt: this.systemPrompt,
-        factor: this.model.factor,
+        factor: UITarsModel.factor,
       }),
       async () => {
         const { operator, model, logger } = this;
-        const { signal, onData, onError } = this.config;
+        const { signal, onData, onError, retry = {} } = this.config;
 
         const data: GUIAgentData = {
           version: ShareVersion.V1,
@@ -99,7 +100,11 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             loopCnt += 1;
             const start = Date.now();
 
-            const snapshot = await operator.screenshot();
+            const snapshot = await asyncRetry(() => operator.screenshot(), {
+              retries: retry?.screenshot?.maxRetries ?? 0,
+              onRetry: retry?.screenshot?.onRetry,
+            });
+
             const isValidImage = !!(
               snapshot?.base64 &&
               snapshot?.width &&
@@ -146,8 +151,13 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
               modelFormat.conversations,
               modelFormat.images,
             );
-            const { prediction, parsedPredictions } =
-              await model.invoke(vlmParams);
+            const { prediction, parsedPredictions } = await asyncRetry(
+              async () => model.invoke(vlmParams),
+              {
+                retries: retry?.model?.maxRetries ?? 0,
+                onRetry: retry?.model?.onRetry,
+              },
+            );
 
             logger.info('[GUIAgent Response]:', prediction);
             logger.info(
@@ -212,11 +222,18 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                   parsedPrediction.action_inputs,
                   parsedPrediction.action_type,
                 );
-                await operator.execute({
-                  prediction: parsedPrediction,
-                  screenWidth: snapshot.width,
-                  screenHeight: snapshot.height,
-                });
+                await asyncRetry(
+                  () =>
+                    operator.execute({
+                      prediction: parsedPrediction,
+                      screenWidth: snapshot.width,
+                      screenHeight: snapshot.height,
+                    }),
+                  {
+                    retries: retry?.execute?.maxRetries ?? 0,
+                    onRetry: retry?.execute?.onRetry,
+                  },
+                );
               }
             }
           }
