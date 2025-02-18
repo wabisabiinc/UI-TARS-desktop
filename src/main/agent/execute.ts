@@ -203,6 +203,7 @@ export const execute = async (executeParams: ExecuteParams) => {
     case 'hotkey': {
       const keyStr = action_inputs?.key || action_inputs?.hotkey;
       if (keyStr) {
+        const platformCommandKey = process.platform === 'darwin' ? Key.LeftCmd : Key.LeftWin;
         const keyMap: Record<string, Key> = {
           return: Key.Enter,
           enter: Key.Enter,
@@ -214,11 +215,15 @@ export const execute = async (executeParams: ExecuteParams) => {
           pagedown: Key.PageDown,
           'page up': Key.PageUp,
           pageup: Key.PageUp,
+          meta: platformCommandKey,
+          win: platformCommandKey,
+          command: platformCommandKey,
+          cmd: platformCommandKey,
         };
 
         const keys = keyStr
           .split(/[\s+]/)
-          .map((k) => keyMap[k.toLowerCase()] || Key[k as keyof typeof Key]);
+          .map((k) => keyMap[k.toLowerCase()] || Key[k.toUpperCase() as keyof typeof Key]);
         logger.info('[hotkey]: ', keys);
         await keyboard.pressKey(...keys);
         await keyboard.releaseKey(...keys);
