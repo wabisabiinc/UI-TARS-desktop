@@ -13,23 +13,20 @@ import mediumZoom, { type Zoom } from 'medium-zoom';
 import React, { useEffect, useRef, useState } from 'react';
 import { TbCopy, TbCopyCheckFilled } from 'react-icons/tb';
 
-const showErrorToast = (error: unknown, toast: ReturnType<typeof useToast>) => {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  toast({
-    title: 'Failed to copy image!',
-    description: errorMessage,
-    status: 'warning',
-    position: 'top',
-    duration: 3000,
-    isClosable: true,
-  });
-};
-
 const SnapshotImage: React.FC<ImageProps> = (props) => {
   const { className, ...rest } = props;
   const [copied, setCopied] = useState<boolean>(false);
   const imgRef = useRef<HTMLImageElement>(null);
-  const toast = useToast();
+  const toast = useToast({
+    title: 'Failed to copy image!',
+    status: 'warning',
+    position: 'top',
+    duration: 3000,
+    isClosable: true,
+    onCloseComplete() {
+      setCopied(false);
+    },
+  });
   const handleCopyImage = async () => {
     if (imgRef.current) {
       try {
@@ -66,13 +63,15 @@ const SnapshotImage: React.FC<ImageProps> = (props) => {
               }, 500);
             }
           } catch (error) {
-            console.error('Failed to copy image:', error);
-            showErrorToast(error, toast);
+            toast({
+              description: error instanceof Error ? error.message : `${error}`,
+            });
           }
         };
       } catch (error) {
-        console.error('Failed to copy image:', error);
-        showErrorToast(error, toast);
+        toast({
+          description: error instanceof Error ? error.message : `${error}`,
+        });
       }
     }
   };
