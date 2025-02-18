@@ -1,5 +1,14 @@
 # @ui-tars/cli
 
+## 1.2.0-beta.4
+
+### Patch Changes
+
+- chore: new version
+- Updated dependencies
+  - @ui-tars/operator-nut-js@1.2.0-beta.4
+  - @ui-tars/sdk@1.2.0-beta.4
+
 ## 1.2.0-beta.3
 
 ### Patch Changes

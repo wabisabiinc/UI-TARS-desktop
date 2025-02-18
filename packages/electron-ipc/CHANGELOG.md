@@ -1,5 +1,11 @@
 # @ui-tars/electron-ipc
 
+## 1.2.0-beta.4
+
+### Patch Changes
+
+- chore: new version
+
 ## 1.2.0-beta.3
 
 ### Patch Changes
