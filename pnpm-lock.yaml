@@ -65,9 +65,6 @@ importers:
       ms:
         specifier: ^2.1.3
         version: 2.1.3
-      openai:
-        specifier: 4.73.0
-        version: 4.73.0(encoding@0.1.13)(zod@3.24.2)
       sharp:
         specifier: 0.33.3
         version: 0.33.3
@@ -382,8 +379,8 @@ importers:
         specifier: 1.6.0
         version: 1.6.0
       openai:
-        specifier: 4.73.0
-        version: 4.73.0(encoding@0.1.13)(zod@3.24.2)
+        specifier: 4.85.1
+        version: 4.85.1(encoding@0.1.13)(zod@3.24.2)
     devDependencies:
       '@types/async-retry':
         specifier: 1.4.9
@@ -5264,12 +5261,15 @@ packages:
     resolution: {integrity: sha512-1FlR+gjXK7X+AsAHso35MnyN5KqGwJRi/31ft6x0M194ht7S+rWAvd7PHss9xSKMzE0asv1pyIHaJYq+BbacAQ==}
     engines: {node: '>=12'}
 
-  openai@4.73.0:
-    resolution: {integrity: sha512-NZstV77w3CEol9KQTRBRQ15+Sw6nxVTicAULSjYO4wn9E5gw72Mtp3fAVaBFXyyVPws4241YmFG6ya4L8v03tA==}
+  openai@4.85.1:
+    resolution: {integrity: sha512-jkX2fntHljUvSH3MkWh4jShl10oNkb+SsCj4auKlbu2oF4KWAnmHLNR5EpnUHK1ZNW05Rp0fjbJzYwQzMsH8ZA==}
     hasBin: true
     peerDependencies:
+      ws: ^8.18.0
       zod: ^3.23.8
     peerDependenciesMeta:
+      ws:
+        optional: true
       zod:
         optional: true
 
@@ -12806,7 +12806,7 @@ snapshots:
     dependencies:
       mimic-fn: 4.0.0
 
-  openai@4.73.0(encoding@0.1.13)(zod@3.24.2):
+  openai@4.85.1(encoding@0.1.13)(zod@3.24.2):
     dependencies:
       '@types/node': 18.19.75
       '@types/node-fetch': 2.6.12
@@ -12841,13 +12841,14 @@ snapshots:
       ignore: 5.3.2
       ini: 3.0.1
       inquirer: 9.3.7
-      openai: 4.73.0(encoding@0.1.13)(zod@3.24.2)
+      openai: 4.85.1(encoding@0.1.13)(zod@3.24.2)
       punycode: 2.3.1
       zod: 3.24.2
     transitivePeerDependencies:
       - debug
       - encoding
       - supports-color
+      - ws
 
   optionator@0.9.4:
     dependencies:

@@ -18,7 +18,13 @@ export default function App() {
   return (
     <ChakraProvider theme={chakraUItheme}>
       <Router>
-        <Suspense fallback={<></>}>
+        <Suspense
+          fallback={
+            <div className="loading-container">
+              <div className="loading-spinner" />
+            </div>
+          }
+        >
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/settings" element={<Settings />} />
