@@ -3,18 +3,19 @@
   "tag": "beta",
   "initialVersions": {
     "ui-tars-desktop": "0.0.6-beta.1",
-    "@ui-tars/action-parser": "1.2.0-beta.3",
-    "@ui-tars/cli": "1.2.0-beta.3",
-    "@ui-tars/electron-ipc": "1.2.0-beta.3",
-    "@ui-tars/operator-nut-js": "1.2.0-beta.3",
-    "@ui-tars/sdk": "1.2.0-beta.3",
-    "@ui-tars/shared": "1.2.0-beta.3",
-    "@ui-tars/utio": "1.2.0-beta.3"
+    "@ui-tars/action-parser": "1.2.0-beta.4",
+    "@ui-tars/cli": "1.2.0-beta.4",
+    "@ui-tars/electron-ipc": "1.2.0-beta.4",
+    "@ui-tars/operator-nut-js": "1.2.0-beta.4",
+    "@ui-tars/sdk": "1.2.0-beta.4",
+    "@ui-tars/shared": "1.2.0-beta.4",
+    "@ui-tars/utio": "1.2.0-beta.4"
   },
   "changesets": [
     "cuddly-bottles-shave",
     "fuzzy-donuts-wash",
     "giant-dots-happen",
+    "large-mangos-push",
     "new-emus-hammer",
     "proud-buttons-drum"
   ]

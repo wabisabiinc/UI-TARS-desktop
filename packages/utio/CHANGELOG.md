@@ -1,5 +1,11 @@
 # @ui-tars/utio
 
+## 1.2.0-beta.5
+
+### Patch Changes
+
+- chore: update sdk
+
 ## 1.1.0-beta.4
 
 ### Patch Changes
