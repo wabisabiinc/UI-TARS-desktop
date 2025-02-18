@@ -11,3 +11,4 @@ export {
 } from './types';
 export { UITarsModel } from './Model';
 export { useConfig } from './context/useConfig';
+export { parseBoxToScreenCoords } from './utils';

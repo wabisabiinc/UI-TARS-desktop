@@ -15,6 +15,7 @@ export interface ExecuteParams {
   prediction: PredictionParsed;
   screenWidth: number;
   screenHeight: number;
+  scaleFactor: number;
 }
 
 export interface ScreenshotOutput extends ScreenshotResult {}

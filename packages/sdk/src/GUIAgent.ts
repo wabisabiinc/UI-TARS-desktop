@@ -228,6 +228,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                       prediction: parsedPrediction,
                       screenWidth: snapshot.width,
                       screenHeight: snapshot.height,
+                      scaleFactor: snapshot.scaleFactor,
                     }),
                   {
                     retries: retry?.execute?.maxRetries ?? 0,
