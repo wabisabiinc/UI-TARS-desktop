@@ -1,5 +1,11 @@
 # @ui-tars/utio
 
+## 1.1.0-beta.4
+
+### Patch Changes
+
+- chore: new version
+
 ## 1.1.0-beta.3
 
 ### Patch Changes
