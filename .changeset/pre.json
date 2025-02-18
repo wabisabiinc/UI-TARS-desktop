@@ -9,7 +9,7 @@
     "@ui-tars/operator-nut-js": "1.2.0-beta.3",
     "@ui-tars/sdk": "1.2.0-beta.3",
     "@ui-tars/shared": "1.2.0-beta.3",
-    "@ui-tars/utio": "1.1.0-beta.3"
+    "@ui-tars/utio": "1.2.0-beta.3"
   },
   "changesets": [
     "cuddly-bottles-shave",
