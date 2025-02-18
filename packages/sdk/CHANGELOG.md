@@ -1,5 +1,14 @@
 # @ui-tars/sdk
 
+## 1.2.0-beta.3
+
+### Patch Changes
+
+- chore: add retry
+- Updated dependencies
+  - @ui-tars/action-parser@1.2.0-beta.3
+  - @ui-tars/shared@1.2.0-beta.3
+
 ## 1.2.0-beta.2
 
 ### Patch Changes

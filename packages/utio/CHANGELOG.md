@@ -1,5 +1,11 @@
 # @ui-tars/utio
 
+## 1.1.0-beta.3
+
+### Patch Changes
+
+- chore: add retry
+
 ## 1.1.0-beta.2
 
 ### Patch Changes
