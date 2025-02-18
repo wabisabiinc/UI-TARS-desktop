@@ -44,8 +44,13 @@ export class NutJSElectronOperator extends NutJSOperator {
       height: Math.round(logicalSize.height * scaleFactor),
     };
 
+    const resized = screenshot.resize({
+      width: physicalSize.width,
+      height: physicalSize.height,
+    });
+
     return {
-      base64: screenshot.toPNG().toString('base64'),
+      base64: resized.toPNG().toString('base64'),
       width: physicalSize.width,
       height: physicalSize.height,
       scaleFactor,
