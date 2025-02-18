@@ -38,7 +38,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         logger: this.logger,
         // TODO: whether to pass default system prompt
         systemPrompt: this.systemPrompt,
-        factor: UITarsModel.factor,
+        factor: this.model.factor,
       }),
       async () => {
         const { operator, model, logger } = this;
