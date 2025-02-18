@@ -23,7 +23,7 @@ export class UITarsModel extends Model<UITarsModelConfig> {
     this.modelConfig = modelConfig;
   }
 
-  get factor(): number {
+  static get factor(): number {
     return FACTOR;
   }
 

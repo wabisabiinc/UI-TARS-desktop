@@ -115,6 +115,17 @@ export const runAgent = async (
     onError: ({ error }) => {
       logger.error('[runAgent error]', settings, error);
     },
+    retry: {
+      model: {
+        maxRetries: 3,
+      },
+      screenshot: {
+        maxRetries: 5,
+      },
+      execute: {
+        maxRetries: 1,
+      },
+    },
   });
 
   await hideWindowBlock(async () => {
