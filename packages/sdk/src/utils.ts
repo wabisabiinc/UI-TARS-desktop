@@ -7,6 +7,31 @@ import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 import { IMAGE_PLACEHOLDER, MAX_IMAGE_LENGTH } from '@ui-tars/shared/constants';
 import { Conversation, Message } from '@ui-tars/shared/types';
+import { parseBoxToScreenCoords as _parseBoxToScreenCoords } from '@ui-tars/shared/utils';
+import { FACTOR } from './constants';
+
+export const parseBoxToScreenCoords = ({
+  boxStr,
+  screenWidth,
+  screenHeight,
+  // scaleFactor,
+}: {
+  boxStr: string;
+  screenWidth: number;
+  screenHeight: number;
+  // scaleFactor: number;
+}) => {
+  const { x: _x, y: _y } = boxStr
+    ? _parseBoxToScreenCoords(boxStr, screenWidth, screenHeight, FACTOR)
+    : { x: null, y: null };
+
+  // const x = _x ? _x / scaleFactor : null;
+  // const y = _y ? _y / scaleFactor : null;
+  return {
+    x: _x,
+    y: _y,
+  };
+};
 
 export const processVlmParams = (
   conversations: Message[],

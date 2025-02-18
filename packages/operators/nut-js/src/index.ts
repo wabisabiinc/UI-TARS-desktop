@@ -23,7 +23,7 @@ import {
   clipboard,
 } from '@computer-use/nut-js';
 import Big from 'big.js';
-import { parseBoxToScreenCoords } from '@ui-tars/shared/utils';
+import { parseBoxToScreenCoords } from '@ui-tars/sdk/core';
 
 const moveStraightTo = async (startX: number | null, startY: number | null) => {
   if (startX === null || startY === null) {
@@ -31,40 +31,7 @@ const moveStraightTo = async (startX: number | null, startY: number | null) => {
   }
   await mouse.move(straightTo(new Point(startX, startY)));
 };
-
-const parseBoxToScreenCoordsWithScaleFactor = ({
-  boxStr,
-  screenWidth,
-  screenHeight,
-  factor,
-  scaleFactor,
-}: {
-  boxStr: string;
-  factor: number;
-  screenWidth: number;
-  screenHeight: number;
-  scaleFactor: number;
-}) => {
-  const { x: _x, y: _y } = boxStr
-    ? parseBoxToScreenCoords(boxStr, screenWidth, screenHeight, factor)
-    : { x: null, y: null };
-
-  const x = _x ? _x * scaleFactor : null;
-  const y = _y ? _y * scaleFactor : null;
-  return {
-    x,
-    y,
-  };
-};
-
 export class NutJSOperator extends Operator {
-  private scaleFactor?: number;
-
-  constructor(config: { scaleFactor?: number } = {}) {
-    super();
-    this.scaleFactor = config?.scaleFactor;
-  }
-
   public async screenshot(): Promise<ScreenshotOutput> {
     const { logger } = useConfig();
     const grabImage = await screen.grab();
@@ -82,49 +49,49 @@ export class NutJSOperator extends Operator {
       'scaleY',
       screenImage.pixelDensity.scaleY,
     );
-    if (!this.scaleFactor) {
-      this.scaleFactor =
-        process.platform !== 'darwin' ? screenImage.pixelDensity.scaleX : 1;
-    }
-    const width = Math.round(
+
+    const scaleFactor = screenImage.pixelDensity.scaleX;
+
+    const actualWidth = Math.round(
       screenImage.width / screenImage.pixelDensity.scaleX,
     );
-    const height = Math.round(
+    const actualHeight = Math.round(
       screenImage.height / screenImage.pixelDensity.scaleY,
     );
     const resized = await image
       .resize({
-        w: width,
-        h: height,
+        w: actualWidth,
+        h: actualHeight,
       })
       .getBuffer('image/png', { quality: 75 });
 
+    // const imagePNG = await image.getBuffer('image/png', { quality: 75 });
+
     const output = {
       base64: resized.toString('base64'),
-      width,
-      height,
+      width: actualWidth,
+      height: actualHeight,
+      scaleFactor,
     };
 
     logger?.info(
-      `[NutjsOperator] screenshot: ${output.width}x${output.height}, scaleFactor: ${this.scaleFactor}`,
+      `[NutjsOperator] screenshot: ${output.width}x${output.height}, scaleFactor: ${scaleFactor}`,
     );
     return output;
   }
 
   async execute(params: ExecuteParams): Promise<void> {
-    const { logger, factor } = useConfig();
-    const { scaleFactor = 1 } = this;
-    const { prediction, screenWidth, screenHeight } = params;
+    const { logger } = useConfig();
+    const { prediction, screenWidth, screenHeight, scaleFactor } = params;
 
     const { action_type, action_inputs } = prediction;
     const startBoxStr = action_inputs?.start_box || '';
 
-    const { x: startX, y: startY } = parseBoxToScreenCoordsWithScaleFactor({
+    logger.info('[NutjsOperator] execute', scaleFactor);
+    const { x: startX, y: startY } = parseBoxToScreenCoords({
       boxStr: startBoxStr,
-      factor,
       screenWidth,
       screenHeight,
-      scaleFactor,
     });
 
     logger.info(`[NutjsOperator Position]: (${startX}, ${startY})`);
@@ -188,12 +155,10 @@ export class NutJSOperator extends Operator {
         logger.info('[NutjsOperator] drag', action_inputs);
         // end_box
         if (action_inputs?.end_box) {
-          const { x: endX, y: endY } = parseBoxToScreenCoordsWithScaleFactor({
+          const { x: endX, y: endY } = parseBoxToScreenCoords({
             boxStr: action_inputs.end_box,
             screenWidth,
             screenHeight,
-            scaleFactor,
-            factor,
           });
 
           if (startX && startY && endX && endY) {

@@ -24,9 +24,14 @@ export interface VlmResponse {
 }
 
 export interface ScreenshotResult {
+  /** screenshot base64 */
   base64: string;
+  /** real screenshot pixel width */
   width: number;
+  /** real screenshot pixel height */
   height: number;
+  /** screenshot scale factor(DPR) */
+  scaleFactor: number;
 }
 
 export type ActionInputs = Partial<

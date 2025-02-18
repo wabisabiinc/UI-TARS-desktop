@@ -8,7 +8,7 @@
  * @param boxStr box string (format: "[x1,y1,x2,y2]" or "[x,y]")
  * @param width screen width
  * @param height screen height
- * @param factor scale factor
+ * @param factor model scale factor
  * @returns calculated center point coords {x, y}
  */
 export function parseBoxToScreenCoords(
