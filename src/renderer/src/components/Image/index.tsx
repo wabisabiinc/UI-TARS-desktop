@@ -2,57 +2,77 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { Image as ChakraImage, ImageProps, Box } from '@chakra-ui/react';
+import {
+  Image as ChakraImage,
+  ImageProps,
+  Box,
+  useToast,
+} from '@chakra-ui/react';
 import clsx from 'clsx';
 import mediumZoom, { type Zoom } from 'medium-zoom';
 import React, { useEffect, useRef, useState } from 'react';
 import { TbCopy, TbCopyCheckFilled } from 'react-icons/tb';
 
+const showErrorToast = (error: unknown, toast: ReturnType<typeof useToast>) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  toast({
+    title: 'Failed to copy image!',
+    description: errorMessage,
+    status: 'warning',
+    position: 'top',
+    duration: 3000,
+    isClosable: true,
+  });
+};
+
 const SnapshotImage: React.FC<ImageProps> = (props) => {
   const { className, ...rest } = props;
   const [copied, setCopied] = useState<boolean>(false);
   const imgRef = useRef<HTMLImageElement>(null);
-
+  const toast = useToast();
   const handleCopyImage = async () => {
     if (imgRef.current) {
       try {
         const imageUrl = imgRef.current.src;
         let img: HTMLImageElement | null = new Image();
         img.src = imageUrl;
-
         img.onload = async () => {
-          // use canvas to copy image, avoid csp issue in data:url
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (ctx && img) {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+          try {
+            // use canvas to copy image, avoid csp issue in data:url
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (ctx && img) {
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
 
-            // get blob from canvas
-            canvas.toBlob(async (blob) => {
-              if (blob) {
-                const item = new ClipboardItem({ 'image/png': blob });
-                await navigator.clipboard.write([item]);
-              }
-              canvas.width = 0;
-              canvas.height = 0;
-            });
+              // get blob from canvas
+              canvas.toBlob(async (blob) => {
+                if (blob) {
+                  const item = new ClipboardItem({ 'image/png': blob });
+                  await navigator.clipboard.write([item]);
+                }
+                canvas.width = 0;
+                canvas.height = 0;
+              });
 
-            // clear
-            img.src = '';
-            img.onload = null;
-            img = null;
-
-            setCopied(true);
-            setTimeout(() => {
-              setCopied(false);
-            }, 500);
+              // clear
+              img.src = '';
+              img.onload = null;
+              img = null;
+              setCopied(true);
+              setTimeout(() => {
+                setCopied(false);
+              }, 500);
+            }
+          } catch (error) {
+            console.error('Failed to copy image:', error);
+            showErrorToast(error, toast);
           }
         };
       } catch (error) {
-        console.error('Failed to copy image to clipboard:', error);
-        alert('Failed to copy image!');
+        console.error('Failed to copy image:', error);
+        showErrorToast(error, toast);
       }
     }
   };
