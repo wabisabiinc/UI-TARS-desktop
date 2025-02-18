@@ -78,9 +78,9 @@ export class NutJSOperator extends Operator {
 
   async execute(params: ExecuteParams): Promise<void> {
     const { logger } = useConfig();
-    const { prediction, screenWidth, screenHeight, scaleFactor } = params;
+    const { parsedPrediction, screenWidth, screenHeight, scaleFactor } = params;
 
-    const { action_type, action_inputs } = prediction;
+    const { action_type, action_inputs } = parsedPrediction;
     const startBoxStr = action_inputs?.start_box || '';
 
     logger.info('[NutjsOperator] execute', scaleFactor);

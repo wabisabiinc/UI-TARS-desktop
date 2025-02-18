@@ -49,7 +49,7 @@ export class NutJSElectronOperator extends NutJSOperator {
   }
 
   async execute(params: ExecuteParams): Promise<void> {
-    const { action_type, action_inputs } = params.prediction;
+    const { action_type, action_inputs } = params.parsedPrediction;
 
     if (action_type === 'type') {
       const content = action_inputs.content?.trim();

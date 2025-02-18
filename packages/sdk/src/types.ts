@@ -12,7 +12,8 @@ import {
 import { BaseOperator, BaseModel } from './base';
 import { UITarsModel } from './Model';
 export interface ExecuteParams {
-  prediction: PredictionParsed;
+  prediction: string;
+  parsedPrediction: PredictionParsed;
   /** Device Physical Resolution */
   screenWidth: number;
   /** Device Physical Resolution */
@@ -51,6 +52,13 @@ export interface RetryConfig {
   onRetry?: (error: Error, attempt: number) => void;
 }
 
+export interface GUIAgentError {
+  // TODO: define error code
+  code: number;
+  error: string;
+  stack?: string;
+}
+
 export interface GUIAgentConfig<TOperator> {
   operator: TOperator;
   model: ConstructorParameters<typeof UITarsModel>[0];
@@ -59,15 +67,7 @@ export interface GUIAgentConfig<TOperator> {
   systemPrompt?: string;
   signal?: AbortSignal;
   onData?: (params: { data: GUIAgentData }) => void;
-  onError?: (params: {
-    data: GUIAgentData;
-    error: {
-      // TODO: define error code
-      code: number;
-      error: string;
-      stack?: string;
-    };
-  }) => void;
+  onError?: (params: { data: GUIAgentData; error: GUIAgentError }) => void;
   logger?: Logger;
   retry?: {
     model?: RetryConfig;
