@@ -30,14 +30,14 @@ export const setOfMarksOverlays = ({
   yPos,
 }: {
   predictions: PredictionParsed[];
-  screenshotContext: NonNullable<Conversation['screenshotContext']>['size'];
+  screenshotContext: NonNullable<Conversation['screenshotContext']>;
   xPos?: number;
   yPos?: number;
 }): {
   overlays: Overlay[];
 } => {
   const overlays: Overlay[] = [];
-  const { width, height } = screenshotContext;
+  const { width, height } = screenshotContext?.size || {};
 
   for (const prediction of predictions) {
     let boxWidth: number;

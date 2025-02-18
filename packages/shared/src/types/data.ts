@@ -16,9 +16,13 @@ export interface Conversation extends Message {
   screenshotBase64?: string;
   screenshotContext?: {
     size: {
+      /** physical device width */
       width: number;
+      /** physical device height */
       height: number;
     };
+    /** screenshot scale factor(DPR) */
+    scaleFactor?: number;
   };
   predictionParsed?: PredictionParsed[];
 }

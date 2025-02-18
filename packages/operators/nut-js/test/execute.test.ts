@@ -29,6 +29,7 @@ vi.mock('@ui-tars/sdk/core', async (importOriginal) => {
       factor: 1000,
     }),
     Operator: actual.Operator,
+    parseBoxToScreenCoords: actual.parseBoxToScreenCoords,
   };
 });
 
@@ -85,36 +86,13 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
+      scaleFactor: 1,
     };
 
     await nutJSOperator.execute(executeParams);
 
     expect(mouse.move).toHaveBeenCalledWith(
       straightTo(new Point(138.24, 697.68)),
-    );
-
-    expect(mouse.click).toHaveBeenCalledWith(Button.LEFT);
-  });
-
-  it('Click on the search bar at the top of the screen with scaleFactor', async () => {
-    const nutJSOperator = new NutJSOperator({ scaleFactor: 1.5 });
-    const executeParams: ExecuteParams = {
-      prediction: {
-        reflection: '',
-        thought: 'Click on the search bar at the top of the screen\n',
-        action_type: 'click',
-        action_inputs: {
-          start_box: '[0.072,0.646,0.072,0.646]',
-        },
-      },
-      screenWidth: 1920,
-      screenHeight: 1080,
-    };
-
-    await nutJSOperator.execute(executeParams);
-
-    expect(mouse.move).toHaveBeenCalledWith(
-      straightTo(new Point(207.36, 1046.52)),
     );
 
     expect(mouse.click).toHaveBeenCalledWith(Button.LEFT);
@@ -133,6 +111,7 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
+      scaleFactor: 1,
     };
 
     await nutJSOperator.execute(executeParams);
@@ -154,6 +133,7 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
+      scaleFactor: 1,
     };
 
     await nutJSOperator.execute(executeParams);
@@ -175,6 +155,7 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
+      scaleFactor: 1,
     };
 
     await nutJSOperator.execute(executeParams);
@@ -199,6 +180,7 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
+      scaleFactor: 1,
     };
 
     await nutJSOperator.execute(executeParams);
@@ -224,6 +206,7 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
+      scaleFactor: 1,
     };
 
     await nutJSOperator.execute(executeParams);

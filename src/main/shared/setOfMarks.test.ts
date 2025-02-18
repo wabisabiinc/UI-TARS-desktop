@@ -64,8 +64,11 @@ const testMakeScreenMarker = () => {
     const { overlays } = setOfMarksOverlays({
       predictions: [action],
       screenshotContext: {
-        width: 2560,
-        height: 1440,
+        size: {
+          width: 2560,
+          height: 1440,
+        },
+        scaleFactor: 1,
       },
       xPos,
       yPos,

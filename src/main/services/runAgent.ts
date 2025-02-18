@@ -55,7 +55,7 @@ export const runAgent = async (
           predictionParsed
         ) {
           const screenshotBase64WithElementMarker = await markClickPosition({
-            ...screenshotContext.size,
+            screenshotContext,
             base64: lastConv?.screenshotBase64,
             parsed: predictionParsed,
           }).catch((e) => {
@@ -95,7 +95,7 @@ export const runAgent = async (
       screenshotContext?.size &&
       !abortController?.signal?.aborted
     ) {
-      showPredictionMarker(predictionParsed, screenshotContext.size);
+      showPredictionMarker(predictionParsed, screenshotContext);
     }
 
     setState({
