@@ -245,7 +245,8 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                 await asyncRetry(
                   () =>
                     operator.execute({
-                      prediction: parsedPrediction,
+                      prediction,
+                      parsedPrediction,
                       screenWidth: snapshot.width,
                       screenHeight: snapshot.height,
                       scaleFactor: snapshot.scaleFactor,
