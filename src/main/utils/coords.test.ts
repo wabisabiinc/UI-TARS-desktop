@@ -4,11 +4,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { UITarsModel } from '@ui-tars/sdk/core';
+import { FACTOR } from '@ui-tars/sdk/constants';
 
 import { parseBoxToScreenCoords } from './coords';
-
-const FACTOR = UITarsModel.factor;
 
 describe('parseBoxToScreenCoords', () => {
   it('should correctly parse single point coordinates', () => {
