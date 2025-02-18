@@ -41,16 +41,22 @@ export const runAgent = async (
   const handleData: GUIAgentConfig<NutJSElectronOperator>['onData'] = async ({
     data,
   }) => {
+    const lastConv = getState().messages[getState().messages.length - 1];
     const { status, conversations, ...restUserData } = data;
     logger.info('[status]', status, conversations.length);
 
+    // add SoM to conversations
     const conversationsWithSoM: ConversationWithSoM[] = await Promise.all(
       conversations.map(async (conv) => {
-        const { screenshotBase64, screenshotContext, predictionParsed } = conv;
-        if (screenshotBase64 && screenshotContext?.size && predictionParsed) {
+        const { screenshotContext, predictionParsed } = conv;
+        if (
+          lastConv?.screenshotBase64 &&
+          screenshotContext?.size &&
+          predictionParsed
+        ) {
           const screenshotBase64WithElementMarker = await markClickPosition({
             ...screenshotContext.size,
-            base64: screenshotBase64,
+            base64: lastConv?.screenshotBase64,
             parsed: predictionParsed,
           }).catch((e) => {
             logger.error('[markClickPosition error]:', e);
@@ -67,7 +73,6 @@ export const runAgent = async (
       logger.error('[conversationsWithSoM error]:', e);
       return conversations;
     });
-    logger.info('[conversationsWithSoM]', conversationsWithSoM.length, status);
 
     const {
       screenshotBase64,

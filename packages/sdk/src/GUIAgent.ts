@@ -257,7 +257,6 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             }
           }
         } catch (error) {
-          console.log('error', error);
           if (
             error instanceof Error &&
             (error.name === 'AbortError' || error.message?.includes('aborted'))
