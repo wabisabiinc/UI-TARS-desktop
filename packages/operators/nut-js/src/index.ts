@@ -69,17 +69,6 @@ export class NutJSOperator extends Operator {
     const { logger } = useConfig();
     const grabImage = await screen.grab();
     const screenImage = await grabImage.toRGB();
-    const width = Math.round(
-      screenImage.width / screenImage.pixelDensity.scaleX,
-    );
-    const height = Math.round(
-      screenImage.height / screenImage.pixelDensity.scaleY,
-    );
-
-    if (!this.scaleFactor) {
-      this.scaleFactor =
-        process.platform !== 'darwin' ? screenImage.pixelDensity.scaleX : 1;
-    }
 
     const image = await Jimp.fromBitmap({
       width: screenImage.width,
@@ -87,6 +76,22 @@ export class NutJSOperator extends Operator {
       data: Buffer.from(screenImage.data),
     });
 
+    logger.info(
+      '[NutjsOperator] scaleX',
+      screenImage.pixelDensity.scaleX,
+      'scaleY',
+      screenImage.pixelDensity.scaleY,
+    );
+    if (!this.scaleFactor) {
+      this.scaleFactor =
+        process.platform !== 'darwin' ? screenImage.pixelDensity.scaleX : 1;
+    }
+    const width = Math.round(
+      screenImage.width / screenImage.pixelDensity.scaleX,
+    );
+    const height = Math.round(
+      screenImage.height / screenImage.pixelDensity.scaleY,
+    );
     const resized = await image
       .resize({
         w: width,

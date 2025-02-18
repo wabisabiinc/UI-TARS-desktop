@@ -145,7 +145,6 @@ export const runAgent = async (
         closeScreenMarker();
         hidePauseButton();
         hideScreenWaterFlow();
-        console.log('statusstatusstatusstatusstatusstatus', getState().status);
       });
   }).catch((e) => {
     logger.error('[runAgent error hideWindowBlock]', settings, e);
