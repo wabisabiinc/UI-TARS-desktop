@@ -4,7 +4,7 @@
  */
 import sharp from 'sharp';
 
-import { type PredictionParsed } from '@ui-tars/shared/types';
+import { Conversation, type PredictionParsed } from '@ui-tars/shared/types';
 
 import { logger } from '@main/logger';
 import { setOfMarksOverlays } from '@main/shared/setOfMarks';
@@ -12,8 +12,7 @@ import { setOfMarksOverlays } from '@main/shared/setOfMarks';
 // TODO: use jimp to mark click position
 export async function markClickPosition(data: {
   base64: string;
-  width: number;
-  height: number;
+  screenshotContext: NonNullable<Conversation['screenshotContext']>;
   parsed: PredictionParsed[];
 }): Promise<string> {
   if (!data?.parsed?.length) {
@@ -23,10 +22,7 @@ export async function markClickPosition(data: {
     const imageBuffer = Buffer.from(data.base64, 'base64');
     const { overlays = [] } = setOfMarksOverlays({
       predictions: data.parsed,
-      screenshotContext: {
-        width: data.width,
-        height: data.height,
-      },
+      screenshotContext: data.screenshotContext,
     });
     const imageOverlays: sharp.OverlayOptions[] = overlays
       .map((o) => {

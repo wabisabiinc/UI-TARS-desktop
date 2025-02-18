@@ -22,7 +22,7 @@ export const useScreenRecord = (
 
   const drawSetOfMarkOverlays = (
     ctx: CanvasRenderingContext2D,
-    screenshotContext: NonNullable<Conversation['screenshotContext']>['size'],
+    screenshotContext: NonNullable<Conversation['screenshotContext']>,
   ) => {
     const messages = getState().messages;
     // console.log('[messages]', messages);
@@ -64,7 +64,8 @@ export const useScreenRecord = (
     try {
       recordedChunksRef.current = [];
 
-      const { screenWidth, screenHeight } = await api.getScreenSize();
+      const { screenWidth, screenHeight, scaleFactor } =
+        await api.getScreenSize();
 
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
@@ -131,8 +132,11 @@ export const useScreenRecord = (
 
             // draw set of mark overlays
             drawSetOfMarkOverlays(ctx, {
-              width: screenWidth,
-              height: screenHeight,
+              size: {
+                width: screenWidth,
+                height: screenHeight,
+              },
+              scaleFactor,
             });
           }
           animationFrameId = requestAnimationFrame(drawFrame);
