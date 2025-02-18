@@ -43,6 +43,7 @@ export class UITarsModel extends Model<UITarsModelConfig> {
 
     const openai = new OpenAI({
       ...restOptions,
+      maxRetries: 0,
       baseURL,
       apiKey,
     });
@@ -70,6 +71,7 @@ export class UITarsModel extends Model<UITarsModelConfig> {
       .finally(() => {
         logger?.info(`[UITarsModel cost]: ${Date.now() - startTime}ms`);
       });
+
     if (!result.choices[0].message.content) {
       const err = new Error();
       err.name = 'vlm response error';

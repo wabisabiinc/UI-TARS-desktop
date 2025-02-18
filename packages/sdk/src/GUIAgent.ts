@@ -152,7 +152,25 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
               modelFormat.images,
             );
             const { prediction, parsedPredictions } = await asyncRetry(
-              async () => model.invoke(vlmParams),
+              async (bail) => {
+                try {
+                  const result = await model.invoke(vlmParams);
+                  return result;
+                } catch (error: unknown) {
+                  if (
+                    error instanceof Error &&
+                    (error?.name === 'APIUserAbortError' ||
+                      error?.message?.includes('aborted'))
+                  ) {
+                    bail(error as unknown as Error);
+                    return {
+                      prediction: '',
+                      parsedPredictions: [],
+                    };
+                  }
+                  throw error;
+                }
+              },
               {
                 retries: retry?.model?.maxRetries ?? 0,
                 onRetry: retry?.model?.onRetry,
