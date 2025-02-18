@@ -35,42 +35,38 @@ export class NutJSOperator extends Operator {
   public async screenshot(): Promise<ScreenshotOutput> {
     const { logger } = useConfig();
     const grabImage = await screen.grab();
-    const screenImage = await grabImage.toRGB();
+    const screenWithScale = await grabImage.toRGB(); // widthScale = screenWidth * scaleX
 
-    const image = await Jimp.fromBitmap({
-      width: screenImage.width,
-      height: screenImage.height,
-      data: Buffer.from(screenImage.data),
-    });
+    const scaleFactor = screenWithScale.pixelDensity.scaleX;
 
     logger.info(
-      '[NutjsOperator] scaleX',
-      screenImage.pixelDensity.scaleX,
+      '[NutjsOperator]',
+      'scaleX',
+      screenWithScale.pixelDensity.scaleX,
       'scaleY',
-      screenImage.pixelDensity.scaleY,
+      screenWithScale.pixelDensity.scaleY,
     );
 
-    const scaleFactor = screenImage.pixelDensity.scaleX;
+    const screenWithScaleImage = await Jimp.fromBitmap({
+      width: screenWithScale.width,
+      height: screenWithScale.height,
+      data: Buffer.from(screenWithScale.data),
+    });
 
-    const actualWidth = Math.round(
-      screenImage.width / screenImage.pixelDensity.scaleX,
-    );
-    const actualHeight = Math.round(
-      screenImage.height / screenImage.pixelDensity.scaleY,
-    );
-    const resized = await image
+    const width = screenWithScale.width / screenWithScale.pixelDensity.scaleX;
+    const height = screenWithScale.height / screenWithScale.pixelDensity.scaleY;
+
+    const realScreenImage = await screenWithScaleImage
       .resize({
-        w: actualWidth,
-        h: actualHeight,
+        w: width,
+        h: height,
       })
       .getBuffer('image/png', { quality: 75 });
 
-    // const imagePNG = await image.getBuffer('image/png', { quality: 75 });
-
     const output = {
-      base64: resized.toString('base64'),
-      width: actualWidth,
-      height: actualHeight,
+      base64: realScreenImage.toString('base64'),
+      width,
+      height,
       scaleFactor,
     };
 
