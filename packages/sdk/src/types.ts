@@ -13,8 +13,11 @@ import { BaseOperator, BaseModel } from './base';
 import { UITarsModel } from './Model';
 export interface ExecuteParams {
   prediction: PredictionParsed;
+  /** Device Physical Resolution */
   screenWidth: number;
+  /** Device Physical Resolution */
   screenHeight: number;
+  /** Device DPR */
   scaleFactor: number;
 }
 
