@@ -16,10 +16,15 @@ export class NutJSElectronOperator extends NutJSOperator {
   public async screenshot(): Promise<ScreenshotOutput> {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.size;
+    const { scaleFactor } = primaryDisplay;
 
-    logger.info('[screenshot] [primaryDisplay]', 'size:', primaryDisplay.size);
-
-    logger.info('[screenshot] [scaleScreenSize]', width, height);
+    logger.info(
+      '[screenshot] [primaryDisplay]',
+      'size:',
+      primaryDisplay.size,
+      'scaleFactor:',
+      scaleFactor,
+    );
 
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
@@ -35,6 +40,7 @@ export class NutJSElectronOperator extends NutJSOperator {
       base64: screenshot.toPNG().toString('base64'),
       width,
       height,
+      scaleFactor,
     };
   }
 
