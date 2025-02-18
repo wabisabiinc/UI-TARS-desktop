@@ -15,7 +15,7 @@ import { sleep } from '@ui-tars/shared/utils';
 export class NutJSElectronOperator extends NutJSOperator {
   public async screenshot(): Promise<ScreenshotOutput> {
     const primaryDisplay = screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.size;
+    const { width, height } = primaryDisplay.size; // screenWidth = widthScale / scaleX
     const { scaleFactor } = primaryDisplay;
 
     logger.info(
