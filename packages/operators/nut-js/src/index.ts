@@ -8,9 +8,9 @@ import {
   type ScreenshotOutput,
   type ExecuteParams,
 } from '@ui-tars/sdk/core';
-import { screen } from '@computer-use/nut-js';
 import { Jimp } from 'jimp';
 import {
+  screen,
   Button,
   Key,
   Point,
