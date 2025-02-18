@@ -6,24 +6,23 @@ import { Key, keyboard } from '@computer-use/nut-js';
 import { type ScreenshotOutput, type ExecuteParams } from '@ui-tars/sdk/core';
 import { NutJSOperator } from '@ui-tars/operator-nut-js';
 import { clipboard } from 'electron';
-import { desktopCapturer, screen } from 'electron';
+import { desktopCapturer } from 'electron';
 
 import * as env from '@main/env';
 import { logger } from '@main/logger';
 import { sleep } from '@ui-tars/shared/utils';
+import { getScreenSize } from '@main/utils/screen';
 
 export class NutJSElectronOperator extends NutJSOperator {
   public async screenshot(): Promise<ScreenshotOutput> {
-    const primaryDisplay = screen.getPrimaryDisplay();
-
-    const logicalSize = primaryDisplay.size; // Logical = Physical / scaleX
+    const { physicalSize, logicalSize, scaleFactor } = getScreenSize(); // Logical = Physical / scaleX
 
     logger.info(
       '[screenshot] [primaryDisplay]',
-      'size:',
-      primaryDisplay.size,
+      'logicalSize:',
+      logicalSize,
       'scaleFactor:',
-      primaryDisplay.scaleFactor,
+      scaleFactor,
     );
 
     const sources = await desktopCapturer.getSources({
@@ -35,14 +34,6 @@ export class NutJSElectronOperator extends NutJSOperator {
     });
     const primarySource = sources[0];
     const screenshot = primarySource.thumbnail;
-
-    // Mac retina display scaleFactor = 1
-    const scaleFactor = env.isMacOS ? 1 : primaryDisplay.scaleFactor;
-
-    const physicalSize = {
-      width: Math.round(logicalSize.width * scaleFactor),
-      height: Math.round(logicalSize.height * scaleFactor),
-    };
 
     const resized = screenshot.resize({
       width: physicalSize.width,

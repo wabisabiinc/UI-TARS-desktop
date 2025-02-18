@@ -127,6 +127,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                   width: snapshot.width,
                   height: snapshot.height,
                 },
+                scaleFactor: snapshot.scaleFactor,
               },
               timing: {
                 start,
@@ -202,6 +203,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                   width: snapshot.width,
                   height: snapshot.height,
                 },
+                scaleFactor: snapshot.scaleFactor,
               },
               predictionParsed: parsedPredictions,
             });
