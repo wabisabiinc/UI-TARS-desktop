@@ -1,5 +1,13 @@
 # @ui-tars/action-parser
 
+## 1.2.0-beta.4
+
+### Patch Changes
+
+- chore: new version
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.4
+
 ## 1.2.0-beta.3
 
 ### Patch Changes
