@@ -26,9 +26,9 @@ export interface VlmResponse {
 export interface ScreenshotResult {
   /** screenshot base64 */
   base64: string;
-  /** real screenshot pixel width */
+  /** real screenshot pixel width, Physical Resolution */
   width: number;
-  /** real screenshot pixel height */
+  /** real screenshot pixel height, Physical Resolution */
   height: number;
   /** screenshot scale factor(DPR) */
   scaleFactor: number;

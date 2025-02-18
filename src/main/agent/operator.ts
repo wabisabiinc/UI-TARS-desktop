@@ -15,31 +15,39 @@ import { sleep } from '@ui-tars/shared/utils';
 export class NutJSElectronOperator extends NutJSOperator {
   public async screenshot(): Promise<ScreenshotOutput> {
     const primaryDisplay = screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.size; // screenWidth = widthScale / scaleX
-    const { scaleFactor } = primaryDisplay;
+
+    const logicalSize = primaryDisplay.size; // Logical = Physical / scaleX
 
     logger.info(
       '[screenshot] [primaryDisplay]',
       'size:',
       primaryDisplay.size,
       'scaleFactor:',
-      scaleFactor,
+      primaryDisplay.scaleFactor,
     );
 
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
       thumbnailSize: {
-        width: Math.round(width),
-        height: Math.round(height),
+        width: Math.round(logicalSize.width),
+        height: Math.round(logicalSize.height),
       },
     });
     const primarySource = sources[0];
     const screenshot = primarySource.thumbnail;
 
+    // Mac retina display scaleFactor = 1
+    const scaleFactor = env.isMacOS ? 1 : primaryDisplay.scaleFactor;
+
+    const physicalSize = {
+      width: Math.round(logicalSize.width * scaleFactor),
+      height: Math.round(logicalSize.height * scaleFactor),
+    };
+
     return {
       base64: screenshot.toPNG().toString('base64'),
-      width,
-      height,
+      width: physicalSize.width,
+      height: physicalSize.height,
       scaleFactor,
     };
   }
