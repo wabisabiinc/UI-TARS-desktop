@@ -37,11 +37,15 @@ export abstract class Operator<T = unknown> extends BaseOperator<T> {
 }
 
 export abstract class Model<T = unknown> extends BaseModel<T> {
-  abstract get factor(): number;
   abstract invoke(params: InvokeParams): Promise<InvokeOutput>;
 }
 
 export type Logger = Pick<Console, 'log' | 'error' | 'warn' | 'info'>;
+
+export interface RetryConfig {
+  maxRetries: number;
+  onRetry?: (error: Error, attempt: number) => void;
+}
 
 export interface GUIAgentConfig<TOperator> {
   operator: TOperator;
@@ -61,4 +65,9 @@ export interface GUIAgentConfig<TOperator> {
     };
   }) => void;
   logger?: Logger;
+  retry?: {
+    model?: RetryConfig;
+    screenshot?: RetryConfig;
+    execute?: RetryConfig;
+  };
 }
