@@ -47,11 +47,7 @@ export abstract class BaseModel<
  * @class BaseOperator
  * @classdesc Abstract base class for Operators.
  */
-export abstract class BaseOperator<T = unknown> {
-  constructor(protected options?: T) {
-    this.options = options;
-  }
-
+export abstract class BaseOperator {
   abstract screenshot(params?: unknown): Promise<unknown>;
   abstract execute(params: unknown): Promise<unknown>;
 }

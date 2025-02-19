@@ -34,10 +34,7 @@ export interface InvokeOutput {
   prediction: string;
   parsedPredictions: PredictionParsed[];
 }
-export abstract class Operator<T = unknown> extends BaseOperator<T> {
-  constructor(options?: T) {
-    super(options);
-  }
+export abstract class Operator extends BaseOperator {
   abstract screenshot(): Promise<ScreenshotOutput>;
   abstract execute(params: ExecuteParams): Promise<void>;
 }
