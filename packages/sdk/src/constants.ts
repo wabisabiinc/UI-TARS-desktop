@@ -37,4 +37,4 @@ export const DEFAULT_CONFIG = {
   logger: console,
   factor: FACTOR,
   systemPrompt: SYSTEM_PROMPT,
-} satisfies AgentConfig;
+} satisfies Partial<AgentConfig>;

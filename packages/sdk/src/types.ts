@@ -77,8 +77,7 @@ export interface GUIAgentConfig<TOperator> {
   };
 }
 
-export interface AgentConfig {
-  logger: NonNullable<GUIAgentConfig<Operator>['logger']>;
+export interface AgentConfig<T = Operator> extends GUIAgentConfig<T> {
+  logger: NonNullable<GUIAgentConfig<T>['logger']>;
   factor: number;
-  systemPrompt: string;
 }
