@@ -77,6 +77,7 @@ export interface GUIAgentConfig<TOperator> {
 }
 
 export interface AgentConfig<T = Operator> extends GUIAgentConfig<T> {
+  instruction: string;
   logger: NonNullable<GUIAgentConfig<T>['logger']>;
   factor: number;
 }
