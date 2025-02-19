@@ -43,20 +43,21 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         const { operator, model, logger } = this;
         const { signal, onData, onError, retry = {} } = this.config;
 
+        const currentTime = Date.now();
         const data: GUIAgentData = {
           version: ShareVersion.V1,
           systemPrompt: this.systemPrompt,
           instruction,
           modelName: this.config.model.model,
           status: StatusEnum.INIT,
-          logTime: Date.now(),
+          logTime: currentTime,
           conversations: [
             {
               from: 'human',
               value: instruction,
               timing: {
-                start: Date.now(),
-                end: Date.now(),
+                start: currentTime,
+                end: currentTime,
                 cost: 0,
               },
             },
@@ -117,6 +118,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
               continue;
             }
 
+            let end = Date.now();
             data.conversations.push({
               from: 'human',
               value: IMAGE_PLACEHOLDER,
@@ -130,8 +132,8 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
               },
               timing: {
                 start,
-                end: Date.now(),
-                cost: Date.now() - start,
+                end,
+                cost: end - start,
               },
             });
             await onData?.({
@@ -189,13 +191,15 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             }
 
             const predictionSummary = getSummary(prediction);
+
+            end = Date.now();
             data.conversations.push({
               from: 'gpt',
               value: predictionSummary,
               timing: {
                 start,
-                end: Date.now(),
-                cost: Date.now() - start,
+                end,
+                cost: end - start,
               },
               screenshotContext: {
                 size: {
