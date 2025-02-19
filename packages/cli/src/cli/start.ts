@@ -81,7 +81,7 @@ export const start = async (options: CliOptions) => {
       apiKey: config.apiKey,
       model: config.model,
     },
-    operator: new NutJSOperator({}),
+    operator: new NutJSOperator(),
     signal: abortController.signal,
     // onData: ({ data }) => {
     // console.log(
