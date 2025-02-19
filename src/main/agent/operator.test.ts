@@ -23,7 +23,7 @@ vi.mock('@main/env', () => ({
   isMacOS: false,
 }));
 
-describe('Desktop', () => {
+describe('NutJSElectronOperator', () => {
   let operator: NutJSElectronOperator;
 
   beforeEach(() => {
@@ -40,11 +40,15 @@ describe('Desktop', () => {
       const mockDisplay = {
         id: '1',
         size: { width: 1920, height: 1080 },
+        scaleFactor: 1,
       };
       const mockSource = {
         display_id: '1',
         thumbnail: {
           toPNG: () => Buffer.from('mock-image'),
+          resize: () => ({
+            toPNG: () => Buffer.from('mock-image'),
+          }),
         },
       };
 
@@ -59,6 +63,7 @@ describe('Desktop', () => {
         base64: 'bW9jay1pbWFnZQ==',
         width: 1920,
         height: 1080,
+        scaleFactor: 1,
       });
       expect(desktopCapturer.getSources).toHaveBeenCalledWith({
         types: ['screen'],
