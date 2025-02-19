@@ -41,7 +41,6 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         logger: this.logger,
         systemPrompt: this.systemPrompt,
         factor: this.model.factor,
-        instruction,
       }),
       async () => {
         const { operator, model, logger } = this;

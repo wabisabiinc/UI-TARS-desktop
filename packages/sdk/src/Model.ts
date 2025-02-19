@@ -20,10 +20,9 @@ type OpenAIChatCompletionCreateParams = Omit<ClientOptions, 'maxRetries'> &
 
 export interface UITarsModelConfig extends OpenAIChatCompletionCreateParams {}
 
-export class UITarsModel extends Model<UITarsModelConfig> {
-  private readonly modelConfig: UITarsModelConfig;
-  constructor(modelConfig: UITarsModelConfig) {
-    super(modelConfig);
+export class UITarsModel extends Model {
+  constructor(private readonly modelConfig: UITarsModelConfig) {
+    super();
     this.modelConfig = modelConfig;
   }
 
@@ -36,6 +35,7 @@ export class UITarsModel extends Model<UITarsModelConfig> {
   }
 
   async invoke(params: InvokeParams): Promise<InvokeOutput> {
+    const { conversations, images } = params;
     const { logger, signal } = useConfig();
     const {
       baseURL,
@@ -46,7 +46,6 @@ export class UITarsModel extends Model<UITarsModelConfig> {
       top_p = 0.7,
       ...restOptions
     } = this.modelConfig;
-    const { conversations, images } = params;
 
     const compressedImages = await Promise.all(
       images.map((image) => preprocessResizeImage(image, MAX_PIXELS)),

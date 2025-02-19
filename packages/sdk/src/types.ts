@@ -39,7 +39,7 @@ export abstract class Operator extends BaseOperator {
   abstract execute(params: ExecuteParams): Promise<void>;
 }
 
-export abstract class Model<T = unknown> extends BaseModel<T> {
+export abstract class Model extends BaseModel<InvokeParams, InvokeOutput> {
   abstract invoke(params: InvokeParams): Promise<InvokeOutput>;
 }
 

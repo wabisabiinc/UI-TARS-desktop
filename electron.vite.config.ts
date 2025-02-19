@@ -59,7 +59,6 @@ export default defineConfig({
         input: {
           main: resolve('./src/renderer/index.html'),
         },
-        external: ['node:async_hooks'],
       },
       minify: true,
     },

@@ -31,14 +31,7 @@ export abstract class BaseGUIAgent<
  * @classdesc Abstract base class for Models.
  * @template T - Generic type for model configurations.
  */
-export abstract class BaseModel<
-  TConfig = Record<string, never>,
-  TParams = unknown,
-  TOutput = unknown,
-> {
-  constructor(protected config: TConfig) {
-    this.config = config;
-  }
+export abstract class BaseModel<TParams = unknown, TOutput = unknown> {
   abstract invoke(params: TParams): Promise<TOutput>;
 }
 
