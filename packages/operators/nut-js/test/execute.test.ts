@@ -76,7 +76,9 @@ describe('execute', () => {
   it('Click on the search bar at the top of the screen', async () => {
     const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: Click on the search bar at the top of the screen\nAction: click(start_box='(72,74)')",
+      parsedPrediction: {
         reflection: '',
         thought: 'Click on the search bar at the top of the screen\n',
         action_type: 'click',
@@ -101,7 +103,9 @@ describe('execute', () => {
   it('type doubao.com\n', async () => {
     const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\nAction: type(content='doubao.com\\n')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\n' +
@@ -123,7 +127,9 @@ describe('execute', () => {
   it('type doubao.com', async () => {
     const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\nAction: type(content='doubao.com')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\n' +
@@ -145,7 +151,9 @@ describe('execute', () => {
   it('type Hello World\nUI-TARS\n', async () => {
     const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\nAction: type(content='Hello World\\nUI-TARS\\n')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\n' +
@@ -167,7 +175,9 @@ describe('execute', () => {
   it('drag slider horizontally', async () => {
     const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To narrow down the search results to cat litters within the specified price range of $18 to $32, I need to adjust the price filter. The next logical step is to drag the left handle of the price slider to set the minimum price to $18, ensuring that only products within the desired range are displayed.\nAction: drag(start_box='(72,74)', end_box='(175,74)')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To narrow down the search results to cat litters within the specified price range of $18 to $32, I need to adjust the price filter. The next logical step is to drag the left handle of the price slider to set the minimum price to $18, ensuring that only products within the desired range are displayed.\n' +
@@ -193,7 +203,9 @@ describe('execute', () => {
   it('drag slider vertically', async () => {
     const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To narrow down the search results to cat litters within the specified price range of $18 to $32, I need to adjust the price filter. The next logical step is to drag the left handle of the price slider to set the minimum price to $18, ensuring that only products within the desired range are displayed.\nAction: drag(start_box='(72,74)', end_box='(72,546)')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To narrow down the search results to cat litters within the specified price range of $18 to $32, I need to adjust the price filter. The next logical step is to drag the left handle of the price slider to set the minimum price to $18, ensuring that only products within the desired range are displayed.\n' +

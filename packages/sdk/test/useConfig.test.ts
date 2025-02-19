@@ -4,6 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { initializeWithConfig, useConfig } from '../src/context/useConfig';
+import { DEFAULT_CONFIG } from '../src/constants';
 
 class MockAgent {
   constructor(
@@ -22,6 +23,10 @@ class MockAgent {
 
 class MockOperator {
   async getConfig() {
+    return this.otherFn();
+  }
+
+  otherFn() {
     return useConfig();
   }
 }
@@ -45,6 +50,20 @@ describe('SDK#useConfig', () => {
 
     expect(result).toEqual(testConfig);
     expect(result2).toEqual(testConfig2);
+  });
+
+  it('should work with MockAgent and MockOperator individual otherFn in execute', async () => {
+    const testConfig = {
+      apiKey: 'test-key',
+      endpoint: 'https://api.test.com',
+    };
+
+    const operator = new MockOperator();
+    const agent = new MockAgent(testConfig, operator);
+
+    const result = await agent.fn();
+
+    expect(result).toEqual(testConfig);
   });
 
   it('should maintain config isolation between different agents', async () => {
@@ -91,9 +110,9 @@ describe('SDK#useConfig', () => {
     });
   });
 
-  it('should return undefined if not initialized', () => {
+  it('should return default value if not initialized', () => {
     const config = useConfig();
-    expect(config).toBeUndefined();
+    expect(config).toEqual(DEFAULT_CONFIG);
   });
 
   it('should be able to handle async operations', async () => {

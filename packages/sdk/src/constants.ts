@@ -2,6 +2,8 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
+import type { AgentConfig } from './types';
+
 export const MAX_SNAPSHOT_ERR_CNT = 10;
 export const FACTOR = 1000;
 export const MAX_PIXELS = 1350 * 28 * 28;
@@ -30,3 +32,9 @@ call_user() # Submit the task and call the user when the task is unsolvable, or 
 
 ## User Instruction
 `;
+
+export const DEFAULT_CONFIG = {
+  logger: console,
+  factor: FACTOR,
+  systemPrompt: SYSTEM_PROMPT,
+} satisfies AgentConfig;

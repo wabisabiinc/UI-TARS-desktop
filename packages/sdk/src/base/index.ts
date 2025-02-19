@@ -48,8 +48,8 @@ export abstract class BaseModel<
  * @classdesc Abstract base class for Operators.
  */
 export abstract class BaseOperator<T = unknown> {
-  constructor(protected config?: T) {
-    this.config = config;
+  constructor(protected options?: T) {
+    this.options = options;
   }
 
   abstract screenshot(params?: unknown): Promise<unknown>;
