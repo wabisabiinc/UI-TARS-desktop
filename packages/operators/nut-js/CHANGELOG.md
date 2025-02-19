@@ -1,5 +1,12 @@
 # @ui-tars/operator-nut-js
 
+## 1.2.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @ui-tars/sdk@1.2.0-beta.7
+
 ## 1.2.0-beta.6
 
 ### Patch Changes
