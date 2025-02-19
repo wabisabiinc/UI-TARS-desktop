@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { AgentConfig } from './types';
+import type { AgentContext } from './types';
 
 export const MAX_SNAPSHOT_ERR_CNT = 10;
 export const FACTOR = 1000;
@@ -33,8 +33,8 @@ call_user() # Submit the task and call the user when the task is unsolvable, or 
 ## User Instruction
 `;
 
-export const DEFAULT_CONFIG = {
+export const DEFAULT_CONTEXT = {
   logger: console,
   factor: FACTOR,
   systemPrompt: SYSTEM_PROMPT,
-} satisfies Partial<AgentConfig>;
+} satisfies Partial<AgentContext>;

@@ -165,7 +165,7 @@ export async function preprocessResizeImage(
           w: newWidth,
           h: newHeight,
         })
-        .getBuffer('image/jpeg', { quality: 75 });
+        .getBuffer('image/png', { quality: 75 });
 
       return resized.toString('base64');
     }

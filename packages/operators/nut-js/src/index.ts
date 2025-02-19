@@ -4,7 +4,7 @@
  */
 import {
   Operator,
-  useConfig,
+  useContext,
   type ScreenshotOutput,
   type ExecuteParams,
 } from '@ui-tars/sdk/core';
@@ -33,7 +33,7 @@ const moveStraightTo = async (startX: number | null, startY: number | null) => {
 };
 export class NutJSOperator extends Operator {
   public async screenshot(): Promise<ScreenshotOutput> {
-    const { logger } = useConfig();
+    const { logger } = useContext();
     const grabImage = await screen.grab();
     const screenWithScale = await grabImage.toRGB(); // widthScale = screenWidth * scaleX
 
@@ -77,7 +77,7 @@ export class NutJSOperator extends Operator {
   }
 
   async execute(params: ExecuteParams): Promise<void> {
-    const { logger } = useConfig();
+    const { logger } = useContext();
     const { parsedPrediction, screenWidth, screenHeight, scaleFactor } = params;
 
     const { action_type, action_inputs } = parsedPrediction;

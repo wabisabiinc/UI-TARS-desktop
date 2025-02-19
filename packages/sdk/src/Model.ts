@@ -6,7 +6,7 @@ import OpenAI, { type ClientOptions } from 'openai';
 import { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
 import { actionParser } from '@ui-tars/action-parser';
 
-import { useConfig } from './context/useConfig';
+import { useContext } from './context/useContext';
 import { Model, type InvokeParams, type InvokeOutput } from './types';
 
 import { preprocessResizeImage, convertToOpenAIMessages } from './utils';
@@ -23,6 +23,7 @@ export interface UITarsModelConfig extends OpenAIChatCompletionCreateParams {}
 export class UITarsModel extends Model {
   constructor(private readonly modelConfig: UITarsModelConfig) {
     super();
+    console.log('modelConfig', modelConfig);
     this.modelConfig = modelConfig;
   }
 
@@ -36,7 +37,7 @@ export class UITarsModel extends Model {
 
   async invoke(params: InvokeParams): Promise<InvokeOutput> {
     const { conversations, images } = params;
-    const { logger, signal } = useConfig();
+    const { logger, signal } = useContext();
     const {
       baseURL,
       apiKey,

@@ -78,8 +78,8 @@ export interface GUIAgentConfig<TOperator> {
   maxLoopCount?: number;
 }
 
-export interface AgentConfig<T = Operator> extends GUIAgentConfig<T> {
-  instruction: string;
+export interface AgentContext<T = Operator> extends GUIAgentConfig<T> {
   logger: NonNullable<GUIAgentConfig<T>['logger']>;
   factor: number;
+  model: InstanceType<typeof UITarsModel>;
 }
