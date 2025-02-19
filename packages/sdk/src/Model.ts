@@ -31,6 +31,10 @@ export class UITarsModel extends Model<UITarsModelConfig> {
     return FACTOR;
   }
 
+  get modelName(): string {
+    return this.modelConfig.model ?? 'unknown';
+  }
+
   async invoke(params: InvokeParams): Promise<InvokeOutput> {
     const { logger, signal } = useConfig();
     const {
