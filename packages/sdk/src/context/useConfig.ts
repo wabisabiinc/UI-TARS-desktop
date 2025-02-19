@@ -3,21 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { GUIAgentConfig, Operator } from '../types';
+import { AgentConfig } from '../types';
 
+const configStorageKey = Symbol('ui-tars-sdk-agent-config');
 const configStorage = new AsyncLocalStorage();
 
 export async function initializeWithConfig<T, K>(
   config: T,
   fn: () => Promise<K>,
 ): Promise<K> {
-  return configStorage.run(config, fn);
+  return configStorage.run(
+    {
+      [configStorageKey]: config,
+    },
+    fn,
+  );
 }
 
-export interface AgentConfig extends GUIAgentConfig<Operator> {
-  logger: NonNullable<GUIAgentConfig<Operator>['logger']>;
-  factor: number;
-}
 export function useConfig<T = AgentConfig>() {
-  return configStorage.getStore() as T;
+  const store = configStorage.getStore() as Record<symbol, T>;
+  return store?.[configStorageKey] as T;
 }
