@@ -15,7 +15,12 @@ import { getScreenSize } from '@main/utils/screen';
 
 export class NutJSElectronOperator extends NutJSOperator {
   public async screenshot(): Promise<ScreenshotOutput> {
-    const { physicalSize, logicalSize, scaleFactor } = getScreenSize(); // Logical = Physical / scaleX
+    const {
+      physicalSize,
+      logicalSize,
+      scaleFactor,
+      id: primaryDisplayId,
+    } = getScreenSize(); // Logical = Physical / scaleX
 
     logger.info(
       '[screenshot] [primaryDisplay]',
@@ -32,8 +37,10 @@ export class NutJSElectronOperator extends NutJSOperator {
         height: Math.round(logicalSize.height),
       },
     });
-    const primarySource = sources[0];
-    const screenshot = primarySource.thumbnail;
+    const primarySource = sources.find(
+      (source) => source.display_id === primaryDisplayId.toString(),
+    );
+    const screenshot = primarySource!.thumbnail;
 
     const resized = screenshot.resize({
       width: physicalSize.width,

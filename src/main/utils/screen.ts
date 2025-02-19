@@ -19,6 +19,7 @@ export const getScreenSize = () => {
   };
 
   return {
+    id: primaryDisplay.id,
     physicalSize,
     logicalSize,
     scaleFactor,
