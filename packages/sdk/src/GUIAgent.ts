@@ -45,7 +45,13 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
       }),
       async () => {
         const { operator, model, logger } = this;
-        const { signal, onData, onError, retry = {} } = this.config;
+        const {
+          signal,
+          onData,
+          onError,
+          retry = {},
+          maxLoopCount = MAX_LOOP_COUNT,
+        } = this.config;
 
         const currentTime = Date.now();
         const data: GUIAgentData = {
@@ -87,13 +93,13 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             }
 
             if (
-              loopCnt >= MAX_LOOP_COUNT ||
+              loopCnt >= maxLoopCount ||
               snapshotErrCnt >= MAX_SNAPSHOT_ERR_CNT
             ) {
               Object.assign(data, {
                 status: StatusEnum.MAX_LOOP,
                 errMsg:
-                  loopCnt >= MAX_LOOP_COUNT
+                  loopCnt >= maxLoopCount
                     ? 'Exceeds the maximum number of loops'
                     : 'Too many screenshot failures',
               });

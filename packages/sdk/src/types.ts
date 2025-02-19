@@ -74,6 +74,8 @@ export interface GUIAgentConfig<TOperator> {
     screenshot?: RetryConfig;
     execute?: RetryConfig;
   };
+  /** Maximum number of turns for Agent to execute, @default 25 */
+  maxLoopCount?: number;
 }
 
 export interface AgentConfig<T = Operator> extends GUIAgentConfig<T> {
