@@ -62,7 +62,9 @@ export interface GUIAgentError {
 
 export interface GUIAgentConfig<TOperator> {
   operator: TOperator;
-  model: ConstructorParameters<typeof UITarsModel>[0];
+  model:
+    | InstanceType<typeof UITarsModel>
+    | ConstructorParameters<typeof UITarsModel>[0];
 
   // ===== Optional =====
   systemPrompt?: string;

@@ -27,7 +27,10 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
     super(config);
     this.operator = config.operator;
 
-    this.model = new UITarsModel(config.model);
+    this.model =
+      config.model instanceof UITarsModel
+        ? config.model
+        : new UITarsModel(config.model);
     this.logger = config.logger || console;
     this.systemPrompt = config.systemPrompt || SYSTEM_PROMPT;
   }
@@ -48,7 +51,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           version: ShareVersion.V1,
           systemPrompt: this.systemPrompt,
           instruction,
-          modelName: this.config.model.model,
+          modelName: this.model.modelName,
           status: StatusEnum.INIT,
           logTime: currentTime,
           conversations: [
