@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import OpenAI, { type ClientOptions } from 'openai';
+import { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
 import { actionParser } from '@ui-tars/action-parser';
 
 import { useConfig } from './context/useConfig';
@@ -11,10 +12,13 @@ import { Model, type InvokeParams, type InvokeOutput } from './types';
 import { preprocessResizeImage, convertToOpenAIMessages } from './utils';
 import { FACTOR, MAX_PIXELS } from './constants';
 
-export interface UITarsModelConfig extends ClientOptions {
-  /** ID of the model to use */
-  model: string;
-}
+type OpenAIChatCompletionCreateParams = Omit<ClientOptions, 'maxRetries'> &
+  Pick<
+    ChatCompletionCreateParamsBase,
+    'model' | 'max_tokens' | 'temperature' | 'top_p'
+  >;
+
+export interface UITarsModelConfig extends OpenAIChatCompletionCreateParams {}
 
 export class UITarsModel extends Model<UITarsModelConfig> {
   private readonly modelConfig: UITarsModelConfig;
@@ -29,7 +33,15 @@ export class UITarsModel extends Model<UITarsModelConfig> {
 
   async invoke(params: InvokeParams): Promise<InvokeOutput> {
     const { logger, signal } = useConfig();
-    const { baseURL, apiKey, model, ...restOptions } = this.modelConfig;
+    const {
+      baseURL,
+      apiKey,
+      model,
+      max_tokens = 1000,
+      temperature = 0,
+      top_p = 0.7,
+      ...restOptions
+    } = this.modelConfig;
     const { conversations, images } = params;
 
     const compressedImages = await Promise.all(
@@ -54,15 +66,15 @@ export class UITarsModel extends Model<UITarsModelConfig> {
         {
           model,
           messages,
-          // TODO: more custom options
-          max_tokens: 1000,
           stream: false,
-          temperature: 0,
-          top_p: 0.7,
           seed: null,
           stop: null,
           frequency_penalty: null,
           presence_penalty: null,
+          // custom options
+          max_tokens,
+          temperature,
+          top_p,
         },
         {
           signal,
