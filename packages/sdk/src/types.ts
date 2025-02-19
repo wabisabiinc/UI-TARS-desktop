@@ -11,6 +11,7 @@ import {
 
 import { BaseOperator, BaseModel } from './base';
 import { UITarsModel } from './Model';
+
 export interface ExecuteParams {
   prediction: string;
   parsedPrediction: PredictionParsed;
@@ -34,8 +35,8 @@ export interface InvokeOutput {
   parsedPredictions: PredictionParsed[];
 }
 export abstract class Operator<T = unknown> extends BaseOperator<T> {
-  constructor(config?: T) {
-    super(config);
+  constructor(options?: T) {
+    super(options);
   }
   abstract screenshot(): Promise<ScreenshotOutput>;
   abstract execute(params: ExecuteParams): Promise<void>;
@@ -76,7 +77,7 @@ export interface GUIAgentConfig<TOperator> {
   };
 }
 
-export interface AgentConfig extends GUIAgentConfig<Operator> {
+export interface AgentConfig {
   logger: NonNullable<GUIAgentConfig<Operator>['logger']>;
   factor: number;
   systemPrompt: string;
