@@ -10,23 +10,27 @@ import { Conversation, Message } from '@ui-tars/shared/types';
 import { parseBoxToScreenCoords as _parseBoxToScreenCoords } from '@ui-tars/shared/utils';
 import { FACTOR } from './constants';
 
+/**
+ * parse box string to screen coordinates
+ * eg: '[0.131,0.25,0.131,0.25]' 2560x1440 -> { x: 335.36, y: 360 }
+ * @param boxStr box string
+ * @param screenWidth screen width
+ * @param screenHeight screen height
+ * @returns screen coordinates
+ */
 export const parseBoxToScreenCoords = ({
   boxStr,
   screenWidth,
   screenHeight,
-  // scaleFactor,
 }: {
   boxStr: string;
   screenWidth: number;
   screenHeight: number;
-  // scaleFactor: number;
 }) => {
   const { x: _x, y: _y } = boxStr
     ? _parseBoxToScreenCoords(boxStr, screenWidth, screenHeight, FACTOR)
     : { x: null, y: null };
 
-  // const x = _x ? _x / scaleFactor : null;
-  // const y = _y ? _y / scaleFactor : null;
   return {
     x: _x,
     y: _y,
@@ -98,10 +102,10 @@ export const getSummary = (prediction: string) =>
     .trim();
 
 /**
- * 将对话转换为 OpenAI 的 ChatCompletionMessageParam
- * @param conversations 对话
- * @param images 图片
- * @returns OpenAI 的 ChatCompletionMessageParam
+ * convert conversations to OpenAI ChatCompletionMessageParam
+ * @param conversations conversations
+ * @param images images
+ * @returns OpenAI ChatCompletionMessageParam
  */
 export const convertToOpenAIMessages = ({
   conversations,

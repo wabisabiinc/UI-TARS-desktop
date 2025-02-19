@@ -36,7 +36,6 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
     return initializeWithConfig<GUIAgentConfig<T>, void>(
       Object.assign(this.config, {
         logger: this.logger,
-        // TODO: whether to pass default system prompt
         systemPrompt: this.systemPrompt,
         factor: this.model.factor,
       }),
