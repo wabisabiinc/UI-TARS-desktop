@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { GUIAgent } from '@ui-tars/sdk';
-import inquirer from 'inquirer';
-import { inspect } from 'node:util';
+import * as p from '@clack/prompts';
+// import { inspect } from 'node:util';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -33,23 +33,19 @@ export const start = async (options: CliOptions) => {
     return;
   }
   if (!config.baseURL || !config.apiKey || !config.model) {
-    const configAnswers = await inquirer.prompt([
+    const configAnswers = await p.group(
       {
-        type: 'input',
-        name: 'baseURL',
-        message: 'please input vlm model baseURL:',
+        baseURL: () => p.text({ message: 'please input vlm model baseURL:' }),
+        apiKey: () => p.text({ message: 'please input vlm model apiKey:' }),
+        model: () => p.text({ message: 'please input vlm model name:' }),
       },
       {
-        type: 'input',
-        name: 'apiKey',
-        message: 'please input vlm model apiKey:',
+        onCancel: () => {
+          p.cancel('operation cancelled');
+          process.exit(0);
+        },
       },
-      {
-        type: 'input',
-        name: 'model',
-        message: 'please input vlm model name:',
-      },
-    ]);
+    );
 
     config = { ...config, ...configAnswers };
 
@@ -62,13 +58,17 @@ export const start = async (options: CliOptions) => {
     }
   }
 
-  const answers = await inquirer.prompt([
+  const answers = await p.group(
     {
-      type: 'input',
-      name: 'instruction',
-      message: 'Input input your instruction',
+      instruction: () => p.text({ message: 'Input your instruction' }),
     },
-  ]);
+    {
+      onCancel: () => {
+        p.cancel('操作已取消');
+        process.exit(0);
+      },
+    },
+  );
 
   const abortController = new AbortController();
   process.on('SIGINT', () => {
