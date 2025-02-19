@@ -1,5 +1,11 @@
 # @ui-tars/utio
 
+## 1.2.0-beta.6
+
+### Patch Changes
+
+- feat: new sdk
+
 ## 1.2.0-beta.5
 
 ### Patch Changes
