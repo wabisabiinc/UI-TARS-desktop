@@ -75,3 +75,8 @@ export interface GUIAgentConfig<TOperator> {
     execute?: RetryConfig;
   };
 }
+
+export interface AgentConfig extends GUIAgentConfig<Operator> {
+  logger: NonNullable<GUIAgentConfig<Operator>['logger']>;
+  factor: number;
+}
