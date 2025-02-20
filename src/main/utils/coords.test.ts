@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { FACTOR } from '@main/agent/constant';
+import { FACTOR } from '@ui-tars/sdk/constants';
 
 import { parseBoxToScreenCoords } from './coords';
 

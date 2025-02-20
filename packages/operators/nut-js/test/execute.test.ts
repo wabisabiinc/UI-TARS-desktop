@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import { type ExecuteParams } from '@ui-tars/sdk/core';
 import {
   Button,
   Key,
@@ -10,7 +15,23 @@ import {
 } from '@computer-use/nut-js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ExecuteParams, execute } from './execute';
+import { NutJSOperator } from '../src/index';
+
+vi.mock('@ui-tars/sdk/core', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    useContext: vi.fn().mockReturnValue({
+      logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+      factor: 1000,
+    }),
+    Operator: actual.Operator,
+    parseBoxToScreenCoords: actual.parseBoxToScreenCoords,
+  };
+});
 
 // Mock @computer-use/nut-js
 vi.mock('@computer-use/nut-js', async (importOriginal) => {
@@ -48,19 +69,16 @@ vi.mock('@computer-use/nut-js', async (importOriginal) => {
 });
 
 describe('execute', () => {
-  const mockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('Click on the search bar at the top of the screen', async () => {
+    const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: Click on the search bar at the top of the screen\nAction: click(start_box='(72,74)')",
+      parsedPrediction: {
         reflection: '',
         thought: 'Click on the search bar at the top of the screen\n',
         action_type: 'click',
@@ -70,11 +88,10 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
-      logger: mockLogger,
       scaleFactor: 1,
     };
 
-    await execute(executeParams);
+    await nutJSOperator.execute(executeParams);
 
     expect(mouse.move).toHaveBeenCalledWith(
       straightTo(new Point(138.24, 697.68)),
@@ -83,34 +100,12 @@ describe('execute', () => {
     expect(mouse.click).toHaveBeenCalledWith(Button.LEFT);
   });
 
-  it('Click on the search bar at the top of the screen with scaleFactor', async () => {
-    const executeParams: ExecuteParams = {
-      prediction: {
-        reflection: '',
-        thought: 'Click on the search bar at the top of the screen\n',
-        action_type: 'click',
-        action_inputs: {
-          start_box: '[0.072,0.646,0.072,0.646]',
-        },
-      },
-      screenWidth: 1920,
-      screenHeight: 1080,
-      logger: mockLogger,
-      scaleFactor: 1.5,
-    };
-
-    await execute(executeParams);
-
-    expect(mouse.move).toHaveBeenCalledWith(
-      straightTo(new Point(207.36, 1046.52)),
-    );
-
-    expect(mouse.click).toHaveBeenCalledWith(Button.LEFT);
-  });
-
   it('type doubao.com\n', async () => {
+    const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\nAction: type(content='doubao.com\\n')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\n' +
@@ -120,19 +115,21 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
-      logger: mockLogger,
       scaleFactor: 1,
     };
 
-    await execute(executeParams);
+    await nutJSOperator.execute(executeParams);
 
     expect(keyboard.type).toHaveBeenCalledWith('doubao.com');
     expect(keyboard.pressKey).toHaveBeenCalledWith(Key.Enter);
   });
 
   it('type doubao.com', async () => {
+    const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\nAction: type(content='doubao.com')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\n' +
@@ -142,19 +139,21 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
-      logger: mockLogger,
       scaleFactor: 1,
     };
 
-    await execute(executeParams);
+    await nutJSOperator.execute(executeParams);
 
     expect(keyboard.type).toHaveBeenCalledWith('doubao.com');
     expect(keyboard.pressKey).not.toHaveBeenCalledWith(Key.Enter);
   });
 
   it('type Hello World\nUI-TARS\n', async () => {
+    const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\nAction: type(content='Hello World\\nUI-TARS\\n')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To proceed with the task of accessing doubao.com, I need to type the URL into the address bar. This will allow me to navigate to the website and continue with the subsequent steps of the task.\n' +
@@ -164,19 +163,21 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
-      logger: mockLogger,
       scaleFactor: 1,
     };
 
-    await execute(executeParams);
+    await nutJSOperator.execute(executeParams);
 
     expect(keyboard.type).toHaveBeenCalledWith('Hello World\\nUI-TARS');
     expect(keyboard.pressKey).toHaveBeenCalledWith(Key.Enter);
   });
 
   it('drag slider horizontally', async () => {
+    const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To narrow down the search results to cat litters within the specified price range of $18 to $32, I need to adjust the price filter. The next logical step is to drag the left handle of the price slider to set the minimum price to $18, ensuring that only products within the desired range are displayed.\nAction: drag(start_box='(72,74)', end_box='(175,74)')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To narrow down the search results to cat litters within the specified price range of $18 to $32, I need to adjust the price filter. The next logical step is to drag the left handle of the price slider to set the minimum price to $18, ensuring that only products within the desired range are displayed.\n' +
@@ -189,11 +190,10 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
-      logger: mockLogger,
       scaleFactor: 1,
     };
 
-    await execute(executeParams);
+    await nutJSOperator.execute(executeParams);
 
     expect(mouse.drag).toHaveBeenCalledWith(
       straightTo(centerOf(new Region(138.24, 697.68, 197.76, 1.08))),
@@ -201,8 +201,11 @@ describe('execute', () => {
   });
 
   it('drag slider vertically', async () => {
+    const nutJSOperator = new NutJSOperator();
     const executeParams: ExecuteParams = {
-      prediction: {
+      prediction:
+        "Thought: To narrow down the search results to cat litters within the specified price range of $18 to $32, I need to adjust the price filter. The next logical step is to drag the left handle of the price slider to set the minimum price to $18, ensuring that only products within the desired range are displayed.\nAction: drag(start_box='(72,74)', end_box='(72,546)')",
+      parsedPrediction: {
         reflection: '',
         thought:
           'To narrow down the search results to cat litters within the specified price range of $18 to $32, I need to adjust the price filter. The next logical step is to drag the left handle of the price slider to set the minimum price to $18, ensuring that only products within the desired range are displayed.\n' +
@@ -215,11 +218,10 @@ describe('execute', () => {
       },
       screenWidth: 1920,
       screenHeight: 1080,
-      logger: mockLogger,
       scaleFactor: 1,
     };
 
-    await execute(executeParams);
+    await nutJSOperator.execute(executeParams);
 
     expect(mouse.drag).toHaveBeenCalledWith(
       straightTo(centerOf(new Region(138.24, 697.68, 0, -108))),

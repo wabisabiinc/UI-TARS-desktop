@@ -58,6 +58,7 @@ This is a [Monorepo](https://pnpm.io/workspaces) project including the following
 ├── package.json            # Electron application dependencies
 ├── forge.config.ts         # Electron pack and publish configuration
 ├── electron.vite.config.ts # Electron bundle configuration
+│
 ├── src                     # Electron application source code
 │   ├── main                # Main process source code(Like backend)
 │   ├── preload             # Preload script source code
@@ -65,10 +66,14 @@ This is a [Monorepo](https://pnpm.io/workspaces) project including the following
 │
 ├── packages                # Packages or Modules or SDK for UI-TARS Desktop
 │   ├── action-parser       # Action parser for parsing UI-TARS model output into actions
+│   ├── core                # Core SDK package for UI-TARS Agent
 │   ├── electron-ipc        # Electron IPC for communication between main and renderer processes
 │   ├── shared              # Shared code of the project(including types, utils, constants, etc.)
 │   ├── utio                # UTIO (UI-TARS Insights and Observation)
-│   └── visualizer          # Sharing HTML Visualization Reporter
+│   ├── visualizer          # Sharing HTML Visualization Reporter
+│   └── operators           # Automation operators
+│       └── nut-js          # Nut.js is a framework for building automation operators
+│
 ├── docs                    # Documentation of the project
 ├── rfcs                    # RFCs (Request for Comments) for the project
 ├── e2e                     # E2E test cases for the project
@@ -104,6 +109,14 @@ After the application starts, you can see the UI-TARS interface within the appli
 
 > **Note**: On MacOS, you need to grant permissions to the app (e.g., iTerm2, Terminal) you are using to run commands.
 
+#### Main process reload
+
+By default, `pnpm run dev` only has frontend Hot Module Replacement (HMR) hot updates. If you need to simultaneously reload the main process during debugging, you can execute `pnpm run dev:w`.
+
+```bash
+$ pnpm run dev:w
+```
+
 ### Release
 
 #### Desktop Application
@@ -122,11 +135,21 @@ Currently, the release workflow supports the following platforms:
 
 #### Packages
 
-If you want to publish the packages to the npm registry, you can run the following command:
+##### Latest version
+
+If you want to publish the `latest` version packages to the npm registry, you can run the following command:
 
 1. `pnpm changeset` to specify the changelogs for the packages you want to publish
 2. Git commit and push to the `release-pkgs/${version}` branch, create a PR targeting `main` branch, titled `release(pkgs): ${version}`
 3. `pnpm run publish:packages` to publish the packages in latest `origin/main` branch after the PR is merged
+
+##### Beta version
+
+If you want to publish the `beta` version packages to the npm registry, you can run the following command:
+
+1. `pnpm changeset` to specify the changelogs for the packages you want to publish
+2. Git commit and push to the branch
+3. `pnpm run publish-beta:packages` to publish the packages in current branch
 
 
 ### Documentation

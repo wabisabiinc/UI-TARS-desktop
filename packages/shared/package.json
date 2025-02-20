@@ -1,6 +1,6 @@
 {
   "name": "@ui-tars/shared",
-  "version": "1.1.0",
+  "version": "1.2.0-beta.6",
   "description": "Shared types for UI-TARS",
   "repository": {
     "type": "git",
@@ -36,8 +36,7 @@
   "scripts": {
     "prepare": "npm run build",
     "dev": "tsup --watch",
-    "build": "tsup",
-    "prepack": "npm run build"
+    "build": "tsup"
   },
   "keywords": [
     "UI-TARS"

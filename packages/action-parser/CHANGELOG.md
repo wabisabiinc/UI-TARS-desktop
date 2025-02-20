@@ -1,5 +1,64 @@
 # @ui-tars/action-parser
 
+## 1.2.0-beta.6
+
+### Patch Changes
+
+- feat: new sdk
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.6
+
+## 1.2.0-beta.5
+
+### Patch Changes
+
+- chore: update sdk
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.5
+
+## 1.2.0-beta.4
+
+### Patch Changes
+
+- chore: new version
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.4
+
+## 1.2.0-beta.3
+
+### Patch Changes
+
+- chore: add retry
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.3
+
+## 1.2.0-beta.2
+
+### Patch Changes
+
+- chore: publish
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.2
+
+## 1.2.0-beta.1
+
+### Patch Changes
+
+- chore: remove unused code
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.1
+
+## 1.2.0-beta.0
+
+### Minor Changes
+
+- a062e03: feat: ui-tars agent sdk support
+
+### Patch Changes
+
+- Updated dependencies [a062e03]
+  - @ui-tars/shared@1.2.0-beta.0
+
 ## 1.1.0
 
 ### Minor Changes

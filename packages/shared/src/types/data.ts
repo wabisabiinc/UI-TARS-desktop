@@ -16,26 +16,30 @@ export interface Conversation extends Message {
   screenshotBase64?: string;
   screenshotContext?: {
     size: {
+      /** physical device width */
       width: number;
+      /** physical device height */
       height: number;
     };
+    /** screenshot scale factor(DPR) */
+    scaleFactor?: number;
   };
   predictionParsed?: PredictionParsed[];
-  /** exists when predictionParsed exists */
-  screenshotBase64WithElementMarker?: string;
-  reflections?: string[];
 }
 
 /**
+ * @deprecated use {@link GUIAgentData} instead
  * Computer Use data structure, can be used for recording and sharing
  */
-export interface ComputerUseUserData {
+export interface ComputerUseUserData extends GUIAgentData {}
+
+export interface GUIAgentData {
   version: ShareVersion;
   /** Share operation instructions */
   instruction: string;
   systemPrompt: string;
   modelName: string;
-  mode: VlmModeEnum;
+  mode?: VlmModeEnum;
   logTime: number;
   status: StatusEnum;
   errMsg?: string;

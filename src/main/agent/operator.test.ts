@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { screen, desktopCapturer } from 'electron';
-import { Desktop } from './device';
+import { NutJSElectronOperator } from './operator';
 
 // Mock dependencies
 vi.mock('electron', () => ({
@@ -19,19 +19,15 @@ vi.mock('electron', () => ({
   },
 }));
 
-vi.mock('./execute', () => ({
-  execute: vi.fn(),
-}));
-
 vi.mock('@main/env', () => ({
   isMacOS: false,
 }));
 
-describe('Desktop', () => {
-  let desktop: Desktop;
+describe('NutJSElectronOperator', () => {
+  let operator: NutJSElectronOperator;
 
   beforeEach(() => {
-    desktop = new Desktop();
+    operator = new NutJSElectronOperator();
     vi.clearAllMocks();
   });
 
@@ -44,11 +40,15 @@ describe('Desktop', () => {
       const mockDisplay = {
         id: '1',
         size: { width: 1920, height: 1080 },
+        scaleFactor: 1,
       };
       const mockSource = {
         display_id: '1',
         thumbnail: {
           toPNG: () => Buffer.from('mock-image'),
+          resize: () => ({
+            toPNG: () => Buffer.from('mock-image'),
+          }),
         },
       };
 
@@ -57,12 +57,13 @@ describe('Desktop', () => {
         mockSource as any,
       ]);
 
-      const result = await desktop.screenshot();
+      const result = await operator.screenshot();
 
       expect(result).toEqual({
         base64: 'bW9jay1pbWFnZQ==',
         width: 1920,
         height: 1080,
+        scaleFactor: 1,
       });
       expect(desktopCapturer.getSources).toHaveBeenCalledWith({
         types: ['screen'],
