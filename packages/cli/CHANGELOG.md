@@ -1,5 +1,20 @@
 # @ui-tars/cli
 
+## 1.2.0-beta.11
+
+### Patch Changes
+
+- chore: node-fetch
+
+## 1.2.0-beta.10
+
+### Patch Changes
+
+- update
+- Updated dependencies
+  - @ui-tars/sdk@1.2.0-beta.10
+  - @ui-tars/operator-nut-js@1.2.0-beta.10
+
 ## 1.2.0-beta.9
 
 ### Patch Changes

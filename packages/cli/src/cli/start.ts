@@ -2,12 +2,14 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { GUIAgent } from '@ui-tars/sdk';
-import * as p from '@clack/prompts';
-// import { inspect } from 'node:util';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+
+import fetch from 'node-fetch';
+import { GUIAgent } from '@ui-tars/sdk';
+import * as p from '@clack/prompts';
+import yaml from 'js-yaml';
 
 import { NutJSOperator } from '@ui-tars/operator-nut-js';
 
@@ -24,14 +26,27 @@ export const start = async (options: CliOptions) => {
     model: '',
   };
 
-  try {
-    if (fs.existsSync(CONFIG_PATH)) {
-      config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+  if (options.presets) {
+    const response = await fetch(options.presets);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch preset: ${response.status}`);
     }
-  } catch (error) {
-    console.warn('read config file failed', error);
-    return;
+
+    const yamlText = await response.text();
+    const preset = yaml.load(yamlText) as any;
+
+    config.apiKey = preset?.vlmApiKey;
+    config.baseURL = preset?.vlmBaseUrl;
+    config.model = preset?.vlmModelName;
+  } else if (fs.existsSync(CONFIG_PATH)) {
+    try {
+      config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+    } catch (error) {
+      console.warn('read config file failed', error);
+      return;
+    }
   }
+
   if (!config.baseURL || !config.apiKey || !config.model) {
     const configAnswers = await p.group(
       {

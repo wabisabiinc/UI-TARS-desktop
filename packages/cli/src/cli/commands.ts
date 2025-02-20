@@ -13,7 +13,7 @@ export const run = () => {
   program
     .command('start')
     .description('starting the ui-tars agent...')
-    .option('-p, --presets', 'Model Config Presets')
+    .option('-p, --presets <url>', 'Model Config Presets')
     .action(async (options: CliOptions) => {
       try {
         await start(options);
