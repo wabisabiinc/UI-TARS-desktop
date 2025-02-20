@@ -12,6 +12,7 @@ classDiagram
         +model
         +operator
         +signal
+        +onData
         +run()
     }
 
