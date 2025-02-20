@@ -135,6 +135,10 @@ VLM Model Name: ui-tars
 
 [CONTRIBUTING.md](./CONTRIBUTING.md)
 
+## SDK(Experimental)
+
+[SDK](./docs/sdk.md)
+
 ## License
 
 UI-TARS Desktop is licensed under the Apache License 2.0.
