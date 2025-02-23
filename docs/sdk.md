@@ -264,6 +264,7 @@ import {
   parseBoxToScreenCoords,
   type ScreenshotOutput,
   type ExecuteParams
+  type ExecuteOutput,
 } from '@ui-tars/sdk/core';
 import { Jimp } from 'jimp';
 
@@ -292,7 +293,7 @@ export class CustomOperator extends Operator {
     };
   }
 
-  async execute(params: ExecuteParams): Promise<void> {
+  async execute(params: ExecuteParams): Promise<ExecuteOutput> {
     const { parsedPrediction, screenWidth, screenHeight, scaleFactor } = params;
     // Implement action execution logic
 
@@ -321,8 +322,8 @@ Loaded into `GUIAgent`:
 const guiAgent = new GUIAgent({
   // ... other config
   systemPrompt: `
-    // ... other system prompt
-    ${CustomOperator.MANUAL.ACTION_SPACES.join('\n')}
+  // ... other system prompt
+  ${CustomOperator.MANUAL.ACTION_SPACES.join('\n')}
   `,
   operator: new CustomOperator(),
 });

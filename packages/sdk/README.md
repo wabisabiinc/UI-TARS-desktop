@@ -264,10 +264,21 @@ import {
   parseBoxToScreenCoords,
   type ScreenshotOutput,
   type ExecuteParams
+  type ExecuteOutput,
 } from '@ui-tars/sdk/core';
 import { Jimp } from 'jimp';
 
 export class CustomOperator extends Operator {
+  // Define the action spaces and description for UI-TARS System Prompt splice
+  static MANUAL = {
+    ACTION_SPACES: [
+      'click(start_box="") # click on the element at the specified coordinates',
+      'type(content="") # type the specified content into the current input field',
+      'scroll(direction="") # scroll the page in the specified direction',
+      // ...more_actions
+    ],
+  };
+
   public async screenshot(): Promise<ScreenshotOutput> {
     // Implement screenshot functionality
     const base64 = 'base64-encoded-image';
@@ -282,7 +293,7 @@ export class CustomOperator extends Operator {
     };
   }
 
-  async execute(params: ExecuteParams): Promise<void> {
+  async execute(params: ExecuteParams): Promise<ExecuteOutput> {
     const { parsedPrediction, screenWidth, screenHeight, scaleFactor } = params;
     // Implement action execution logic
 
@@ -300,6 +311,23 @@ export class CustomOperator extends Operator {
 Required methods:
 - `screenshot()`: Captures the current screen state
 - `execute()`: Performs the requested action based on model predictions
+
+Optional static properties:
+- `MANUAL`: Define the action spaces and description for UI-TARS Model understanding
+  - `ACTION_SPACES`: Define the action spaces and description for UI-TARS Model understanding
+
+Loaded into `GUIAgent`:
+
+```ts
+const guiAgent = new GUIAgent({
+  // ... other config
+  systemPrompt: `
+  // ... other system prompt
+  ${CustomOperator.MANUAL.ACTION_SPACES.join('\n')}
+  `,
+  operator: new CustomOperator(),
+});
+```
 
 ### Custom Model Implementation
 

@@ -24,6 +24,8 @@ export interface ExecuteParams {
   scaleFactor: number;
 }
 
+export type ExecuteOutput = any;
+
 export interface ScreenshotOutput extends ScreenshotResult {}
 
 export interface InvokeParams {
@@ -42,7 +44,7 @@ export abstract class Operator extends BaseOperator {
     EXAMPLES?: string[];
   };
   abstract screenshot(): Promise<ScreenshotOutput>;
-  abstract execute(params: ExecuteParams): Promise<void>;
+  abstract execute(params: ExecuteParams): Promise<ExecuteOutput>;
 }
 
 export abstract class Model extends BaseModel<InvokeParams, InvokeOutput> {

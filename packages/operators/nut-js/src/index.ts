@@ -7,6 +7,7 @@ import {
   useContext,
   type ScreenshotOutput,
   type ExecuteParams,
+  type ExecuteOutput,
 } from '@ui-tars/sdk/core';
 import { Jimp } from 'jimp';
 import {
@@ -91,7 +92,7 @@ export class NutJSOperator extends Operator {
     return output;
   }
 
-  async execute(params: ExecuteParams): Promise<void> {
+  async execute(params: ExecuteParams): Promise<ExecuteOutput> {
     const { logger } = useContext();
     const { parsedPrediction, screenWidth, screenHeight, scaleFactor } = params;
 

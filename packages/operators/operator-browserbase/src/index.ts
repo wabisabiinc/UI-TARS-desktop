@@ -6,6 +6,7 @@ import {
   Operator,
   type ScreenshotOutput,
   type ExecuteParams,
+  type ExecuteOutput,
 } from '@ui-tars/sdk/core';
 import { Jimp } from 'jimp';
 import { Stagehand, ConstructorParams } from '@browserbasehq/stagehand';
@@ -32,7 +33,7 @@ export class BrowserbaseOperator extends Operator {
       `\`\`\`
 User Instruction: Who is the top GitHub contributor to Stagehand by Browserbase?
 1. Thought: The best starting point to find the top GitHub contributor to the Stagehand project by Browserbase is the project's GitHub repository itself. This will provide direct access to the contributors' list, where you can see who has made the most contributions.\nAction: GOTO(url='https://github.com/browserbase/stagehand')
-2. Thought: The 'Insights' tab on a GitHub repository page provides detailed information about the project's contributors, including the number of contributions each has made. By accessing this tab, we can find the top contributor.\nAction: ACT(description='Click on the \'Insights\' tab.')
+2. Thought: The 'Insights' tab on a GitHub repository page provides detailed information about the project's contributors, including the number of contributions each has made. By accessing this tab, we can find the top contributor.\nAction: ACT(description='Click on the 'Insights' tab.')
 3. The 'Contributors' section under the 'Insights' tab will show a list of contributors along with the number of contributions each has made. This is the most direct way to identify the top contributor to the project.\nAction: ACT(description='Click on the \'Contributors\' link in the left sidebar.')
 4. The screenshot shows the contributors to the Stagehand project, with 'kamath' listed as the top contributor with 69 commits. This information is directly visible in the 'Contributors' section under the 'Insights' tab.\nAction: CLOSE()
 
@@ -69,7 +70,7 @@ User Instruction: Who is the top GitHub contributor to Stagehand by Browserbase?
     };
   }
 
-  async execute(params: ExecuteParams): Promise<void> {
+  async execute(params: ExecuteParams): Promise<ExecuteOutput> {
     const { parsedPrediction } = params;
     console.log('params', params);
 
@@ -105,6 +106,7 @@ User Instruction: Who is the top GitHub contributor to Stagehand by Browserbase?
         console.log('extraction', extraction);
         // TODO: 需要处理返回的 ObserveResult
         // return extraction;
+        break;
       }
 
       case 'OBSERVE':
@@ -112,6 +114,7 @@ User Instruction: Who is the top GitHub contributor to Stagehand by Browserbase?
           instruction: description,
           useAccessibilityTree: true,
         });
+        break;
 
       case 'CLOSE':
         await stagehand.close();

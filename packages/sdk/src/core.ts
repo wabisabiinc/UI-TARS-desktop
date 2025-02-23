@@ -7,6 +7,7 @@ export {
   type InvokeParams,
   type InvokeOutput,
   type ExecuteParams,
+  type ExecuteOutput,
   type ScreenshotOutput,
 } from './types';
 export { UITarsModel } from './Model';

@@ -3,7 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { Key, keyboard } from '@computer-use/nut-js';
-import { type ScreenshotOutput, type ExecuteParams } from '@ui-tars/sdk/core';
+import {
+  type ScreenshotOutput,
+  type ExecuteParams,
+  type ExecuteOutput,
+} from '@ui-tars/sdk/core';
 import { NutJSOperator } from '@ui-tars/operator-nut-js';
 import { clipboard } from 'electron';
 import { desktopCapturer } from 'electron';
@@ -70,7 +74,7 @@ export class NutJSElectronOperator extends NutJSOperator {
     };
   }
 
-  async execute(params: ExecuteParams): Promise<void> {
+  async execute(params: ExecuteParams): Promise<ExecuteOutput> {
     const { action_type, action_inputs } = params.parsedPrediction;
 
     if (action_type === 'type' && env.isWindows && action_inputs?.content) {
