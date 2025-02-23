@@ -128,29 +128,32 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         }
 
         let end = Date.now();
-        data.conversations.push({
-          from: 'human',
-          value: IMAGE_PLACEHOLDER,
-          screenshotBase64: snapshot.base64,
-          screenshotContext: {
-            size: {
-              width: snapshot.width,
-              height: snapshot.height,
+
+        if (isValidImage) {
+          data.conversations.push({
+            from: 'human',
+            value: IMAGE_PLACEHOLDER,
+            screenshotBase64: snapshot.base64,
+            screenshotContext: {
+              size: {
+                width: snapshot.width,
+                height: snapshot.height,
+              },
+              scaleFactor: snapshot.scaleFactor,
             },
-            scaleFactor: snapshot.scaleFactor,
-          },
-          timing: {
-            start,
-            end,
-            cost: end - start,
-          },
-        });
-        await onData?.({
-          data: {
-            ...data,
-            conversations: data.conversations.slice(-1),
-          },
-        });
+            timing: {
+              start,
+              end,
+              cost: end - start,
+            },
+          });
+          await onData?.({
+            data: {
+              ...data,
+              conversations: data.conversations.slice(-1),
+            },
+          });
+        }
 
         // conversations -> messages, images
         const modelFormat = toVlmModelFormat({

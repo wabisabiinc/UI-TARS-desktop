@@ -14,6 +14,21 @@ import { sleep } from '@ui-tars/shared/utils';
 import { getScreenSize } from '@main/utils/screen';
 
 export class NutJSElectronOperator extends NutJSOperator {
+  static MANUAL = {
+    ACTION_SPACES: [
+      `click(start_box='[x1, y1, x2, y2]')`,
+      `left_double(start_box='[x1, y1, x2, y2]')`,
+      `right_single(start_box='[x1, y1, x2, y2]')`,
+      `drag(start_box='[x1, y1, x2, y2]', end_box='[x3, y3, x4, y4]')`,
+      `hotkey(key='')`,
+      `type(content='') #If you want to submit your input, use "\\n" at the end of \`content\`.`,
+      `scroll(start_box='[x1, y1, x2, y2]', direction='down or up or right or left')`,
+      `wait() #Sleep for 5s and take a screenshot to check for any changes.`,
+      `finished()`,
+      `call_user() # Submit the task and call the user when the task is unsolvable, or when you need the user's help.`,
+    ],
+  };
+
   public async screenshot(): Promise<ScreenshotOutput> {
     const {
       physicalSize,

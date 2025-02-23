@@ -37,6 +37,10 @@ export interface InvokeOutput {
   // TODO: status: StatusEnum, status should be provided by model
 }
 export abstract class Operator extends BaseOperator {
+  static MANUAL: {
+    ACTION_SPACES: string[];
+    EXAMPLES?: string[];
+  };
   abstract screenshot(): Promise<ScreenshotOutput>;
   abstract execute(params: ExecuteParams): Promise<void>;
 }
