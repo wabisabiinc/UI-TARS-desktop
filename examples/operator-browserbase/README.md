@@ -6,7 +6,7 @@
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbrowserbase%2Fopen-operator&env=OPENAI_API_KEY,BROWSERBASE_API_KEY,BROWSERBASE_PROJECT_ID&envDescription=API%20keys%20needed%20to%20run%20Open%20Operator&envLink=https%3A%2F%2Fgithub.com%2Fbrowserbase%2Fopen-operator%23environment-variables)
 
-<video src="https://github.com/bytedance/UI-TARS-desktop/assets/100000000/1234567890" height="300" />
+https://github.com/user-attachments/assets/354c3b8b-681f-4ad0-9ab9-365dbde894af
 
 ## Getting Started
 
