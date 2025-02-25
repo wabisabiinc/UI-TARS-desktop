@@ -13,7 +13,11 @@ import { Operator, GUIAgentConfig } from './types';
 import { UITarsModel } from './Model';
 import { BaseGUIAgent } from './base';
 import { getSummary, processVlmParams, toVlmModelFormat } from './utils';
-import { MAX_SNAPSHOT_ERR_CNT, SYSTEM_PROMPT } from './constants';
+import {
+  INTERNAL_ACTION_SPACES_ENUM,
+  MAX_SNAPSHOT_ERR_CNT,
+  SYSTEM_PROMPT,
+} from './constants';
 
 export class GUIAgent<T extends Operator> extends BaseGUIAgent<
   GUIAgentConfig<T>
@@ -128,29 +132,32 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         }
 
         let end = Date.now();
-        data.conversations.push({
-          from: 'human',
-          value: IMAGE_PLACEHOLDER,
-          screenshotBase64: snapshot.base64,
-          screenshotContext: {
-            size: {
-              width: snapshot.width,
-              height: snapshot.height,
+
+        if (isValidImage) {
+          data.conversations.push({
+            from: 'human',
+            value: IMAGE_PLACEHOLDER,
+            screenshotBase64: snapshot.base64,
+            screenshotContext: {
+              size: {
+                width: snapshot.width,
+                height: snapshot.height,
+              },
+              scaleFactor: snapshot.scaleFactor,
             },
-            scaleFactor: snapshot.scaleFactor,
-          },
-          timing: {
-            start,
-            end,
-            cost: end - start,
-          },
-        });
-        await onData?.({
-          data: {
-            ...data,
-            conversations: data.conversations.slice(-1),
-          },
-        });
+            timing: {
+              start,
+              end,
+              cost: end - start,
+            },
+          });
+          await onData?.({
+            data: {
+              ...data,
+              conversations: data.conversations.slice(-1),
+            },
+          });
+        }
 
         // conversations -> messages, images
         const modelFormat = toVlmModelFormat({
@@ -222,46 +229,39 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         await onData?.({
           data: {
             ...data,
-            // end before execute loop
-            ...(parsedPredictions?.[0]?.action_type === 'finished'
-              ? { status: StatusEnum.END }
-              : {}),
             conversations: data.conversations.slice(-1),
           },
         });
 
+        // start execute action
         for (const parsedPrediction of parsedPredictions) {
           const actionType = parsedPrediction.action_type;
 
           logger.info('GUIAgent Action:', actionType);
 
-          const prevStatus: StatusEnum = data.status;
-          switch (actionType) {
-            case 'error_env':
-            case 'call_user':
-            case 'finished':
-              data.status = StatusEnum.END;
-              break;
-            case 'max_loop':
-              data.status = StatusEnum.MAX_LOOP;
-              break;
-          }
-          if (data.status !== prevStatus) {
-            await onData?.({
-              data: {
-                ...data,
-                conversations: [],
-              },
-            });
+          // handle internal action spaces
+          if (
+            [
+              INTERNAL_ACTION_SPACES_ENUM.CALL_USER,
+              INTERNAL_ACTION_SPACES_ENUM.ERROR_ENV,
+              INTERNAL_ACTION_SPACES_ENUM.FINISHED,
+            ].includes(actionType as unknown as INTERNAL_ACTION_SPACES_ENUM)
+          ) {
+            data.status = StatusEnum.END;
+            break;
+          } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.MAX_LOOP) {
+            data.status = StatusEnum.MAX_LOOP;
+            break;
           }
 
-          if (!['wait', 'finished'].includes(actionType) && !signal?.aborted) {
+          if (!signal?.aborted) {
             logger.info(
               'GUIAgent Action Inputs:',
               parsedPrediction.action_inputs,
               parsedPrediction.action_type,
             );
-            await asyncRetry(
+            // TODO: pass executeOutput to onData
+            const executeOutput = await asyncRetry(
               () =>
                 operator.execute({
                   prediction,
@@ -274,7 +274,13 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                 retries: retry?.execute?.maxRetries ?? 0,
                 onRetry: retry?.execute?.onRetry,
               },
-            );
+            ).catch((e) => {
+              logger.error('GUIAgent execute error', e);
+            });
+
+            if (executeOutput && executeOutput?.status) {
+              data.status = executeOutput.status;
+            }
           }
         }
       }
@@ -287,24 +293,29 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         return;
       }
 
-      logger.error('[runLoop] error', error);
+      logger.error('[GUIAgent] run error', error);
       onError?.({
         data,
         error: {
           code: -1,
-          error: '服务异常',
+          error: 'GUIAgent Service Error',
           stack: `${error}`,
         },
       });
       throw error;
     } finally {
+      const prevStatus = data.status;
       data.status = StatusEnum.END;
-      await onData?.({
-        data: {
-          ...data,
-          conversations: [],
-        },
-      });
+
+      if (data.status !== prevStatus) {
+        await onData?.({
+          data: {
+            ...data,
+            conversations: [],
+          },
+        });
+      }
+
       logger.info('[GUIAgent] finally: status', data.status);
     }
   }

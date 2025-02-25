@@ -69,16 +69,37 @@ Ok to proceed? (y) y
 ## Agent Execution Process
 
 ```mermaid
-flowchart LR
-    User[Instruction] --> Agent[GUIAgent]
-    Agent --> Operator[Operator]
-    Operator --> Screenshot[Screenshot]
-    Screenshot --> Model[Model]
-    Model --> Prediction[Invoke]
-    Prediction --> Agent
-    Agent --> Operator
-    Operator --> Action[Execute]
+sequenceDiagram
+    participant user as User
+    participant guiAgent as GUI Agent
+    participant model as UI-TARS Model
+    participant operator as Operator
+
+    user -->> guiAgent: "`instruction` + <br /> `Operator.MANUAL.ACTION_SPACES`"
+
+    activate user
+    activate guiAgent
+
+    loop status !== StatusEnum.RUNNING
+        guiAgent ->> operator: screenshot()
+        activate operator
+        operator -->> guiAgent: base64, Physical screen size
+        deactivate operator
+
+        guiAgent ->> model: instruction + actionSpaces + screenshots.slice(-5)
+        model -->> guiAgent: `prediction`: click(start_box='(27,496)')
+        guiAgent -->> user: prediction, next action
+
+        guiAgent ->> operator: execute(prediction)
+        activate operator
+        operator -->> guiAgent: success
+        deactivate operator
+    end
+
+    deactivate guiAgent
+    deactivate user
 ```
+
 
 ### Basic Usage
 
@@ -259,22 +280,57 @@ interface ExecuteParams {
 Advanced sdk usage is largely derived from package `@ui-tars/sdk/core`, you can create custom operators by extending the base `Operator` class:
 
 ```typescript
-import { Operator, ScreenshotOutput, ExecuteParams } from '@ui-tars/sdk/core';
+import {
+  Operator,
+  parseBoxToScreenCoords,
+  type ScreenshotOutput,
+  type ExecuteParams
+  type ExecuteOutput,
+} from '@ui-tars/sdk/core';
+import { Jimp } from 'jimp';
 
 export class CustomOperator extends Operator {
+  // Define the action spaces and description for UI-TARS System Prompt splice
+  static MANUAL = {
+    ACTION_SPACES: [
+      'click(start_box="") # click on the element at the specified coordinates',
+      'type(content="") # type the specified content into the current input field',
+      'scroll(direction="") # scroll the page in the specified direction',
+      'finished() # finish the task',
+      // ...more_actions
+    ],
+  };
+
   public async screenshot(): Promise<ScreenshotOutput> {
     // Implement screenshot functionality
+    const base64 = 'base64-encoded-image';
+    const buffer = Buffer.from(base64, 'base64');
+    const image = await sharp(buffer).toBuffer();
+
     return {
       base64: 'base64-encoded-image',
-      width: 1920,
-      height: 1080,
+      width: image.width,
+      height: image.height,
       scaleFactor: 1
     };
   }
 
-  async execute(params: ExecuteParams): Promise<void> {
+  async execute(params: ExecuteParams): Promise<ExecuteOutput> {
     const { parsedPrediction, screenWidth, screenHeight, scaleFactor } = params;
     // Implement action execution logic
+
+    // if click action, get coordinates from parsedPrediction
+    const startBoxStr = parsedPrediction?.action_inputs?.start_box || '';
+    const { x: startX, y: startY } = parseBoxToScreenCoords({
+      boxStr: startBoxStr,
+      screenWidth,
+      screenHeight,
+    });
+
+    if (parsedPrediction?.action_type === 'finished') {
+      // finish the GUIAgent task
+      return { status: StatusEnum.END };
+    }
   }
 }
 ```
@@ -282,6 +338,23 @@ export class CustomOperator extends Operator {
 Required methods:
 - `screenshot()`: Captures the current screen state
 - `execute()`: Performs the requested action based on model predictions
+
+Optional static properties:
+- `MANUAL`: Define the action spaces and description for UI-TARS Model understanding
+  - `ACTION_SPACES`: Define the action spaces and description for UI-TARS Model understanding
+
+Loaded into `GUIAgent`:
+
+```ts
+const guiAgent = new GUIAgent({
+  // ... other config
+  systemPrompt: `
+  // ... other system prompt
+  ${CustomOperator.MANUAL.ACTION_SPACES.join('\n')}
+  `,
+  operator: new CustomOperator(),
+});
+```
 
 ### Custom Model Implementation
 

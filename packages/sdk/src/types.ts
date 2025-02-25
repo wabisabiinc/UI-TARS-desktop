@@ -24,6 +24,8 @@ export interface ExecuteParams {
   scaleFactor: number;
 }
 
+export type ExecuteOutput = { status: StatusEnum } & (object | void);
+
 export interface ScreenshotOutput extends ScreenshotResult {}
 
 export interface InvokeParams {
@@ -37,8 +39,12 @@ export interface InvokeOutput {
   // TODO: status: StatusEnum, status should be provided by model
 }
 export abstract class Operator extends BaseOperator {
+  static MANUAL: {
+    ACTION_SPACES: string[];
+    EXAMPLES?: string[];
+  };
   abstract screenshot(): Promise<ScreenshotOutput>;
-  abstract execute(params: ExecuteParams): Promise<void>;
+  abstract execute(params: ExecuteParams): Promise<ExecuteOutput>;
 }
 
 export abstract class Model extends BaseModel<InvokeParams, InvokeOutput> {

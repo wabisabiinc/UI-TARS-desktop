@@ -5,8 +5,11 @@
 import {
   Operator,
   useContext,
+  parseBoxToScreenCoords,
+  StatusEnum,
   type ScreenshotOutput,
   type ExecuteParams,
+  type ExecuteOutput,
 } from '@ui-tars/sdk/core';
 import { Jimp } from 'jimp';
 import {
@@ -23,7 +26,6 @@ import {
   clipboard,
 } from '@computer-use/nut-js';
 import Big from 'big.js';
-import { parseBoxToScreenCoords } from '@ui-tars/sdk/core';
 
 const moveStraightTo = async (startX: number | null, startY: number | null) => {
   if (startX === null || startY === null) {
@@ -32,6 +34,21 @@ const moveStraightTo = async (startX: number | null, startY: number | null) => {
   await mouse.move(straightTo(new Point(startX, startY)));
 };
 export class NutJSOperator extends Operator {
+  static MANUAL = {
+    ACTION_SPACES: [
+      `click(start_box='[x1, y1, x2, y2]')`,
+      `left_double(start_box='[x1, y1, x2, y2]')`,
+      `right_single(start_box='[x1, y1, x2, y2]')`,
+      `drag(start_box='[x1, y1, x2, y2]', end_box='[x3, y3, x4, y4]')`,
+      `hotkey(key='')`,
+      `type(content='') #If you want to submit your input, use "\\n" at the end of \`content\`.`,
+      `scroll(start_box='[x1, y1, x2, y2]', direction='down or up or right or left')`,
+      `wait() #Sleep for 5s and take a screenshot to check for any changes.`,
+      `finished()`,
+      `call_user() # Submit the task and call the user when the task is unsolvable, or when you need the user's help.`,
+    ],
+  };
+
   public async screenshot(): Promise<ScreenshotOutput> {
     const { logger } = useContext();
     const grabImage = await screen.grab();
@@ -76,7 +93,7 @@ export class NutJSOperator extends Operator {
     return output;
   }
 
-  async execute(params: ExecuteParams): Promise<void> {
+  async execute(params: ExecuteParams): Promise<ExecuteOutput> {
     const { logger } = useContext();
     const { parsedPrediction, screenWidth, screenHeight, scaleFactor } = params;
 
@@ -93,7 +110,7 @@ export class NutJSOperator extends Operator {
     logger.info(`[NutjsOperator Position]: (${startX}, ${startY})`);
 
     // execute configs
-    mouse.config.mouseSpeed = 3000;
+    mouse.config.mouseSpeed = 3600;
 
     // if (startBoxStr) {
     //   const region = await nutScreen.highlight(
@@ -256,13 +273,13 @@ export class NutJSOperator extends Operator {
         break;
       }
 
+      case 'error_env':
       case 'call_user':
       case 'finished':
-        break;
+        return { status: StatusEnum.END };
 
       default:
         logger.warn(`Unsupported action: ${action_type}`);
-        return;
     }
   }
 }
