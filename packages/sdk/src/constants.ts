@@ -5,7 +5,8 @@
 import type { AgentContext } from './types';
 
 export const MAX_SNAPSHOT_ERR_CNT = 10;
-export const FACTOR = 1000;
+/** const [widthFactor, heightFactor] = FACTORS */
+export const FACTORS: [number, number] = [1000, 1000];
 export const MAX_PIXELS = 1350 * 28 * 28;
 export const SYSTEM_PROMPT = `You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.
 
@@ -35,7 +36,7 @@ call_user() # Submit the task and call the user when the task is unsolvable, or 
 
 export const DEFAULT_CONTEXT = {
   logger: console,
-  factor: FACTOR,
+  factors: FACTORS,
   systemPrompt: SYSTEM_PROMPT,
 } satisfies Partial<AgentContext>;
 

@@ -3,14 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import OpenAI, { type ClientOptions } from 'openai';
-import { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
+import {
+  type ChatCompletionCreateParamsBase,
+  type ChatCompletionMessageParam,
+} from 'openai/resources/chat/completions';
 import { actionParser } from '@ui-tars/action-parser';
 
 import { useContext } from './context/useContext';
 import { Model, type InvokeParams, type InvokeOutput } from './types';
 
 import { preprocessResizeImage, convertToOpenAIMessages } from './utils';
-import { FACTOR, MAX_PIXELS } from './constants';
+import { FACTORS, MAX_PIXELS } from './constants';
 
 type OpenAIChatCompletionCreateParams = Omit<ClientOptions, 'maxRetries'> &
   Pick<
@@ -21,22 +24,37 @@ type OpenAIChatCompletionCreateParams = Omit<ClientOptions, 'maxRetries'> &
 export interface UITarsModelConfig extends OpenAIChatCompletionCreateParams {}
 
 export class UITarsModel extends Model {
-  constructor(private readonly modelConfig: UITarsModelConfig) {
+  constructor(protected readonly modelConfig: UITarsModelConfig) {
     super();
     this.modelConfig = modelConfig;
   }
 
-  get factor(): number {
-    return FACTOR;
+  /** [widthFactor, heightFactor] */
+  get factors(): [number, number] {
+    return FACTORS;
   }
 
   get modelName(): string {
     return this.modelConfig.model ?? 'unknown';
   }
 
-  async invoke(params: InvokeParams): Promise<InvokeOutput> {
-    const { conversations, images } = params;
-    const { logger, signal } = useContext();
+  /**
+   * call real LLM / VLM Model
+   * @param params
+   * @param options
+   * @returns
+   */
+  protected async invokeModelProvider(
+    params: {
+      messages: Array<ChatCompletionMessageParam>;
+    },
+    options: {
+      signal?: AbortSignal;
+    },
+  ): Promise<{
+    prediction: string;
+  }> {
+    const { messages } = params;
     const {
       baseURL,
       apiKey,
@@ -47,6 +65,39 @@ export class UITarsModel extends Model {
       ...restOptions
     } = this.modelConfig;
 
+    const openai = new OpenAI({
+      ...restOptions,
+      maxRetries: 0,
+      baseURL,
+      apiKey,
+    });
+
+    const result = await openai.chat.completions.create(
+      {
+        model,
+        messages,
+        stream: false,
+        seed: null,
+        stop: null,
+        frequency_penalty: null,
+        presence_penalty: null,
+        // custom options
+        max_tokens,
+        temperature,
+        top_p,
+      },
+      options,
+    );
+
+    return {
+      prediction: result.choices?.[0]?.message?.content ?? '',
+    };
+  }
+
+  async invoke(params: InvokeParams): Promise<InvokeOutput> {
+    const { conversations, images } = params;
+    const { logger, signal } = useContext();
+
     const compressedImages = await Promise.all(
       images.map((image) => preprocessResizeImage(image, MAX_PIXELS)),
     );
@@ -56,38 +107,19 @@ export class UITarsModel extends Model {
       images: compressedImages,
     });
 
-    const openai = new OpenAI({
-      ...restOptions,
-      maxRetries: 0,
-      baseURL,
-      apiKey,
+    const startTime = Date.now();
+    const result = await this.invokeModelProvider(
+      {
+        messages,
+      },
+      {
+        signal,
+      },
+    ).finally(() => {
+      logger?.info(`[UITarsModel cost]: ${Date.now() - startTime}ms`);
     });
 
-    const startTime = Date.now();
-    const result = await openai.chat.completions
-      .create(
-        {
-          model,
-          messages,
-          stream: false,
-          seed: null,
-          stop: null,
-          frequency_penalty: null,
-          presence_penalty: null,
-          // custom options
-          max_tokens,
-          temperature,
-          top_p,
-        },
-        {
-          signal,
-        },
-      )
-      .finally(() => {
-        logger?.info(`[UITarsModel cost]: ${Date.now() - startTime}ms`);
-      });
-
-    if (!result.choices[0].message.content) {
+    if (!result.prediction) {
       const err = new Error();
       err.name = 'vlm response error';
       err.stack = JSON.stringify(result) ?? 'no message';
@@ -95,14 +127,13 @@ export class UITarsModel extends Model {
       throw err;
     }
 
-    const prediction = result.choices[0].message.content;
+    const { prediction } = result;
 
-    const data = {
-      prediction,
-      factor: FACTOR,
-    };
     try {
-      const { parsed: parsedPredictions } = await actionParser(data);
+      const { parsed: parsedPredictions } = await actionParser({
+        prediction,
+        factor: FACTORS,
+      });
       return {
         prediction,
         parsedPredictions,
