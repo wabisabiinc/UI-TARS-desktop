@@ -11,6 +11,7 @@ export {
   type ScreenshotOutput,
 } from './types';
 export { UITarsModel } from './Model';
+export type { UITarsModelConfig } from './Model';
 export { useContext } from './context/useContext';
 export {
   parseBoxToScreenCoords,
