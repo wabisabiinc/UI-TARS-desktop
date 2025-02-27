@@ -1,5 +1,11 @@
 # @ui-tars/sdk
 
+## 1.2.0-beta.13
+
+### Patch Changes
+
+- chore: factors
+
 ## 1.2.0-beta.12
 
 ### Patch Changes

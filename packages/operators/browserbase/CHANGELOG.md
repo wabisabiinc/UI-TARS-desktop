@@ -1,5 +1,12 @@
 # @ui-tars/operator-browserbase
 
+## 1.2.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies
+  - @ui-tars/sdk@1.2.0-beta.13
+
 ## 1.2.0-beta.12
 
 ### Patch Changes
