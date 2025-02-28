@@ -1,5 +1,14 @@
 # @ui-tars/operator-nut-js
 
+## 1.2.0-beta.15
+
+### Patch Changes
+
+- feat: sdk factors version
+- Updated dependencies
+  - @ui-tars/sdk@1.2.0-beta.16
+  - @ui-tars/shared@1.2.0-beta.12
+
 ## 1.2.0-beta.14
 
 ### Patch Changes
