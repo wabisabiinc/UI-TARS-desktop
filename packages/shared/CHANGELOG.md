@@ -1,5 +1,11 @@
 # @ui-tars/shared
 
+## 1.2.0-beta.19
+
+### Patch Changes
+
+- chore: screenshot bug
+
 ## 1.2.0-beta.18
 
 ### Patch Changes

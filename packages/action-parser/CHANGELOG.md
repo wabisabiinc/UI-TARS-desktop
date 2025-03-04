@@ -1,5 +1,13 @@
 # @ui-tars/action-parser
 
+## 1.2.0-beta.19
+
+### Patch Changes
+
+- chore: screenshot bug
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.19
+
 ## 1.2.0-beta.18
 
 ### Patch Changes
