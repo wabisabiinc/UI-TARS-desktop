@@ -1,5 +1,11 @@
 # @ui-tars/utio
 
+## 1.2.0-beta.18
+
+### Patch Changes
+
+- refactor: operator no need return width and height
+
 ## 1.2.0-beta.17
 
 ### Patch Changes
