@@ -7,17 +7,13 @@ import { GUIAgentData, StatusEnum, ShareVersion } from '@ui-tars/shared/types';
 import { IMAGE_PLACEHOLDER, MAX_LOOP_COUNT } from '@ui-tars/shared/constants';
 import { sleep } from '@ui-tars/shared/utils';
 import asyncRetry from 'async-retry';
+import { Jimp } from 'jimp';
 
 import { setContext } from './context/useContext';
 import { Operator, GUIAgentConfig } from './types';
 import { UITarsModel } from './Model';
 import { BaseGUIAgent } from './base';
-import {
-  getSummary,
-  parseBoxToScreenCoords,
-  processVlmParams,
-  toVlmModelFormat,
-} from './utils';
+import { getSummary, processVlmParams, toVlmModelFormat } from './utils';
 import {
   INTERNAL_ACTION_SPACES_ENUM,
   MAX_SNAPSHOT_ERR_CNT,
@@ -123,11 +119,15 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           onRetry: retry?.screenshot?.onRetry,
         });
 
-        const isValidImage = !!(
-          snapshot?.base64 &&
-          snapshot?.width &&
-          snapshot?.height
-        );
+        const { width, height } =
+          (await Jimp.read(
+            Buffer.from(
+              snapshot.base64.replace(/^data:image\/\w+;base64,/, ''),
+              'base64',
+            ),
+          )) || {};
+
+        const isValidImage = !!(snapshot?.base64 && width && height);
 
         if (!isValidImage) {
           loopCnt -= 1;
@@ -145,8 +145,8 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             screenshotBase64: snapshot.base64,
             screenshotContext: {
               size: {
-                width: snapshot.width,
-                height: snapshot.height,
+                width,
+                height,
               },
               scaleFactor: snapshot.scaleFactor,
             },
@@ -224,8 +224,8 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           },
           screenshotContext: {
             size: {
-              width: snapshot.width,
-              height: snapshot.height,
+              width,
+              height,
             },
             scaleFactor: snapshot.scaleFactor,
           },
@@ -271,8 +271,8 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                 operator.execute({
                   prediction,
                   parsedPrediction,
-                  screenWidth: snapshot.width,
-                  screenHeight: snapshot.height,
+                  screenWidth: width,
+                  screenHeight: height,
                   scaleFactor: snapshot.scaleFactor,
                   factors: this.model.factors,
                 }),

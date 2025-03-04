@@ -24,12 +24,10 @@ export const parseBoxToScreenCoords = ({
   boxStr,
   screenWidth,
   screenHeight,
-  factors = DEFUALT_FACTORS,
 }: {
   boxStr: string;
   screenWidth: number;
   screenHeight: number;
-  factors?: Factors;
 }) => {
   if (!boxStr) {
     return { x: null, y: null };
@@ -41,11 +39,10 @@ export const parseBoxToScreenCoords = ({
     .map((num) => parseFloat(num.trim()));
 
   const [x1, y1, x2 = x1, y2 = y1] = coords;
-  const [widthFactor, heightFactor] = factors;
 
   return {
-    x: Math.round(((x1 + x2) / 2) * screenWidth * widthFactor) / widthFactor,
-    y: Math.round(((y1 + y2) / 2) * screenHeight * heightFactor) / heightFactor,
+    x: Math.round(((x1 + x2) / 2) * screenWidth * 1000) / 1000,
+    y: Math.round(((y1 + y2) / 2) * screenHeight * 1000) / 1000,
   };
 };
 
