@@ -119,13 +119,18 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           onRetry: retry?.screenshot?.onRetry,
         });
 
-        const { width, height } =
-          (await Jimp.read(
-            Buffer.from(
-              snapshot.base64.replace(/^data:image\/\w+;base64,/, ''),
-              'base64',
-            ),
-          )) || {};
+        const { width, height } = await Jimp.fromBuffer(
+          Buffer.from(
+            snapshot.base64.replace(/^data:image\/\w+;base64,/, ''),
+            'base64',
+          ),
+        ).catch((e) => {
+          logger.error('[GUIAgent] screenshot error', e);
+          return {
+            width: null,
+            height: null,
+          };
+        });
 
         const isValidImage = !!(snapshot?.base64 && width && height);
 
