@@ -208,6 +208,8 @@ class ScreenMarker {
       yPos: this.lastShowPredictionMarkerPos?.yPos,
     });
 
+    const { scaleFactor = 1 } = screenshotContext;
+
     // loop predictions
     for (let i = 0; i < overlays.length; i++) {
       const overlay = overlays[i];
@@ -230,9 +232,9 @@ class ScreenMarker {
           webPreferences: { nodeIntegration: true, contextIsolation: false },
           ...(overlay.xPos &&
             overlay.yPos && {
-              // Physical Resolution
-              x: overlay.xPos + overlay.offsetX,
-              y: overlay.yPos + overlay.offsetY,
+              // logical pixels
+              x: (overlay.xPos + overlay.offsetX) * scaleFactor,
+              y: (overlay.yPos + overlay.offsetY) * scaleFactor,
             }),
         });
 
