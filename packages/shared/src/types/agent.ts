@@ -24,9 +24,9 @@ export interface VlmResponse {
 }
 
 export interface ScreenshotResult {
-  /** screenshot base64, `keep screenshot size as physical resolution` */
+  /** screenshot base64, `keep screenshot size as physical pixels` */
   base64: string;
-  /** screenshot scale factor(DPR), physical_resolution = logical_resolution * scaleFactor */
+  /** screenshot scale factor(DPR), physical_pixels = logical_resolution * scaleFactor */
   scaleFactor: number;
 }
 

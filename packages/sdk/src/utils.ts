@@ -152,6 +152,10 @@ export const convertToOpenAIMessages = ({
   return messages;
 };
 
+export function replaceBase64Prefix(base64: string) {
+  return base64.replace(/^data:image\/\w+;base64,/, '');
+}
+
 export async function preprocessResizeImage(
   image_base64: string,
   maxPixels: number,
@@ -179,7 +183,8 @@ export async function preprocessResizeImage(
     }
 
     const base64 = await image.getBase64('image/png', { quality: 60 });
-    return base64;
+
+    return replaceBase64Prefix(base64);
   } catch (error) {
     console.error('preprocessResizeImage error:', error);
     throw error;

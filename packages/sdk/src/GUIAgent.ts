@@ -13,7 +13,12 @@ import { setContext } from './context/useContext';
 import { Operator, GUIAgentConfig } from './types';
 import { UITarsModel } from './Model';
 import { BaseGUIAgent } from './base';
-import { getSummary, processVlmParams, toVlmModelFormat } from './utils';
+import {
+  getSummary,
+  processVlmParams,
+  replaceBase64Prefix,
+  toVlmModelFormat,
+} from './utils';
 import {
   INTERNAL_ACTION_SPACES_ENUM,
   MAX_SNAPSHOT_ERR_CNT,
@@ -120,10 +125,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         });
 
         const { width, height } = await Jimp.fromBuffer(
-          Buffer.from(
-            snapshot.base64.replace(/^data:image\/\w+;base64,/, ''),
-            'base64',
-          ),
+          Buffer.from(replaceBase64Prefix(snapshot.base64), 'base64'),
         ).catch((e) => {
           logger.error('[GUIAgent] screenshot error', e);
           return {
