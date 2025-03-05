@@ -177,10 +177,13 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           systemPrompt: data.systemPrompt,
         });
         // sliding images window to vlm model
-        const vlmParams = processVlmParams(
-          modelFormat.conversations,
-          modelFormat.images,
-        );
+        const vlmParams = {
+          ...processVlmParams(modelFormat.conversations, modelFormat.images),
+          screenContext: {
+            width,
+            height,
+          },
+        };
         const { prediction, parsedPredictions } = await asyncRetry(
           async (bail) => {
             try {

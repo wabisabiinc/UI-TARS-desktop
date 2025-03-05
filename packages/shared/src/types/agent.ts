@@ -30,12 +30,17 @@ export interface ScreenshotResult {
   scaleFactor: number;
 }
 
-export type ActionInputs = Partial<
-  Record<
-    'content' | 'start_box' | 'end_box' | 'key' | 'hotkey' | 'direction',
-    string
-  >
->;
+export type Coords = [number, number];
+export type ActionInputs = Partial<{
+  content: string;
+  start_box: string;
+  end_box: string;
+  key: string;
+  hotkey: string;
+  direction: string;
+  start_coords: Coords;
+  end_coords: Coords;
+}>;
 
 export interface PredictionParsed {
   /** `<action_inputs>` parsed from action_type(`action_inputs`) */
