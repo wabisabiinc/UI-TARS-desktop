@@ -1,5 +1,13 @@
 # @ui-tars/action-parser
 
+## 1.2.0-beta.20
+
+### Patch Changes
+
+- feat(sdk): action parser add start_coords, end_coords
+- Updated dependencies
+  - @ui-tars/shared@1.2.0-beta.20
+
 ## 1.2.0-beta.19
 
 ### Patch Changes
