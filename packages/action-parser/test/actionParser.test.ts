@@ -141,7 +141,7 @@ Action: click(start_box='(100,200)')
   });
 
   describe('Box coordinates normalization', () => {
-    it('should correctly normalize box with four coordinates using custom factors', () => {
+    it('should correctly normalize box with four coordinates', () => {
       const input = `Thought: I need to click on this element
 Action: click(start_box='[130,226]')`;
 
@@ -163,7 +163,7 @@ Action: click(start_box='[130,226]')`;
       ]);
     });
 
-    it('should correctly normalize box with end_box coordinates using custom factors', () => {
+    it('should correctly normalize box with end_box coordinates', () => {
       const input = `Thought: I need to click on this element
 Action: click(end_box='[130,226]')`;
 
@@ -185,7 +185,7 @@ Action: click(end_box='[130,226]')`;
       ]);
     });
 
-    it('should correctly normalize box with start_box and end_box coordinates using custom factors', () => {
+    it('should correctly normalize box with start_box and end_box coordinates', () => {
       const input = `Thought: I need to click on this element
 Action: drag(start_box='[130,226]', end_box='[200,226]')`;
 
@@ -203,6 +203,51 @@ Action: drag(start_box='[130,226]', end_box='[200,226]')`;
             end_coords: [512, 325.44],
           },
           action_type: 'drag',
+          reflection: null,
+          thought: 'I need to click on this element',
+        },
+      ]);
+    });
+
+    it('should not normalize box with four coordinates', () => {
+      expect(
+        parseActionVlm(
+          `Thought: I need to click on this element
+Action: click(start_box='[]')`,
+          [1000, 1000],
+          'bc',
+          {
+            width: 2560,
+            height: 1440,
+          },
+        ),
+      ).toEqual([
+        {
+          action_inputs: {
+            start_box: '[]',
+            start_coords: [],
+          },
+          action_type: 'click',
+          reflection: null,
+          thought: 'I need to click on this element',
+        },
+      ]);
+
+      expect(
+        parseActionVlm(
+          `Thought: I need to click on this element
+Action: click(start_box='')`,
+          [1000, 1000],
+          'bc',
+          {
+            width: 2560,
+            height: 1440,
+          },
+        ),
+      ).toEqual([
+        {
+          action_inputs: {},
+          action_type: 'click',
           reflection: null,
           thought: 'I need to click on this element',
         },

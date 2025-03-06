@@ -120,7 +120,10 @@ export function parseActionVlm(
         if (paramName.includes('start_box') || paramName.includes('end_box')) {
           const oriBox = trimmedParam;
           // Remove parentheses and split
-          const numbers = oriBox.replace(/[()[\]]/g, '').split(',');
+          const numbers = oriBox
+            .replace(/[()[\]]/g, '')
+            .split(',')
+            .filter((ori) => ori !== '');
 
           // Convert to float and scale
           const floatNumbers = numbers.map((num, idx) => {
@@ -143,17 +146,20 @@ export function parseActionVlm(
             const boxKey = paramName.includes('start_box')
               ? 'start_coords'
               : 'end_coords';
-
             const [x1, y1, x2 = x1, y2 = y1] = floatNumbers;
             const [widthFactor, heightFactor] = factors;
 
-            actionInputs[boxKey] = [
-              Math.round(((x1 + x2) / 2) * screenContext?.width * widthFactor) /
-                widthFactor,
-              Math.round(
-                ((y1 + y2) / 2) * screenContext?.height * heightFactor,
-              ) / heightFactor,
-            ];
+            actionInputs[boxKey] =
+              x1 && y1 && x2 && y2
+                ? [
+                    Math.round(
+                      ((x1 + x2) / 2) * screenContext?.width * widthFactor,
+                    ) / widthFactor,
+                    Math.round(
+                      ((y1 + y2) / 2) * screenContext?.height * heightFactor,
+                    ) / heightFactor,
+                  ]
+                : [];
           }
         }
       }

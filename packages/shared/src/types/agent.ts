@@ -30,7 +30,7 @@ export interface ScreenshotResult {
   scaleFactor: number;
 }
 
-export type Coords = [number, number];
+export type Coords = [number, number] | [];
 export type ActionInputs = Partial<{
   content: string;
   start_box: string;
