@@ -11,6 +11,9 @@ export default defineConfig((options) => {
     dts: true,
     clean: true,
     bundle: false,
+    outExtension: ({ format }) => ({
+      js: format === 'cjs' ? '.cjs' : '.js',
+    }),
     outDir: 'dist',
   };
 });

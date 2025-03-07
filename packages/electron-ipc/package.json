@@ -1,6 +1,6 @@
 {
   "name": "@ui-tars/electron-ipc",
-  "version": "1.2.0-beta.21",
+  "version": "1.2.1",
   "description": "Type-safe Electron inter-process communication for UI-TARS",
   "repository": {
     "type": "git",
@@ -19,12 +19,12 @@
     "./main": {
       "types": "./dist/main/index.d.ts",
       "import": "./dist/main/index.mjs",
-      "require": "./dist/main/index.js"
+      "require": "./dist/main/index.cjs"
     },
     "./renderer": {
       "types": "./dist/renderer/index.d.ts",
       "import": "./dist/renderer/index.mjs",
-      "require": "./dist/renderer/index.js"
+      "require": "./dist/renderer/index.cjs"
     }
   },
   "scripts": {
