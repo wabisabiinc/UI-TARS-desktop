@@ -5,7 +5,8 @@
   "fixed": [
     [
       "@ui-tars/*",
-      "!@ui-tars/visualizer"
+      "!@ui-tars/visualizer",
+      "!@ui-tars/electron-ipc"
     ]
   ],
   "linked": [],
