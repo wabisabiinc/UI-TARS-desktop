@@ -6,14 +6,11 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig((options) => {
   return {
-    entry: ['src/**/*.ts', '!src/**/*.{test,bench}.ts'],
+    entry: ['src/main/index.ts', 'src/renderer/index.ts'],
     format: ['esm', 'cjs'],
     dts: true,
     clean: true,
-    bundle: false,
-    outExtension: ({ format }) => ({
-      js: format === 'cjs' ? '.cjs' : '.js',
-    }),
+    bundle: true,
     outDir: 'dist',
   };
 });
