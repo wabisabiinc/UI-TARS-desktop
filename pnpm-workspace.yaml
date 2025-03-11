@@ -1,5 +1,5 @@
 packages:
   - '.'
-  - 'src/*'
+  - './src/*'
   - 'packages/**'
   - '!packages/visualizer'
