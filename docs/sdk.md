@@ -209,9 +209,9 @@ When implementing a custom operator, you need to implement two core methods: `sc
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "tsup --watch",
+    "dev": "rslib build --watch",
     "prepare": "npm run build",
-    "build": "tsup",
+    "build": "rsbuild",
     "test": "vitest"
   },
   "files": [
@@ -229,7 +229,7 @@ When implementing a custom operator, you need to implement two core methods: `sc
   },
   "devDependencies": {
     "@ui-tars/sdk": "^1.2.0-beta.17",
-    "tsup": "^8.3.5",
+    "@rslib/core": "^0.5.4",
     "typescript": "^5.7.2",
     "vitest": "^3.0.2"
   }

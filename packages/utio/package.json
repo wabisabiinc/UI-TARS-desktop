@@ -7,8 +7,9 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "prepare": "npm run build",
-    "dev": "tsup --watch",
-    "build": "tsup"
+    "dev": "rslib build --watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch"
   },
   "keywords": [
     "UI-TARS"
@@ -23,7 +24,8 @@
   ],
   "dependencies": {},
   "devDependencies": {
-    "tsup": "^8.3.5",
+    "@ui-tars/configs": "workspace:*",
+    "@rslib/core": "^0.5.4",
     "typescript": "^5.7.2"
   }
 }

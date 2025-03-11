@@ -19,9 +19,10 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "tsup --watch",
+    "dev": "rslib build --watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch",
     "prepare": "npm run build",
-    "build": "tsup",
     "test": "vitest"
   },
   "license": "Apache-2.0",
@@ -36,7 +37,8 @@
     "@ui-tars/shared": "workspace:*"
   },
   "devDependencies": {
-    "tsup": "^8.3.5",
+    "@rslib/core": "^0.5.4",
+    "@ui-tars/configs": "workspace:*",
     "typescript": "^5.7.2",
     "vitest": "^3.0.2"
   }

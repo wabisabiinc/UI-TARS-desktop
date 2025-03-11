@@ -27,21 +27,25 @@
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts",
       "require": "./dist/index.js"
     },
     "./core": {
       "import": "./dist/core.mjs",
+      "types": "./dist/core.d.ts",
       "require": "./dist/core.js"
     },
     "./constants": {
       "import": "./dist/constants.mjs",
+      "types": "./dist/constants.d.ts",
       "require": "./dist/constants.js"
     }
   },
   "scripts": {
-    "dev": "tsup --watch",
+    "dev": "rslib build --watch",
     "prepare": "tsx scripts/sync-docs.ts && npm run build",
-    "build": "tsup",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch",
     "test:browser": "vitest --environment happy-dom",
     "test": "vitest --environment happy-dom && vitest --environment node"
   },
@@ -62,7 +66,8 @@
   },
   "devDependencies": {
     "tsx": "^4.19.2",
-    "tsup": "^8.3.5",
+    "@rslib/core": "^0.5.4",
+    "@ui-tars/configs": "workspace:*",
     "typescript": "^5.7.2",
     "vitest": "^3.0.2",
     "react": "^18.3.1",

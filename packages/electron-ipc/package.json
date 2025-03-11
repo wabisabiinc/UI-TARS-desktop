@@ -28,9 +28,10 @@
     }
   },
   "scripts": {
-    "dev": "tsup --watch",
     "prepare": "npm run build",
-    "build": "tsup",
+    "dev": "rslib build --watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch",
     "test": "vitest"
   },
   "license": "Apache-2.0",
@@ -45,7 +46,8 @@
   "dependencies": {},
   "devDependencies": {
     "electron": "^30.0.0",
-    "tsup": "^8.3.5",
+    "@rslib/core": "^0.5.4",
+    "@ui-tars/configs": "workspace:*",
     "typescript": "^5.7.2",
     "vitest": "^3.0.2"
   },
