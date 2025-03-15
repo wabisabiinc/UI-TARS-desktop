@@ -13,8 +13,6 @@
     "test": "vitest",
     "test:bench": "vitest bench",
     "coverage": "vitest run --coverage",
-    "pretest:e2e": "npm run build:dist && cross-env CI=e2e npm run package",
-    "test:e2e": "playwright test",
     "publish:packages": "bash scripts/release-pkgs.sh",
     "publish-beta:packages": "bash scripts/release-beta-pkgs.sh",
     "prepare": "husky"

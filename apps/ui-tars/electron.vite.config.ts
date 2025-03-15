@@ -22,7 +22,7 @@ export default defineConfig({
     plugins: [
       tsconfigPaths(),
       externalizeDepsPlugin({
-        exclude: externalizeDeps,
+        include: externalizeDeps,
       }),
     ],
   },
@@ -36,7 +36,7 @@ export default defineConfig({
     plugins: [
       tsconfigPaths(),
       externalizeDepsPlugin({
-        exclude: externalizeDeps,
+        include: externalizeDeps,
       }),
     ],
   },
