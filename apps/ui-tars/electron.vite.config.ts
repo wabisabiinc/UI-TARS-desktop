@@ -9,7 +9,20 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import pkg from './package.json';
-const externalizeDeps = [...Object.keys(pkg.dependencies), '@img'];
+
+// external all deps exclude "workspace:*"
+const workspaceDeps = [
+  ...Object.entries(pkg.dependencies || {})
+    .filter(
+      ([, version]) =>
+        typeof version === 'string' && version.startsWith('workspace:'),
+    )
+    .map(([name]) => name),
+  // extra esm only deps
+  'electron-store',
+];
+
+console.log('bundled into main.js deps:', workspaceDeps);
 
 export default defineConfig({
   main: {
@@ -20,10 +33,10 @@ export default defineConfig({
       },
     },
     plugins: [
-      tsconfigPaths(),
       externalizeDepsPlugin({
-        include: externalizeDeps,
+        exclude: workspaceDeps,
       }),
+      tsconfigPaths(),
     ],
   },
   preload: {
@@ -34,10 +47,10 @@ export default defineConfig({
       },
     },
     plugins: [
-      tsconfigPaths(),
       externalizeDepsPlugin({
-        include: externalizeDeps,
+        exclude: workspaceDeps,
       }),
+      tsconfigPaths(),
     ],
   },
   renderer: {

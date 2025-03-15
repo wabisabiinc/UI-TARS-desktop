@@ -16,8 +16,22 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import setLanguages from 'electron-packager-languages';
 import { rimraf, rimrafSync } from 'rimraf';
 import pkgs from './package.json';
+import rootPkgs from '../../package.json';
 
-const keepModules = new Set([...Object.keys(pkgs.dependencies), '@img']);
+const keepModules = new Set([
+  ...Object.entries(pkgs.dependencies || {})
+    .filter(
+      ([, version]) =>
+        typeof version === 'string' && !version.startsWith('workspace:'),
+    )
+    .map(([name]) => name),
+]);
+const skipDevDependencies = new Set([
+  ...Object.entries(pkgs.devDependencies || {}).map(([name]) => name),
+  ...Object.entries(rootPkgs.devDependencies || {}).map(([name]) => name),
+  '.vite',
+]);
+
 const keepLanguages = new Set(['en', 'en_GB', 'en-US', 'en_US']);
 const enableOsxSign =
   process.env.APPLE_ID &&
@@ -25,6 +39,7 @@ const enableOsxSign =
   process.env.APPLE_TEAM_ID;
 
 // remove folders & files not to be included in the app
+// @ts-ignore
 async function cleanSources(
   buildPath,
   _electronVersion,
@@ -53,42 +68,48 @@ async function cleanSources(
     }
   }
 
-  // Keep only node_modules to be included in the app
-
+  // Skip devDependencies node_modules in the app
   await Promise.all([
     ...(await readdir(buildPath).then((items) =>
       items
         .filter((item) => !appItems.has(item))
-        .map((item) => rimraf(path.join(buildPath, item))),
+        .map((item) => rimraf.sync(path.join(buildPath, item))),
     )),
     ...(await readdir(path.join(buildPath, 'node_modules')).then((items) =>
       items
-        .filter((item) => !keepModules.has(item as never))
-        .map((item) => rimraf(path.join(buildPath, 'node_modules', item))),
+        .filter((item) => skipDevDependencies.has(item))
+        .map((item) => rimraf.sync(path.join(buildPath, 'node_modules', item))),
     )),
   ]);
 
   // copy needed node_modules to be included in the app
   await Promise.all(
-    Array.from(keepModules.values()).map((item) => {
-      // Check is exist
-      if (fs.existsSync(path.join(buildPath, 'node_modules', item))) {
-        // eslint-disable-next-line array-callback-return
+    Array.from(keepModules.values()).map(async (item) => {
+      const destPath = path.join(buildPath, 'node_modules', item);
+      const sourcePath = path.join(process.cwd(), '../../node_modules', item);
+      console.log('destPath', destPath);
+      console.log('sourcePath', sourcePath);
+
+      if (!fs.existsSync(sourcePath)) {
+        console.error(`Module ${item} not found at ${sourcePath}`);
         return;
       }
-      return cp(
-        path.join(__dirname, '../../node_modules', item),
-        path.join(buildPath, 'node_modules', item),
-        {
-          recursive: true,
-        },
-      );
+
+      if (fs.existsSync(destPath)) {
+        return;
+      }
+
+      try {
+        await cp(sourcePath, destPath, { recursive: true });
+      } catch (err) {
+        console.error(`Failed to copy ${item}:`, err);
+      }
     }),
   );
 
   callback();
 }
-
+// @ts-ignore
 const noopAfterCopy = (
   _buildPath,
   _electronVersion,
@@ -96,16 +117,23 @@ const noopAfterCopy = (
   _arch,
   callback,
 ) => callback();
-
+// @ts-ignore
 const ignorePattern = new RegExp(
-  `^/node_modules/(?!${[...keepModules].join('|')})`,
+  `/node_modules/(?!${[...keepModules].join('|')})`,
 );
 
 const config: ForgeConfig = {
   packagerConfig: {
     name: 'UI TARS',
     icon: 'resources/icon',
-    asar: true,
+    asar: {
+      // @ts-ignore
+      unpack: [
+        '**/node_modules/sharp/**/*',
+        '**/node_modules/@img/**/*',
+        '**/node_modules/@computer-use/mac-screen-capture-permissions/**/*',
+      ],
+    },
     prune: true,
     ignore: [ignorePattern],
     afterCopy: [
@@ -115,7 +143,7 @@ const config: ForgeConfig = {
         : setLanguages([...keepLanguages.values()]),
     ],
     executableName: 'UI-TARS',
-    extraResource: ['./resources/app-update.yml'],
+    extraResource: ['./resources/app-update.yml', '../../node_modules/'],
     ...(enableOsxSign
       ? {
           osxSign: {
