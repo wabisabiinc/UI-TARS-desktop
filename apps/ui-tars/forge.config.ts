@@ -16,11 +16,12 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import setLanguages from 'electron-packager-languages';
 import { rimraf, rimrafSync } from 'rimraf';
 
-// import pkg from './package.json';
-
-const keepModules = new Set([]);
+const keepModules = new Set([
+  'sharp',
+  '@img',
+  '@computer-use/mac-screen-capture-permissions',
+]);
 const keepLanguages = new Set(['en', 'en_GB', 'en-US', 'en_US']);
-
 const enableOsxSign =
   process.env.APPLE_ID &&
   process.env.APPLE_PASSWORD &&
@@ -56,22 +57,17 @@ async function cleanSources(
   }
 
   // Keep only node_modules to be included in the app
+
   await Promise.all([
     ...(await readdir(buildPath).then((items) =>
       items
         .filter((item) => !appItems.has(item))
-        .map((item) => {
-          console.log('remove', item);
-          return rimraf(path.join(buildPath, item));
-        }),
+        .map((item) => rimraf(path.join(buildPath, item))),
     )),
     ...(await readdir(path.join(buildPath, 'node_modules')).then((items) =>
       items
         .filter((item) => !keepModules.has(item as never))
-        .map((item) => {
-          console.log('remove_node_modules', item);
-          return rimraf(path.join(buildPath, 'node_modules', item));
-        }),
+        .map((item) => rimraf(path.join(buildPath, 'node_modules', item))),
     )),
   ]);
 
@@ -83,7 +79,6 @@ async function cleanSources(
         // eslint-disable-next-line array-callback-return
         return;
       }
-      console.log('copy', item);
       return cp(
         path.join(__dirname, '../../node_modules', item),
         path.join(buildPath, 'node_modules', item),
@@ -111,25 +106,17 @@ const ignorePattern = new RegExp(
 
 const config: ForgeConfig = {
   packagerConfig: {
-    // appBundleId: 'com.bytedance.uitars',
     name: 'UI TARS',
     icon: 'resources/icon',
-    asar: {
-      // @ts-ignore
-      unpack: [
-        '**/node_modules/sharp/**/*',
-        '**/node_modules/@img/**/*',
-        '**/node_modules/@computer-use/mac-screen-capture-permissions/**/*',
-      ],
-    },
+    asar: true,
+    prune: true,
+    ignore: [ignorePattern],
     afterCopy: [
       cleanSources,
       process.platform !== 'win32'
         ? noopAfterCopy
-        : setLanguages(Array.from(keepLanguages)),
+        : setLanguages([...keepLanguages.values()]),
     ],
-    prune: true,
-    ignore: [ignorePattern],
     executableName: 'UI-TARS',
     extraResource: ['./resources/app-update.yml'],
     ...(enableOsxSign
@@ -141,9 +128,9 @@ const config: ForgeConfig = {
             }),
           },
           osxNotarize: {
-            appleId: process.env.APPLE_ID,
-            appleIdPassword: process.env.APPLE_PASSWORD,
-            teamId: process.env.APPLE_TEAM_ID,
+            appleId: process.env.APPLE_ID!,
+            appleIdPassword: process.env.APPLE_PASSWORD!,
+            teamId: process.env.APPLE_TEAM_ID!,
           },
         }
       : {}),
