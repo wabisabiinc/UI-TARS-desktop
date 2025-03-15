@@ -1,34 +1,26 @@
-import { defineConfig } from 'vitest/config';
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-function cwdPlugin(name) {
-  return {
-    name: `vitest:test:workspace-${name}`,
-    configResolved() {
-      process.env[`${name}_CWD_CONFIG`] = process.cwd();
-    },
-    configureServer() {
-      process.env[`${name}_CWD_SERVER`] = process.cwd();
-    },
-  };
-}
+import tsconfigPath from 'vite-tsconfig-paths';
+import { defineProject } from 'vitest/config';
 
-export default defineConfig({
-  envPrefix: ['VITE_', 'CUSTOM_', 'ROOT_'],
-  plugins: [cwdPlugin('ROOT')],
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
+export default defineProject({
+  root: './',
   test: {
-    coverage: {
-      include: ['src/**/*.ts', 'packages/**/*.ts', '!packages/visualizer'],
-      provider: 'istanbul',
-      all: true,
-      reporter: ['text', 'json', 'html', 'lcov'],
-    },
-    reporters: ['default'],
-    env: {
-      CONFIG_VAR: 'root',
-      CONFIG_OVERRIDE: 'root',
-    },
-    provide: {
-      globalConfigValue: true,
-    },
+    globals: true,
+    environment: 'node',
+    includeSource: [resolve(__dirname, '.')],
   },
+
+  plugins: [
+    tsconfigPath({
+      projects: ['./tsconfig.node.json'],
+    }),
+  ],
 });
