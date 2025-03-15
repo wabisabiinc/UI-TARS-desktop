@@ -2,8 +2,8 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { readdirSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
+import fs, { readdirSync } from 'node:fs';
+import { cp, readdir } from 'node:fs/promises';
 import path, { resolve } from 'node:path';
 
 import { MakerDMG } from '@electron-forge/maker-dmg';
@@ -16,14 +16,12 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import setLanguages from 'electron-packager-languages';
 import { rimraf, rimrafSync } from 'rimraf';
 
-import pkgs from './package.json';
-
-const skipDevDependencies = new Set([
-  ...Object.entries(pkgs.devDependencies || {}).map(([name]) => name),
-  '.vite',
+const keepModules = new Set([
+  'font-list',
+  'vscode-languagedetection',
+  'fast-folder-size',
 ]);
 const keepLanguages = new Set(['en', 'en_GB', 'en-US', 'en_US']);
-// const ignorePattern = new RegExp(`^/node_modules/(${[...devDependencies].join("|")})`)
 
 const enableOsxSign =
   process.env.APPLE_ID &&
@@ -46,32 +44,57 @@ async function cleanSources(
     'resources',
   ]);
 
-  if (platform === 'darwin') {
+  if (platform === 'darwin' || platform === 'mas') {
     const frameworkResourcePath = resolve(
       buildPath,
       '../../Frameworks/Electron Framework.framework/Versions/A/Resources',
     );
 
     for (const file of readdirSync(frameworkResourcePath)) {
-      if (file.endsWith('.lproj') && !keepLanguages.has(file.split('.')[0])) {
+      if (file.endsWith('.lproj') && !keepLanguages.has(file.split('.')[0]!)) {
         rimrafSync(resolve(frameworkResourcePath, file));
       }
     }
   }
 
-  // Skip devDependencies node_modules in the app
+  // Keep only node_modules to be included in the app
   await Promise.all([
     ...(await readdir(buildPath).then((items) =>
       items
         .filter((item) => !appItems.has(item))
-        .map((item) => rimraf.sync(path.join(buildPath, item))),
+        .map((item) => {
+          console.log('remove', item);
+          return rimraf(path.join(buildPath, item));
+        }),
     )),
     ...(await readdir(path.join(buildPath, 'node_modules')).then((items) =>
       items
-        .filter((item) => skipDevDependencies.has(item))
-        .map((item) => rimraf.sync(path.join(buildPath, 'node_modules', item))),
+        .filter((item) => !keepModules.has(item))
+        .map((item) => {
+          console.log('remove_node_modules', item);
+          return rimraf(path.join(buildPath, 'node_modules', item));
+        }),
     )),
   ]);
+
+  // copy needed node_modules to be included in the app
+  await Promise.all(
+    Array.from(keepModules.values()).map((item) => {
+      // Check is exist
+      if (fs.existsSync(path.join(buildPath, 'node_modules', item))) {
+        // eslint-disable-next-line array-callback-return
+        return;
+      }
+      console.log('copy', item);
+      return cp(
+        path.join(__dirname, '../../node_modules', item),
+        path.join(buildPath, 'node_modules', item),
+        {
+          recursive: true,
+        },
+      );
+    }),
+  );
 
   callback();
 }
@@ -83,6 +106,10 @@ const noopAfterCopy = (
   _arch,
   callback,
 ) => callback();
+
+const ignorePattern = new RegExp(
+  `^/node_modules/(?!${[...keepModules].join('|')})`,
+);
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -104,6 +131,7 @@ const config: ForgeConfig = {
         : setLanguages(Array.from(keepLanguages)),
     ],
     prune: true,
+    ignore: [ignorePattern],
     executableName: 'UI-TARS',
     extraResource: ['./resources/app-update.yml'],
     ...(enableOsxSign
