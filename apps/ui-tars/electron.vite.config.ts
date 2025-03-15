@@ -5,24 +5,10 @@
 import { resolve } from 'node:path';
 
 import react from '@vitejs/plugin-react';
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import { defineConfig } from 'electron-vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import pkg from './package.json';
-
-// external all deps exclude "workspace:*"
-const workspaceDeps = [
-  ...Object.entries(pkg.dependencies || {})
-    .filter(
-      ([, version]) =>
-        typeof version === 'string' && version.startsWith('workspace:'),
-    )
-    .map(([name]) => name),
-  // extra esm only deps
-  'electron-store',
-];
-
-console.log('bundled into main.js deps:', workspaceDeps);
 
 export default defineConfig({
   main: {
@@ -31,13 +17,11 @@ export default defineConfig({
       lib: {
         entry: './src/main/main.ts',
       },
+      rollupOptions: {
+        external: [...Object.keys(pkg.dependencies)],
+      },
     },
-    plugins: [
-      externalizeDepsPlugin({
-        exclude: workspaceDeps,
-      }),
-      tsconfigPaths(),
-    ],
+    plugins: [tsconfigPaths()],
   },
   preload: {
     build: {
@@ -46,12 +30,7 @@ export default defineConfig({
         entry: './src/preload/index.ts',
       },
     },
-    plugins: [
-      externalizeDepsPlugin({
-        exclude: workspaceDeps,
-      }),
-      tsconfigPaths(),
-    ],
+    plugins: [tsconfigPaths()],
   },
   renderer: {
     root: 'src/renderer',

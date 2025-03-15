@@ -5,6 +5,7 @@
 import fs, { readdirSync } from 'node:fs';
 import { cp, readdir } from 'node:fs/promises';
 import path, { resolve } from 'node:path';
+import { execSync } from 'node:child_process';
 
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
@@ -15,31 +16,24 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import setLanguages from 'electron-packager-languages';
 import { rimraf, rimrafSync } from 'rimraf';
-import pkgs from './package.json';
-import rootPkgs from '../../package.json';
+import pkg from './package.json';
 
-const keepModules = new Set([
-  ...Object.entries(pkgs.dependencies || {})
-    .filter(
-      ([, version]) =>
-        typeof version === 'string' && !version.startsWith('workspace:'),
-    )
-    .map(([name]) => name),
-]);
-const skipDevDependencies = new Set([
-  ...Object.entries(pkgs.devDependencies || {}).map(([name]) => name),
-  ...Object.entries(rootPkgs.devDependencies || {}).map(([name]) => name),
-  '.vite',
-]);
-
+const keepModules = new Set([...Object.keys(pkg.dependencies)]);
 const keepLanguages = new Set(['en', 'en_GB', 'en-US', 'en_US']);
+const noopAfterCopy = (
+  _buildPath,
+  _electronVersion,
+  _platform,
+  _arch,
+  callback,
+) => callback();
+
 const enableOsxSign =
   process.env.APPLE_ID &&
   process.env.APPLE_PASSWORD &&
   process.env.APPLE_TEAM_ID;
 
 // remove folders & files not to be included in the app
-// @ts-ignore
 async function cleanSources(
   buildPath,
   _electronVersion,
@@ -68,74 +62,91 @@ async function cleanSources(
     }
   }
 
-  // Skip devDependencies node_modules in the app
+  // Keep only node_modules to be included in the app
   await Promise.all([
     ...(await readdir(buildPath).then((items) =>
       items
         .filter((item) => !appItems.has(item))
-        .map((item) => rimraf.sync(path.join(buildPath, item))),
+        .map((item) => rimraf(path.join(buildPath, item))),
     )),
     ...(await readdir(path.join(buildPath, 'node_modules')).then((items) =>
       items
-        .filter((item) => skipDevDependencies.has(item))
-        .map((item) => rimraf.sync(path.join(buildPath, 'node_modules', item))),
+        .filter((item) => !keepModules.has(item))
+        .map((item) => rimraf(path.join(buildPath, 'node_modules', item))),
     )),
   ]);
 
+  const installedDepsPath = path.join(__dirname, 'installedDeps');
+  try {
+    console.log('Installing dependencies in installedDeps directory...');
+    execSync('pnpm i --ignore-workspace', {
+      cwd: installedDepsPath,
+      stdio: 'inherit',
+    });
+  } catch (error) {
+    console.error('Failed to install dependencies:', error);
+    throw error;
+  }
+
+  await cp(
+    path.join(__dirname, 'installedDeps/node_modules'),
+    path.join(buildPath, 'node_modules'),
+    { recursive: true },
+  );
   // copy needed node_modules to be included in the app
   await Promise.all(
-    Array.from(keepModules.values()).map(async (item) => {
-      const destPath = path.join(buildPath, 'node_modules', item);
-      const sourcePath = path.join(process.cwd(), '../../node_modules', item);
-      console.log('destPath', destPath);
-      console.log('sourcePath', sourcePath);
-
-      if (!fs.existsSync(sourcePath)) {
-        console.error(`Module ${item} not found at ${sourcePath}`);
+    Array.from(keepModules.values()).map((item) => {
+      // Check is exist
+      if (fs.existsSync(path.join(buildPath, 'node_modules', item))) {
+        // eslint-disable-next-line array-callback-return
         return;
       }
 
-      if (fs.existsSync(destPath)) {
-        return;
+      if (fs.existsSync(path.join(__dirname, 'node_modules', item))) {
+        console.log(
+          'copy_current_node_modules',
+          path.join(__dirname, 'node_modules', item),
+        );
+        return cp(
+          path.join(__dirname, 'node_modules', item),
+          path.join(buildPath, 'node_modules', item),
+          { recursive: true },
+        );
       }
 
-      try {
-        await cp(sourcePath, destPath, { recursive: true });
-      } catch (err) {
-        console.error(`Failed to copy ${item}:`, err);
-      }
+      console.log(
+        'copy root_node_modules',
+        path.join(process.cwd(), '../../node_modules', item),
+      );
+      return cp(
+        path.join(process.cwd(), '../../node_modules', item),
+        path.join(buildPath, 'node_modules', item),
+        {
+          recursive: true,
+        },
+      );
     }),
   );
 
   callback();
 }
-// @ts-ignore
-const noopAfterCopy = (
-  _buildPath,
-  _electronVersion,
-  _platform,
-  _arch,
-  callback,
-) => callback();
-// @ts-ignore
+
 const ignorePattern = new RegExp(
-  `/node_modules/(?!${[...keepModules].join('|')})`,
+  `^/node_modules/(?!${[...keepModules].join('|')})`,
 );
+
+console.log('ignorePattern', ignorePattern);
 
 const config: ForgeConfig = {
   packagerConfig: {
     name: 'UI TARS',
     icon: 'resources/icon',
     asar: {
-      // @ts-ignore
-      unpack: [
-        '**/node_modules/sharp/**/*',
-        '**/node_modules/@img/**/*',
-        '**/node_modules/@computer-use/mac-screen-capture-permissions/**/*',
-      ],
+      unpack:
+        '**/node_modules/{sharp,@img,@computer-use/node-mac-permissions}/**/*',
     },
-    prune: true,
     ignore: [ignorePattern],
+    prune: false,
     afterCopy: [
       cleanSources,
       process.platform !== 'win32'
@@ -143,7 +154,7 @@ const config: ForgeConfig = {
         : setLanguages([...keepLanguages.values()]),
     ],
     executableName: 'UI-TARS',
-    extraResource: ['./resources/app-update.yml', '../../node_modules/'],
+    extraResource: ['./resources/app-update.yml'],
     ...(enableOsxSign
       ? {
           osxSign: {
@@ -160,7 +171,9 @@ const config: ForgeConfig = {
         }
       : {}),
   },
-  rebuildConfig: {},
+  rebuildConfig: {
+    force: true,
+  },
   publishers: [
     {
       name: '@electron-forge/publisher-github',
