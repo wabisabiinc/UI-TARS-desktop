@@ -79,7 +79,7 @@ async function cleanSources(
   const installedDepsPath = path.join(__dirname, 'installedDeps');
   try {
     console.log('Installing dependencies in installedDeps directory...');
-    execSync('pnpm i --ignore-workspace', {
+    execSync('pnpm i --ignore-workspace --prod', {
       cwd: installedDepsPath,
       stdio: 'inherit',
     });
