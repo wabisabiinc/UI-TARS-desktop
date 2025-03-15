@@ -15,12 +15,9 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import setLanguages from 'electron-packager-languages';
 import { rimraf, rimrafSync } from 'rimraf';
+import pkgs from './package.json';
 
-const keepModules = new Set([
-  'sharp',
-  '@img',
-  '@computer-use/mac-screen-capture-permissions',
-]);
+const keepModules = new Set([...Object.keys(pkgs.dependencies), '@img']);
 const keepLanguages = new Set(['en', 'en_GB', 'en-US', 'en_US']);
 const enableOsxSign =
   process.env.APPLE_ID &&
