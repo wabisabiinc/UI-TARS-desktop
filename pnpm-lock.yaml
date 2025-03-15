@@ -86,6 +86,12 @@ importers:
       '@computer-use/mac-screen-capture-permissions':
         specifier: ^1.0.2
         version: 1.0.2
+      '@computer-use/node-mac-permissions':
+        specifier: 2.2.2
+        version: 2.2.2
+      '@computer-use/nut-js':
+        specifier: ^4.2.0
+        version: 4.2.0(encoding@0.1.13)
       esbuild-register:
         specifier: '*'
         version: 3.6.0(esbuild@0.25.0)
@@ -93,12 +99,6 @@ importers:
         specifier: 0.33.3
         version: 0.33.3
     devDependencies:
-      '@computer-use/node-mac-permissions':
-        specifier: 2.2.2
-        version: 2.2.2
-      '@computer-use/nut-js':
-        specifier: ^4.2.0
-        version: 4.2.0(encoding@0.1.13)
       '@electron-forge/cli':
         specifier: ^7.7.0
         version: 7.7.0(encoding@0.1.13)
