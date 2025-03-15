@@ -89,7 +89,7 @@ async function cleanSources(
   }
 
   await cp(
-    path.join(__dirname, 'installedDeps/node_modules'),
+    path.join(installedDepsPath, 'node_modules'),
     path.join(buildPath, 'node_modules'),
     { recursive: true },
   );
