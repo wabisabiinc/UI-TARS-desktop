@@ -86,82 +86,19 @@ importers:
 
   apps/ui-tars-desktop:
     dependencies:
-      '@computer-use/mac-screen-capture-permissions':
-        specifier: ^1.0.2
-        version: 1.0.2
-      '@computer-use/node-mac-permissions':
-        specifier: 2.2.2
-        version: 2.2.2
-      '@computer-use/nut-js':
-        specifier: ^4.2.0
-        version: 4.2.0(encoding@0.1.13)
-      '@electron-toolkit/utils':
-        specifier: ^3.0.0
-        version: 3.0.0(electron@34.1.1)
-      '@ui-tars/action-parser':
-        specifier: workspace:*
-        version: link:../../packages/action-parser
       '@ui-tars/electron-ipc':
         specifier: workspace:*
         version: link:../../packages/electron-ipc
-      '@ui-tars/operator-nut-js':
-        specifier: workspace:*
-        version: link:../../packages/operators/nut-js
-      '@ui-tars/sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
       '@ui-tars/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@ui-tars/utio':
         specifier: workspace:*
         version: link:../../packages/utio
-      dotenv:
-        specifier: ^16.4.7
-        version: 16.4.7
-      electron-debug:
-        specifier: ^3.2.0
-        version: 3.2.0
-      electron-devtools-installer:
-        specifier: ^3.2.0
-        version: 3.2.1
-      electron-log:
-        specifier: 5.2.4
-        version: 5.2.4
-      electron-squirrel-startup:
-        specifier: ^1.0.1
-        version: 1.0.1
-      electron-store:
-        specifier: ^10.0.0
-        version: 10.0.1
       esbuild-register:
         specifier: '*'
         version: 3.6.0(esbuild@0.25.0)
-      js-yaml:
-        specifier: ^4.1.0
-        version: 4.1.0
-      ms:
-        specifier: ^2.1.3
-        version: 2.1.3
-      sharp:
-        specifier: 0.33.3
-        version: 0.33.3
-      update-electron-app:
-        specifier: ^3.1.0
-        version: 3.1.1
-      zustand:
-        specifier: ^5.0.0
-        version: 5.0.3(@types/react@18.3.18)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))
     devDependencies:
-      '@changesets/cli':
-        specifier: ^2.27.11
-        version: 2.27.12
-      '@commitlint/cli':
-        specifier: ^19.6.1
-        version: 19.7.1(@types/node@20.17.17)(typescript@5.7.3)
-      '@commitlint/config-conventional':
-        specifier: ^19.6.0
-        version: 19.7.1
       '@electron-forge/cli':
         specifier: ^7.7.0
         version: 7.7.0(encoding@0.1.13)
@@ -276,6 +213,87 @@ importers:
       vitest:
         specifier: ^3.0.2
         version: 3.0.5(@types/node@20.17.17)(@vitest/browser@3.0.5)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.17.17)(typescript@5.7.3))(sass-embedded@1.83.4)
+
+  apps/ui-tars-desktop/src/main:
+    dependencies:
+      '@computer-use/mac-screen-capture-permissions':
+        specifier: ^1.0.2
+        version: 1.0.2
+      '@computer-use/node-mac-permissions':
+        specifier: 2.2.2
+        version: 2.2.2
+      '@computer-use/nut-js':
+        specifier: ^4.2.0
+        version: 4.2.0(encoding@0.1.13)
+      '@electron-toolkit/utils':
+        specifier: ^3.0.0
+        version: 3.0.0(electron@34.1.1)
+      '@ui-tars/action-parser':
+        specifier: workspace:*
+        version: link:../../../../packages/action-parser
+      '@ui-tars/electron-ipc':
+        specifier: workspace:*
+        version: link:../../../../packages/electron-ipc
+      '@ui-tars/operator-nut-js':
+        specifier: workspace:*
+        version: link:../../../../packages/operators/nut-js
+      '@ui-tars/sdk':
+        specifier: workspace:*
+        version: link:../../../../packages/sdk
+      '@ui-tars/shared':
+        specifier: workspace:*
+        version: link:../../../../packages/shared
+      '@ui-tars/utio':
+        specifier: workspace:*
+        version: link:../../../../packages/utio
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+      electron:
+        specifier: 34.1.1
+        version: 34.1.1
+      electron-debug:
+        specifier: ^3.2.0
+        version: 3.2.0
+      electron-devtools-installer:
+        specifier: ^3.2.0
+        version: 3.2.1
+      electron-log:
+        specifier: 5.2.4
+        version: 5.2.4
+      electron-squirrel-startup:
+        specifier: ^1.0.1
+        version: 1.0.1
+      electron-store:
+        specifier: ^10.0.0
+        version: 10.0.1
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.0
+      ms:
+        specifier: ^2.1.3
+        version: 2.1.3
+      sharp:
+        specifier: 0.33.3
+        version: 0.33.3
+      source-map-support:
+        specifier: ^0.5.21
+        version: 0.5.21
+      update-electron-app:
+        specifier: ^3.1.0
+        version: 3.1.1
+      zustand:
+        specifier: ^5.0.0
+        version: 5.0.3(@types/react@18.3.18)(react@18.3.1)(use-sync-external-store@1.4.0(react@18.3.1))
+
+  apps/ui-tars-desktop/src/preload:
+    dependencies:
+      '@ui-tars/utio':
+        specifier: workspace:*
+        version: link:../../../../packages/utio
+      electron:
+        specifier: 34.1.1
+        version: 34.1.1
 
   apps/ui-tars-desktop/src/renderer:
     dependencies:

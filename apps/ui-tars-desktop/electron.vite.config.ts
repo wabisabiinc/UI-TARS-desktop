@@ -8,11 +8,15 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
+import pkgMain from './src/main/package.json';
 import pkg from './package.json';
 
 // get all workspace:* deps
 const workspaceDeps = [
-  ...Object.entries(pkg.dependencies || {})
+  ...[
+    ...Object.entries(pkg.dependencies || {}),
+    ...Object.entries(pkgMain.dependencies || {}),
+  ]
     .filter(
       ([, version]) =>
         typeof version === 'string' && version.startsWith('workspace:'),

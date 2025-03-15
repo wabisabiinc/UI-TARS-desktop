@@ -16,11 +16,9 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import setLanguages from 'electron-packager-languages';
 import { rimraf, rimrafSync } from 'rimraf';
 
-const keepModules = new Set([
-  'font-list',
-  'vscode-languagedetection',
-  'fast-folder-size',
-]);
+// import pkg from './package.json';
+
+const keepModules = new Set([]);
 const keepLanguages = new Set(['en', 'en_GB', 'en-US', 'en_US']);
 
 const enableOsxSign =
@@ -69,7 +67,7 @@ async function cleanSources(
     )),
     ...(await readdir(path.join(buildPath, 'node_modules')).then((items) =>
       items
-        .filter((item) => !keepModules.has(item))
+        .filter((item) => !keepModules.has(item as never))
         .map((item) => {
           console.log('remove_node_modules', item);
           return rimraf(path.join(buildPath, 'node_modules', item));
