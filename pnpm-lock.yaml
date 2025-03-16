@@ -381,6 +381,108 @@ importers:
         specifier: 4.9.4
         version: 4.9.4
 
+  packages/agent-infra/search/bing-search:
+    dependencies:
+      '@agent-infra/logger':
+        specifier: workspace:*
+        version: link:../../logger
+    devDependencies:
+      '@rslib/core':
+        specifier: 0.5.3
+        version: 0.5.3(typescript@4.9.4)
+      '@types/node':
+        specifier: 20.14.8
+        version: 20.14.8
+      '@vitest/coverage-v8':
+        specifier: 3.0.7
+        version: 3.0.7(vitest@3.0.7(@types/debug@4.1.12)(@types/node@20.14.8)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.14.8)(typescript@4.9.4))(sass-embedded@1.83.4))
+      rimraf:
+        specifier: 4.1.0
+        version: 4.1.0
+      ts-node:
+        specifier: 10.9.2
+        version: 10.9.2(@types/node@20.14.8)(typescript@4.9.4)
+      typescript:
+        specifier: 4.9.4
+        version: 4.9.4
+      vitest:
+        specifier: 3.0.7
+        version: 3.0.7(@types/debug@4.1.12)(@types/node@20.14.8)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.14.8)(typescript@4.9.4))(sass-embedded@1.83.4)
+
+  packages/agent-infra/search/browser-search:
+    dependencies:
+      '@agent-infra/browser':
+        specifier: workspace:*
+        version: link:../../browser
+      '@agent-infra/logger':
+        specifier: workspace:*
+        version: link:../../logger
+      '@agent-infra/shared':
+        specifier: workspace:*
+        version: link:../../shared
+    devDependencies:
+      '@rslib/core':
+        specifier: 0.5.3
+        version: 0.5.3(typescript@4.9.4)
+      '@types/node':
+        specifier: 20.14.8
+        version: 20.14.8
+      '@vitest/coverage-v8':
+        specifier: 3.0.7
+        version: 3.0.7(vitest@3.0.7(@types/debug@4.1.12)(@types/node@20.14.8)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.14.8)(typescript@4.9.4))(sass-embedded@1.83.4))
+      rimraf:
+        specifier: 4.1.0
+        version: 4.1.0
+      ts-node:
+        specifier: 10.9.2
+        version: 10.9.2(@types/node@20.14.8)(typescript@4.9.4)
+      typescript:
+        specifier: 4.9.4
+        version: 4.9.4
+      vitest:
+        specifier: 3.0.7
+        version: 3.0.7(@types/debug@4.1.12)(@types/node@20.14.8)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.14.8)(typescript@4.9.4))(sass-embedded@1.83.4)
+
+  packages/agent-infra/search/search:
+    dependencies:
+      '@agent-infra/bing-search':
+        specifier: workspace:*
+        version: link:../bing-search
+      '@agent-infra/browser-search':
+        specifier: workspace:*
+        version: link:../browser-search
+      '@agent-infra/logger':
+        specifier: workspace:*
+        version: link:../../logger
+      '@tavily/core':
+        specifier: 0.3.1
+        version: 0.3.1
+    devDependencies:
+      '@agent-infra/browser':
+        specifier: workspace:*
+        version: link:../../browser
+      '@rslib/core':
+        specifier: 0.5.3
+        version: 0.5.3(typescript@4.9.4)
+      '@types/node':
+        specifier: 20.14.8
+        version: 20.14.8
+      '@vitest/coverage-v8':
+        specifier: 3.0.7
+        version: 3.0.7(vitest@3.0.7(@types/debug@4.1.12)(@types/node@20.14.8)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.14.8)(typescript@4.9.4))(sass-embedded@1.83.4))
+      rimraf:
+        specifier: 4.1.0
+        version: 4.1.0
+      ts-node:
+        specifier: 10.9.2
+        version: 10.9.2(@types/node@20.14.8)(typescript@4.9.4)
+      typescript:
+        specifier: 4.9.4
+        version: 4.9.4
+      vitest:
+        specifier: 3.0.7
+        version: 3.0.7(@types/debug@4.1.12)(@types/node@20.14.8)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.14.8)(typescript@4.9.4))(sass-embedded@1.83.4)
+
   packages/agent-infra/shared:
     dependencies:
       '@types/turndown':
@@ -2725,6 +2827,9 @@ packages:
   '@szmarczak/http-timer@4.0.6':
     resolution: {integrity: sha512-4BAffykYOgO+5nzBWYwE3W90sBgLJoUPRWWcL8wlyiM8IB8ipJz3UMJ9KXQd1RKQXpKp8Tutn80HZtWsu2u76w==}
     engines: {node: '>=10'}
+
+  '@tavily/core@0.3.1':
+    resolution: {integrity: sha512-7jyvPWG4Zjst0s4v0FMLO1f/dfHqs4FnqvKm86zOGYzXxSfxHu0isbLzlwjJad0csYwF0kifdlECTuNouHfr5A==}
 
   '@testing-library/dom@10.4.0':
     resolution: {integrity: sha512-pemlzrSESWbdAloYml3bAJMEfNh1Z7EduzqPKprCH5S341frlpYnUEW0H72dLxa6IsYr+mPno20GiSm+h9dEdQ==}
@@ -5130,6 +5235,9 @@ packages:
   js-cookie@2.2.1:
     resolution: {integrity: sha512-HvdH2LzI/EAZcUwA8+0nKNtWHqS+ZmijLA30RwZA0bo7ToCckjK5MkGhjED9KoRcXO6BaGI3I9UIzSA1FKFPOQ==}
 
+  js-tiktoken@1.0.19:
+    resolution: {integrity: sha512-XC63YQeEcS47Y53gg950xiZ4IWmkfMe4p2V9OSaBt26q+p47WHn18izuXzSclCI73B7yGqtfRsT6jcZQI0y08g==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -6365,6 +6473,12 @@ packages:
   rimraf@3.0.2:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
     deprecated: Rimraf versions prior to v4 are no longer supported
+    hasBin: true
+
+  rimraf@4.1.0:
+    resolution: {integrity: sha512-ZJdkUR5/dRrRJHdcSKJLrpRn6tVjl9ALxd4yrTCxFsMpjQNzwHF6GLqMsuEzEYIXxHlFPDSk21Vr8VPuFBEz0g==}
+    engines: {node: '>=14'}
+    deprecated: Please upgrade to 4.3.1 or higher to fix a potentially damaging issue regarding symbolic link following. See https://github.com/isaacs/rimraf/issues/259 for details.
     hasBin: true
 
   rimraf@6.0.1:
@@ -10146,6 +10260,13 @@ snapshots:
     dependencies:
       defer-to-connect: 2.0.1
 
+  '@tavily/core@0.3.1':
+    dependencies:
+      axios: 1.7.9
+      js-tiktoken: 1.0.19
+    transitivePeerDependencies:
+      - debug
+
   '@testing-library/dom@10.4.0':
     dependencies:
       '@babel/code-frame': 7.26.2
@@ -10538,6 +10659,24 @@ snapshots:
       test-exclude: 7.0.1
       tinyrainbow: 2.0.0
       vitest: 3.0.5(@types/debug@4.1.12)(@types/node@20.17.17)(@vitest/browser@3.0.5)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.17.17)(typescript@5.7.3))(sass-embedded@1.83.4)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@vitest/coverage-v8@3.0.7(vitest@3.0.7(@types/debug@4.1.12)(@types/node@20.14.8)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.14.8)(typescript@4.9.4))(sass-embedded@1.83.4))':
+    dependencies:
+      '@ampproject/remapping': 2.3.0
+      '@bcoe/v8-coverage': 1.0.2
+      debug: 4.4.0
+      istanbul-lib-coverage: 3.2.2
+      istanbul-lib-report: 3.0.1
+      istanbul-lib-source-maps: 5.0.6
+      istanbul-reports: 3.1.7
+      magic-string: 0.30.17
+      magicast: 0.3.5
+      std-env: 3.8.0
+      test-exclude: 7.0.1
+      tinyrainbow: 2.0.0
+      vitest: 3.0.7(@types/debug@4.1.12)(@types/node@20.14.8)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.14.8)(typescript@4.9.4))(sass-embedded@1.83.4)
     transitivePeerDependencies:
       - supports-color
 
@@ -13079,6 +13218,10 @@ snapshots:
 
   js-cookie@2.2.1: {}
 
+  js-tiktoken@1.0.19:
+    dependencies:
+      base64-js: 1.5.1
+
   js-tokens@4.0.0: {}
 
   js-yaml@3.14.1:
@@ -14393,6 +14536,8 @@ snapshots:
   rimraf@3.0.2:
     dependencies:
       glob: 7.2.3
+
+  rimraf@4.1.0: {}
 
   rimraf@6.0.1:
     dependencies:
