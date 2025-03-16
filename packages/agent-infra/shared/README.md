@@ -1,9 +1,9 @@
-# @ai-infra/shared
+# @agent-infra/shared
 
 Common utilities for AI infrastructure projects.
 
 ## Installation
 
 ```bash
-pnpm add @ai-infra/shared
+pnpm add @agent-infra/shared
 ```
