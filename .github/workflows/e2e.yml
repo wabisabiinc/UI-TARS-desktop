@@ -44,4 +44,4 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Run e2e
-        run: pnpm run test:e2e
+        run: cd apps/ui-tars && pnpm run test:e2e

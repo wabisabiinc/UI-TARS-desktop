@@ -1,0 +1,9 @@
+{
+  "name": "@ui-tars/configs",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "@rslib/core": "^0.5.4"
+  }
+}

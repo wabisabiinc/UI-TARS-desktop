@@ -1,4 +1,5 @@
 packages:
-  - '.'
-  - 'packages/**'
-  - '!packages/visualizer'
+  - 'apps/*'
+  - 'apps/ui-tars/src/*'
+  - 'packages/ui-tars/**'
+  - '!packages/ui-tars/visualizer'

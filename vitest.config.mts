@@ -17,7 +17,7 @@ export default defineConfig({
   plugins: [cwdPlugin('ROOT')],
   test: {
     coverage: {
-      include: ['src/**/*.ts', 'packages/**/*.ts', '!packages/visualizer'],
+      include: ['apps/**/*.ts', 'packages/**/*.ts', '!packages/visualizer'],
       provider: 'istanbul',
       all: true,
       reporter: ['text', 'json', 'html', 'lcov'],
