@@ -3,6 +3,5 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export * from './common/index';
-export * from './browser/index';
-export * from './agent/index';
+export * from './Memory';
+export * from './Message';
