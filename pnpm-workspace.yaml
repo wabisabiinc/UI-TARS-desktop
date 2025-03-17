@@ -3,4 +3,5 @@ packages:
   - 'apps/ui-tars/src/*'
   - 'packages/ui-tars/**'
   - 'packages/common/**'
+  - 'packages/agent-infra/**'
   - '!packages/ui-tars/visualizer'
