@@ -96,6 +96,9 @@ importers:
         specifier: 0.33.3
         version: 0.33.3
     devDependencies:
+      '@common/electron-build':
+        specifier: workspace:*
+        version: link:../../packages/common/electron-build
       '@computer-use/mac-screen-capture-permissions':
         specifier: ^1.0.2
         version: 1.0.2
@@ -118,6 +121,9 @@ importers:
         specifier: ^7.7.0
         version: 7.7.0
       '@electron-forge/plugin-auto-unpack-natives':
+        specifier: ^7.7.0
+        version: 7.7.0
+      '@electron-forge/plugin-base':
         specifier: ^7.7.0
         version: 7.7.0
       '@electron-forge/plugin-fuses':
@@ -341,18 +347,46 @@ importers:
         specifier: 34.1.1
         version: 34.1.1
 
+  packages/common/configs:
+    devDependencies:
+      '@rslib/core':
+        specifier: ^0.5.4
+        version: 0.5.4(typescript@5.7.3)
+
+  packages/common/electron-build:
+    dependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../configs
+      flora-colossus:
+        specifier: 2.0.0
+        version: 2.0.0
+    devDependencies:
+      '@rslib/core':
+        specifier: ^0.5.4
+        version: 0.5.4(typescript@5.7.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.3
+      vitest:
+        specifier: ^3.0.2
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@20.17.17)(@vitest/browser@3.0.5)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.17.17)(typescript@5.7.3))(sass-embedded@1.83.4)
+
   packages/ui-tars/action-parser:
     dependencies:
       '@ui-tars/shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../../common/configs
       '@rslib/core':
         specifier: ^0.5.4
         version: 0.5.4(typescript@5.7.3)
-      '@ui-tars/configs':
-        specifier: workspace:*
-        version: link:../configs
       typescript:
         specifier: ^5.7.2
         version: 5.7.3
@@ -384,15 +418,15 @@ importers:
         specifier: ^2.7.0
         version: 2.7.0(encoding@0.1.13)
     devDependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../../common/configs
       '@rslib/core':
         specifier: ^0.5.4
         version: 0.5.4(typescript@5.7.3)
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
-      '@ui-tars/configs':
-        specifier: workspace:*
-        version: link:../configs
       typescript:
         specifier: ^5.7.2
         version: 5.7.3
@@ -400,20 +434,14 @@ importers:
         specifier: ^3.0.2
         version: 3.0.5(@types/debug@4.1.12)(@types/node@20.17.17)(@vitest/browser@3.0.5)(happy-dom@17.1.1)(msw@2.7.0(@types/node@20.17.17)(typescript@5.7.3))(sass-embedded@1.83.4)
 
-  packages/ui-tars/configs:
-    devDependencies:
-      '@rslib/core':
-        specifier: ^0.5.4
-        version: 0.5.4(typescript@5.7.3)
-
   packages/ui-tars/electron-ipc:
     devDependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../../common/configs
       '@rslib/core':
         specifier: ^0.5.4
         version: 0.5.4(typescript@5.7.3)
-      '@ui-tars/configs':
-        specifier: workspace:*
-        version: link:../configs
       electron:
         specifier: ^30.0.0
         version: 30.5.1
@@ -436,15 +464,15 @@ importers:
         specifier: ^6.2.2
         version: 6.2.2
     devDependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../../../common/configs
       '@rslib/core':
         specifier: ^0.5.4
         version: 0.5.4(typescript@5.7.3)
       '@types/big.js':
         specifier: ^6.2.2
         version: 6.2.2
-      '@ui-tars/configs':
-        specifier: workspace:*
-        version: link:../../configs
       '@ui-tars/sdk':
         specifier: workspace:*
         version: link:../../sdk
@@ -470,15 +498,15 @@ importers:
         specifier: 1.6.0
         version: 1.6.0
     devDependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../../../common/configs
       '@rslib/core':
         specifier: ^0.5.4
         version: 0.5.4(typescript@5.7.3)
       '@types/big.js':
         specifier: ^6.2.2
         version: 6.2.2
-      '@ui-tars/configs':
-        specifier: workspace:*
-        version: link:../../configs
       '@ui-tars/sdk':
         specifier: workspace:*
         version: link:../../sdk
@@ -507,15 +535,15 @@ importers:
         specifier: 4.85.1
         version: 4.85.1(encoding@0.1.13)(ws@8.18.0)(zod@3.24.2)
     devDependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../../common/configs
       '@rslib/core':
         specifier: ^0.5.4
         version: 0.5.4(typescript@5.7.3)
       '@types/async-retry':
         specifier: 1.4.9
         version: 1.4.9
-      '@ui-tars/configs':
-        specifier: workspace:*
-        version: link:../configs
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.3.4(vite@5.4.14(@types/node@20.17.17)(sass-embedded@1.83.4))
@@ -543,24 +571,24 @@ importers:
 
   packages/ui-tars/shared:
     devDependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../../common/configs
       '@rslib/core':
         specifier: ^0.5.4
         version: 0.5.4(typescript@5.7.3)
-      '@ui-tars/configs':
-        specifier: workspace:*
-        version: link:../configs
       typescript:
         specifier: ^5.7.2
         version: 5.7.3
 
   packages/ui-tars/utio:
     devDependencies:
+      '@common/configs':
+        specifier: workspace:*
+        version: link:../../common/configs
       '@rslib/core':
         specifier: ^0.5.4
         version: 0.5.4(typescript@5.7.3)
-      '@ui-tars/configs':
-        specifier: workspace:*
-        version: link:../configs
       typescript:
         specifier: ^5.7.2
         version: 5.7.3
