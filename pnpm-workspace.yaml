@@ -1,7 +1,8 @@
 packages:
   - 'apps/*'
+  - 'apps/omega/src/*'
   - 'apps/ui-tars/src/*'
   - 'packages/ui-tars/**'
-  - 'packages/common/**'
   - 'packages/agent-infra/**'
+  - 'packages/common/*'
   - '!packages/ui-tars/visualizer'
