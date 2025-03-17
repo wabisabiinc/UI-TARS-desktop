@@ -2,15 +2,18 @@
   "mode": "exit",
   "tag": "beta",
   "initialVersions": {
-    "ui-tars-desktop": "0.0.7-beta.1",
-    "@ui-tars/action-parser": "1.2.0-beta.20",
-    "@ui-tars/cli": "1.2.0-beta.20",
-    "@ui-tars/electron-ipc": "1.2.0-beta.20",
-    "@ui-tars/operator-browserbase": "1.2.0-beta.20",
-    "@ui-tars/operator-nut-js": "1.2.0-beta.20",
-    "@ui-tars/sdk": "1.2.0-beta.20",
-    "@ui-tars/shared": "1.2.0-beta.20",
-    "@ui-tars/utio": "1.2.0-beta.20"
+    "ui-tars-desktop": "0.0.7-beta.2",
+    "ui-tars-desktop-renderer": "0.0.1",
+    "@common/configs": "0.0.1",
+    "@common/electron-build": "1.0.0",
+    "@ui-tars/action-parser": "1.2.0-beta.21",
+    "@ui-tars/cli": "1.2.0-beta.21",
+    "@ui-tars/electron-ipc": "1.2.0-beta.21",
+    "@ui-tars/operator-browserbase": "1.2.0-beta.21",
+    "@ui-tars/operator-nut-js": "1.2.0-beta.21",
+    "@ui-tars/sdk": "1.2.0-beta.21",
+    "@ui-tars/shared": "1.2.0-beta.21",
+    "@ui-tars/utio": "1.2.0-beta.21"
   },
   "changesets": [
     "dull-lions-tie",
@@ -24,6 +27,7 @@
     "selfish-cups-divide",
     "selfish-humans-drive",
     "short-shoes-tap",
+    "stale-icons-whisper",
     "strange-schools-help",
     "witty-points-rescue"
   ]
