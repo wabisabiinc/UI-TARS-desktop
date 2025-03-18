@@ -1,0 +1,41 @@
+{
+  "name": "@ui-tars/browser-gui-agent",
+  "version": "0.1.0",
+  "description": "Browser GUI Agent using UI-TARS and Agent Core",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "rslib build --watch",
+    "build": "rslib build",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@ui-tars/action-parser": "workspace:*",
+    "@ui-tars/shared": "workspace:*",
+    "@ai-infra/experimental-agent-core": "workspace:*",
+    "jimp": "^1.6.0",
+    "zod": "^3.24.2"
+  },
+  "peerDependencies": {
+    "@agent-infra/browser": "workspace:*",
+    "@agent-infra/logger": "workspace:*"
+  },
+  "devDependencies": {
+    "@common/configs": "workspace:*",
+    "@agent-infra/browser": "workspace:*",
+    "@agent-infra/logger": "workspace:*",
+    "@rslib/core": "^0.5.4",
+    "typescript": "^5.7.2"
+  }
+}
