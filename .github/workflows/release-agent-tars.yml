@@ -1,8 +1,5 @@
 name: Release Agent-TARS app
 on:
-  # push:
-  #   branches:
-  #     - main
   workflow_dispatch:
 
 env:
@@ -69,7 +66,7 @@ jobs:
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
       - name: install dependencies
         run: pnpm install
-      - name: publish arm64
+      - name: publish Mac Universal
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
