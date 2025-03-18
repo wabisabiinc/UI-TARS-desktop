@@ -1,0 +1,47 @@
+{
+  "private": true,
+  "name": "@agent-infra/browser-gui-agent",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "rslib build --watch",
+    "build": "rslib build",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "vitest --config vitest.e2e.config.ts",
+    "coverage": "vitest run --coverage",
+    "run:example": "ts-node scripts/example.ts"
+  },
+  "dependencies": {
+    "openai": "4.85.4",
+    "@agent-infra/browser": "workspace:*",
+    "@agent-infra/logger": "workspace:*",
+    "@agent-infra/shared": "workspace:*",
+    "@ui-tars/operator-browser": "workspace:*",
+    "@ui-tars/action-parser": "1.2.0-beta.17",
+    "@ui-tars/shared": "1.2.0-beta.17",
+    "@ui-tars/sdk": "1.2.0-beta.17",
+    "jimp": "1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.8",
+    "@rslib/core": "0.5.3",
+    "typescript": "4.9.4",
+    "vitest": "3.0.7",
+    "@vitest/coverage-v8": "3.0.7",
+    "ts-node": "10.9.2"
+  }
+}
