@@ -6,6 +6,7 @@ import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { atom, useAtom } from 'jotai';
 import { useState, useEffect, useRef } from 'react';
 import { FiRotateCw, FiPause, FiPlay } from 'react-icons/fi';
+import { isReportHtmlMode } from '@renderer/constants';
 
 type ButtonState = 'replay' | 'pause' | 'continue';
 
@@ -35,6 +36,9 @@ const BUTTON_CONFIGS: Record<ButtonState, ButtonConfig> = {
 
 const replayAllMessages = atom<MessageItem[]>([]);
 
+// wait 3s to replay
+const DEFAULT_COUNTDOWN = 3;
+
 export function Replay() {
   const [allMessages, setAllMessages] = useAtom(replayAllMessages);
   const [, setEvents] = useAtom(eventsAtom);
@@ -42,7 +46,9 @@ export function Replay() {
   const { addMessage, updateMessage, setMessages, messageEndRef, messages } =
     useAppChat();
   const timerRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout>();
   const [buttonState, setButtonState] = useState<ButtonState>('replay');
+  const [countdown, setCountdown] = useState(DEFAULT_COUNTDOWN);
   const playbackRef = useRef<{
     currentIndex: number;
     eventIndex: number;
@@ -55,9 +61,36 @@ export function Replay() {
     }
   };
 
+  const clearCountDownInterval = () => {
+    setCountdown(0);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = undefined;
+    }
+  };
+
   useEffect(() => {
-    return () => clearPlayTimer();
+    return () => {
+      clearPlayTimer();
+      clearCountDownInterval();
+    };
   }, []);
+
+  useEffect(() => {
+    if (isReportHtmlMode && allMessages.length) {
+      intervalRef.current = setInterval(() => {
+        setCountdown((prevCountdown) => {
+          if (prevCountdown > 1) {
+            return prevCountdown - 1;
+          } else {
+            clearCountDownInterval();
+            handleTogglePlay();
+            return 0;
+          }
+        });
+      }, 1000);
+    }
+  }, [allMessages]);
 
   useEffect(() => {
     if (allMessages.length === 0 && messages.length !== 0) {
@@ -131,6 +164,7 @@ export function Replay() {
   };
 
   const handleTogglePlay = () => {
+    clearCountDownInterval();
     switch (buttonState) {
       case 'replay':
       case 'continue':
@@ -146,15 +180,22 @@ export function Replay() {
   const currentConfig = BUTTON_CONFIGS[buttonState];
 
   return (
-    <button
-      onClick={handleTogglePlay}
-      className={`
+    <div>
+      <button
+        onClick={handleTogglePlay}
+        className={`
         flex items-center justify-center mx-auto mb-2 gap-2 px-4 py-2 text-sm font-medium rounded-lg ease-in-out
         ${currentConfig.style}
       `}
-    >
-      {currentConfig.icon}
-      <span>{currentConfig.label}</span>
-    </button>
+      >
+        {currentConfig.icon}
+        <span>{currentConfig.label}</span>
+      </button>
+      {isReportHtmlMode && countdown > 0 && (
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center pb-2">
+          start replay in <strong>{countdown}</strong> seconds
+        </p>
+      )}
+    </div>
   );
 }
