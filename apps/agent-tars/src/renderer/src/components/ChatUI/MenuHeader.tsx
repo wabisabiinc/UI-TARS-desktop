@@ -30,7 +30,7 @@ export function MenuHeader() {
     <motion.header
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full border-b border-divider backdrop-blur-md backdrop-saturate-150 px-6 py-3 sticky top-0 z-10 shadow-sm"
+      className="w-full border-b border-divider backdrop-blur-md backdrop-saturate-150 px-6 py-3 sticky top-0 z-10"
     >
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <motion.div

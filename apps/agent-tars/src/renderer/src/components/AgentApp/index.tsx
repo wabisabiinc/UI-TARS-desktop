@@ -26,7 +26,7 @@ export function AgentApp() {
           </div>
           {showCanvas && (
             <div
-              className="flex-shrink-0 bg-background border-l border-divider"
+              className="flex-shrink-0 bg-background border-divider"
               style={{ width: '55%' }}
             >
               <CanvasPanel />
@@ -67,7 +67,8 @@ export function AgentApp() {
               animate={{ width: '55%', opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="flex-shrink-0 bg-background border-l border-divider"
+              style={{ borderLeft: '0.5px solid var(--ai-color-border)' }}
+              className="flex-shrink-0 bg-background border-divider"
             >
               <CanvasPanel />
             </motion.div>

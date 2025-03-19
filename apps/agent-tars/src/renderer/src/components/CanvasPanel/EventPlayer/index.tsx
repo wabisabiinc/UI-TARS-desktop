@@ -155,7 +155,7 @@ export function EventPlayer() {
 
   return (
     <div
-      className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg shadow-xl"
+      className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg"
       style={{
         maxHeight: '100vh',
       }}

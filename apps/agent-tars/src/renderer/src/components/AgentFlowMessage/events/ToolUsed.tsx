@@ -93,7 +93,7 @@ export function ToolUsed({ event }: { event: EventItem }) {
     <div
       onClick={handleClick}
       className="group relative p-4 rounded-lg border border-gray-200 dark:border-gray-700
-        bg-white dark:bg-gray-800 shadow-sm
+        bg-white dark:bg-gray-800
         hover:bg-gray-50 dark:hover:bg-gray-750
         transition-all duration-200 ease-in-out
         cursor-pointer"
@@ -106,7 +106,6 @@ export function ToolUsed({ event }: { event: EventItem }) {
           border border-gray-200 dark:border-gray-600
           group-hover:from-gray-100 group-hover:to-gray-200
           dark:group-hover:from-gray-600 dark:group-hover:to-gray-500
-          shadow-sm
           transition-all duration-200"
         >
           {platform === ToolPlatform.FileSystem ? (

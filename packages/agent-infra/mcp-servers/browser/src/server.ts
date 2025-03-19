@@ -50,7 +50,7 @@ interface GlobalConfig {
 // Global state
 let globalConfig: GlobalConfig = {
   launchOptions: {
-    headless: true,
+    headless: false,
   },
 };
 let globalBrowser: LocalBrowser['browser'] | undefined;

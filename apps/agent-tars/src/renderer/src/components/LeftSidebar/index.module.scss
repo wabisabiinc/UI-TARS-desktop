@@ -10,7 +10,7 @@
     width var(--transition-smooth),
     box-shadow var(--transition-smooth);
   overflow: hidden;
-  border-right: 1px solid var(--ai-color-border);
+  border-right: 0.5px solid var(--ai-color-border);
   display: flex;
   flex-direction: column;
   z-index: 10;

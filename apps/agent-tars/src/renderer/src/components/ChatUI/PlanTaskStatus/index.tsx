@@ -35,7 +35,7 @@ export function PlanTaskStatus() {
       showArrow={true}
     >
       <PopoverTrigger>
-        <div className="flex items-center w-[280px] px-4 py-2.5 bg-white/80 dark:bg-gray-900/50 rounded-xl border border-blue-100/80 dark:border-blue-500/20 shadow-sm dark:shadow-blue-900/10 backdrop-blur-sm cursor-pointer hover:scale-[1.02] transition-all duration-200">
+        <div className="flex items-center w-[280px] px-4 py-2.5 bg-white/80 dark:bg-gray-900/50 rounded-xl border border-blue-100/80 dark:border-blue-500/20 dark:shadow-blue-900/10 backdrop-blur-sm cursor-pointer hover:scale-[1.02] transition-all duration-200">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <FiClock className="w-4 h-4 text-blue-500 dark:text-blue-400" />

@@ -33,10 +33,11 @@ export function StepSection({
 
   return (
     <div
-      className={`mb-4 rounded-xl overflow-auto border transition-all duration-300 ease-in-out ${
+      style={{ border: '0.5px solid var(--ai-color-border)' }}
+      className={`mb-4 rounded-xl overflow-auto transition-all duration-300 ease-in-out ${
         isCurrentStep
-          ? 'border-blue-400/40 dark:border-blue-500/40 shadow-lg shadow-blue-100/50 dark:shadow-blue-900/20'
-          : 'border-gray-200/60 dark:border-gray-700/60 shadow-md'
+          ? 'border-blue-400/40 dark:border-blue-500/40 shadow-blue-100/50 dark:shadow-blue-900/20'
+          : 'border-gray-200/60 dark:border-gray-700/60 '
       } bg-white dark:bg-gray-800`}
     >
       <div

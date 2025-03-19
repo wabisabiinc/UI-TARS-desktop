@@ -112,7 +112,8 @@ export function getLoadingTipFromToolCall(
     }
     case ToolCallType.BrowserClick: {
       const typedParams = params as ToolCallParam[ToolCallType.BrowserClick];
-      value = typedParams.selector;
+      console.log('typedParams', typedParams);
+      value = typedParams.index;
       break;
     }
     case ToolCallType.BrowserFormInputFill: {

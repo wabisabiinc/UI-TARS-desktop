@@ -120,7 +120,7 @@ export interface ToolCallParam {
     height?: number;
   };
   [ToolCallType.BrowserClick]: {
-    selector: string;
+    index: string;
   };
   [ToolCallType.BrowserFormInputFill]: {
     selector: string;
