@@ -48,23 +48,15 @@ export function MenuHeader() {
               transition={{ type: 'spring', stiffness: 300 }}
             />
           </div>
+        </motion.div>
 
-          {/* Brand name */}
-          <motion.span
-            className="font-semibold text-lg bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            Agent TARS
-          </motion.span>
-          {/* Session Name */}
+        {isReportHtmlMode ? (
           <div className="flex-1 mx-6 text-center w-[250px]">
             <h1 className="text-sm md:text-base font-medium text-foreground/90 truncate">
               {currentSession?.name || 'New Session'}
             </h1>
           </div>
-        </motion.div>
+        ) : null}
 
         <div className="flex items-center gap-2">
           {!isReportHtmlMode && (
