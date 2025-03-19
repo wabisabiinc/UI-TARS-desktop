@@ -193,3 +193,13 @@ body {
 .animate-spin-slow {
   animation: spin 3s linear infinite;
 }
+
+#root {
+  .markdown-body p {
+    margin: 0 0 0.3em;
+    line-height: 1.5;
+    color: var(--text-primary);
+    font-weight: 300;
+    font-size: 15px;
+  }
+}
