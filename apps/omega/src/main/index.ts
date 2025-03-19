@@ -8,22 +8,46 @@ import icon from '../../resources/icon.png?asset';
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
-    show: false,
-    autoHideMenuBar: true,
+    width: 1200,
+    height: 800,
     frame: false,
-    titleBarStyle: 'hidden',
+    titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 10, y: 10 },
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
-      // Allow local file access
       webSecurity: false,
       allowRunningInsecureContent: false,
       contextIsolation: true,
+      nodeIntegration: true,
     },
+  });
+
+  // 修改拖拽处理方式
+  ipcMain.handle('titlebar:drag', (_event, { mouseX, mouseY }) => {
+    if (process.platform === 'darwin') {
+      return;
+    }
+
+    const { x, y } = mainWindow.getPosition();
+    mainWindow.setPosition(x + mouseX, y + mouseY);
+  });
+
+  // 添加双击最大化/还原处理
+  ipcMain.handle('titlebar:toggle-maximize', () => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+      return false;
+    } else {
+      mainWindow.maximize();
+      return true;
+    }
+  });
+
+  // 检查窗口是否最大化
+  ipcMain.handle('window:is-maximized', () => {
+    return mainWindow.isMaximized();
   });
 
   mainWindow.webContents.session.webRequest.onHeadersReceived(

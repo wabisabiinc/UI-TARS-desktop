@@ -1,0 +1,14 @@
+/* ... 保留其他样式 ... */
+
+/* 防止文本在拖拽时被选中 */
+[style*="webkit-app-region: drag"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 确保可点击元素在拖拽区域内正常工作 */
+[style*="webkit-app-region: no-drag"] {
+  -webkit-app-region: no-drag;
+}
+
+/* ... 保留其他样式 ... */
