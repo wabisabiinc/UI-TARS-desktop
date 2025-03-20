@@ -1,16 +1,37 @@
-import { MCPServerName, Message, MessageData } from '@agent-infra/shared';
+import {
+  MCPServerName,
+  Message,
+  MessageData,
+  ModelSettings,
+} from '@agent-infra/shared';
 import { initIpc } from '@ui-tars/electron-ipc/main';
 import { ChatCompletionTool } from 'openai/resources/index.mjs';
 import { BrowserWindow } from 'electron';
 import { createLLM, LLMConfig } from '@main/llmProvider';
 import { ProviderFactory } from '@main/llmProvider/ProviderFactory';
+import { SettingStore } from '@main/store/setting';
 
 const t = initIpc.create();
+
+/**
+ * Get the current provider configuration based on settings
+ */
+function getLLMProviderConfig(settings: ModelSettings): LLMConfig {
+  const { provider, model, apiKey, apiVersion, endpoint } = settings;
+  return {
+    configName: provider,
+    model,
+    apiKey,
+    apiVersion,
+    // TODO: baseURL || endpoint
+    baseURL: endpoint,
+  };
+}
 
 const currentLLMConfigRef: {
   current: LLMConfig;
 } = {
-  current: {},
+  current: getLLMProviderConfig(SettingStore.get('model') || {}),
 };
 
 export const llmRoute = t.router({
@@ -41,6 +62,7 @@ export const llmRoute = t.router({
       const messages = input.messages.map((msg) => new Message(msg));
       const llm = createLLM(currentLLMConfigRef.current);
       console.log('current llm config', currentLLMConfigRef.current);
+      console.log('input.tools', input.tools);
       const response = await llm.askTool({
         messages,
         tools: input.tools,
@@ -90,16 +112,22 @@ export const llmRoute = t.router({
       return requestId;
     }),
 
-  updateLLMConfig: t.procedure.input<LLMConfig>().handle(async ({ input }) => {
-    try {
-      console.log('input entered', input);
-      currentLLMConfigRef.current = input;
-      return true;
-    } catch (error) {
-      console.error('Failed to update LLM configuration:', error);
-      return false;
-    }
+  getLLMConfig: t.procedure.input<void>().handle(async () => {
+    return SettingStore.get('model');
   }),
+
+  updateLLMConfig: t.procedure
+    .input<ModelSettings>()
+    .handle(async ({ input }) => {
+      try {
+        SettingStore.set('model', input);
+        currentLLMConfigRef.current = getLLMProviderConfig(input);
+        return true;
+      } catch (error) {
+        console.error('Failed to update LLM configuration:', error);
+        return false;
+      }
+    }),
 
   getAvailableProviders: t.procedure.input<void>().handle(async () => {
     try {
