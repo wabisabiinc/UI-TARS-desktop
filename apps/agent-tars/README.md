@@ -31,6 +31,15 @@ For more showcases please head: https://agent-tars.com/showcase
 - **🔄 Workflow Orchestration:** Seamlessly connects GUI Agent tools—search, browse, explore links, and synthesize information into final outputs.
 - **⚙️ Developer-Friendly Framework:** Simplifies integration with UI-TARS and custom workflow creation for GUI Agent projects.
 
+## Install
+
+You can download the [latest release](https://github.com/bytedance/UI-TARS-desktop/releases/latest) version of UI-TARS Desktop from our releases page.
+
+> **Note**: If you have [Homebrew](https://brew.sh/) installed, you can install UI-TARS Desktop by running the following command:
+> ```bash
+> brew install --cask agent-tars
+> ```
+
 ## Getting Started
 
 See [Quick Start](./docs/quick-start.md).
