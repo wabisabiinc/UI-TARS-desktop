@@ -3,7 +3,7 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { Page } from 'puppeteer-core';
+import { Page, WaitForOptions } from 'puppeteer-core';
 
 /**
  * Options for launching a browser instance
@@ -65,6 +65,11 @@ export interface EvaluateOnNewPageOptions<T extends any[], R> {
   url: string;
 
   /**
+   * Options for waiting for the page to load
+   */
+  waitForOptions?: WaitForOptions;
+
+  /**
    * Function to be evaluated in the page context
    * This function runs in the context of the browser page, not Node.js
    * @param {Window} window - The window object of the page
@@ -86,6 +91,14 @@ export interface EvaluateOnNewPageOptions<T extends any[], R> {
    * @returns {void | Promise<void>}
    */
   beforePageLoad?: (page: Page) => void | Promise<void>;
+
+  /**
+   * Optional function to execute after page navigation
+   * Useful for setting up page configuration after loading the URL
+   * @param {Page} page - Puppeteer page instance
+   * @returns {void | Promise<void>}
+   */
+  afterPageLoad?: (page: Page) => void | Promise<void>;
 
   /**
    * Optional function to process the result before returning
