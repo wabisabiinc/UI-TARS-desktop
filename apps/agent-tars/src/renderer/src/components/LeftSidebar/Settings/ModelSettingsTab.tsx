@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  Divider,
-  Input,
-  Select,
-  SelectItem,
-  Spinner,
-  Switch,
-  Chip,
-} from '@nextui-org/react';
+import { Input, Select, SelectItem, Spinner, Switch } from '@nextui-org/react';
 import { ModelSettings, ModelProvider } from '@agent-infra/shared';
 import { getProviderLogo, getModelOptions } from './modelUtils';
 import { useProviders } from './useProviders';
