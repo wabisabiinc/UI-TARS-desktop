@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { OpenAgentChatUI } from '@renderer/components/ChatUI';
 import { showCanvasAtom } from '@renderer/state/canvas';
 import { motion, AnimatePresence } from 'framer-motion';

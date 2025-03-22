@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { ChatUI as BaseChatUI, InputFile } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';

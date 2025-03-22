@@ -75,6 +75,7 @@ export function useAgentFlow() {
 
   return useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
+      debugger;
       const agentFlowId = uuid();
       currentAgentFlowIdRef.current = agentFlowId;
       const agentFlow = new AgentFlow({

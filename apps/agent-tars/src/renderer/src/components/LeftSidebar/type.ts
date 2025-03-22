@@ -1,5 +1,8 @@
+/*
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 export interface ChatSession {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   id: string;
   name: string;
   appId: string;
