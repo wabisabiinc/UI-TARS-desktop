@@ -88,6 +88,10 @@ export const actionRoute = t.router({
               name: mcpTool.name as string,
               args: mcpTool.inputSchema || {},
             });
+            logger.info(
+              '[actionRoute.executeTool] execute tool result',
+              result,
+            );
             results.push(result);
           } catch (e) {
             logger.error(
@@ -125,7 +129,9 @@ export const actionRoute = t.router({
       const result = await mcpClient.callTool({
         client: MCPServerName.Browser,
         name: 'browser_screenshot',
-        args: {},
+        args: {
+          highlight: true,
+        },
       });
       const screenshotMeta = (
         result.content as [
