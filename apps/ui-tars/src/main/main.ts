@@ -167,10 +167,6 @@ const initializeApp = async () => {
   app.on('quit', async () => {
     logger.info('app quit');
     unsubscribe();
-
-    // Deactivate all MCP servers
-    const mcpClient = await createMcpClient();
-    await mcpClient.cleanup();
   });
 
   app.on('activate', () => {
