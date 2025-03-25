@@ -10,12 +10,14 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { runCode } from './tools/run-code.js';
 import { ToolInput } from '@agent-infra/mcp-server-shared';
+import { deleteTmpFiles } from './utils.js';
 
 const toolMaps: Record<string, any> = {
   [runCode.schema.name]: runCode,
 };
 
 const close: Client['close'] = async () => {
+  await deleteTmpFiles();
   return;
 };
 

@@ -8,6 +8,7 @@ import MenuBuilder from './menu';
 import { logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
 import { AppUpdater } from './utils/updateApp';
+import { createMcpClient } from './mcp/client';
 
 function createWindow(): BrowserWindow {
   // Create the browser window.
@@ -130,11 +131,13 @@ app.whenReady().then(async () => {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
   logger.info('All windows closed');
   if (process.platform !== 'darwin') {
     app.quit();
   }
+  const mcpClient = await createMcpClient();
+  await mcpClient.cleanup();
 });
 
 // In this file you can include the rest of your app's specific main process

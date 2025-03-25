@@ -12,6 +12,7 @@ import * as os from 'os';
 import { languageIdToFileExtensionMap } from './constants.js';
 import { exec } from 'child_process';
 
+const tmpFiles: string[] = [];
 export async function createTmpFile(content: string, languageId: string) {
   const tmpDir = os.tmpdir();
   const fileExtension = getFileExtension(languageId);
@@ -19,10 +20,23 @@ export async function createTmpFile(content: string, languageId: string) {
   const filePath = path.join(tmpDir, fileName);
 
   await fs.promises.writeFile(filePath, content);
-
+  tmpFiles.push(filePath);
   console.debug(`Temporary file created at: ${filePath}`);
 
   return filePath;
+}
+
+export async function deleteTmpFiles() {
+  for (const filePath of tmpFiles) {
+    try {
+      await fs.promises.unlink(filePath);
+      console.debug(`Temporary file deleted: ${filePath}`);
+      tmpFiles.splice(tmpFiles.indexOf(filePath), 1);
+    } catch (error) {
+      console.error(`Error deleting temporary file: ${filePath}`, error);
+    }
+  }
+  console.debug(`Deleted ${tmpFiles.length} temporary files`);
 }
 
 export function getFileExtension(languageId: string): string {
