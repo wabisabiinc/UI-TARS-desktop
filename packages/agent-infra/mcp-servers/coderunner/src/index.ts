@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 /**
  * The following code is modified based on
- * https://github.com/modelcontextprotocol/servers/blob/main/src/filesystem/index.ts
+ * https://github.com/formulahendry/mcp-server-code-runner/blob/main/src/index.ts
  *
  * MIT License
- * Copyright (c) 2024 Anthropic, PBC
- * https://github.com/modelcontextprotocol/servers/blob/main/LICENSE
+ * Copyright (c) 2025 Jun Han
+ * https://github.com/formulahendry/mcp-server-code-runner/blob/main/LICENSE
  */
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createRequire } from 'module';
 import { client as mcpCodeRunnerClient } from './server.js';
