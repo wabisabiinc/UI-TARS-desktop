@@ -174,7 +174,6 @@ const listTools: Client['listTools'] = async () => {
     const name = key as ToolNames;
     const tool = toolsMap[name];
     return {
-      // @ts-ignore
       name: tool?.name || name,
       description: tool.description,
       inputSchema: zodToJsonSchema(tool.inputSchema) as ToolInput,
