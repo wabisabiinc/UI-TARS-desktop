@@ -17,7 +17,7 @@ const schema = z.object({
 
 export const runCode: Tool<typeof schema> = {
   schema: {
-    name: 'run-code',
+    name: 'run_code',
     description: `Run code snippet and return the result in ${os.platform()} system`,
     inputSchema: schema,
   },
