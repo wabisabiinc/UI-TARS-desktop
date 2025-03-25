@@ -45,6 +45,7 @@
     "@computer-use/node-mac-permissions": "2.2.2",
     "@agent-infra/mcp-server-commands": "workspace:*",
     "@agent-infra/mcp-server-filesystem": "workspace:*",
+    "@agent-infra/mcp-server-coderunner": "workspace:*",
     "@agent-infra/mcp-server-browser": "workspace:*"
   },
   "devDependencies": {

@@ -92,6 +92,9 @@ importers:
       '@agent-infra/mcp-server-browser':
         specifier: workspace:*
         version: link:../../packages/agent-infra/mcp-servers/browser
+      '@agent-infra/mcp-server-coderunner':
+        specifier: workspace:*
+        version: link:../../packages/agent-infra/mcp-servers/coderunner
       '@agent-infra/mcp-server-commands':
         specifier: workspace:*
         version: link:../../packages/agent-infra/mcp-servers/commands

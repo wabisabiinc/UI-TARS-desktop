@@ -28,10 +28,14 @@ export const createMcpClient = async () => {
   const commandModule = await dynamicImport('@agent-infra/mcp-server-commands');
   const fsModule = await dynamicImport('@agent-infra/mcp-server-filesystem');
   const browserModule = await dynamicImport('@agent-infra/mcp-server-browser');
+  const codeRunnerModule = await dynamicImport(
+    '@agent-infra/mcp-server-coderunner',
+  );
 
   const { client: commandClient } = commandModule.default;
   const { client: fsClient, setAllowedDirectories } = fsModule.default;
   const { client: browserClient } = browserModule.default;
+  const { client: codeRunnerClient } = codeRunnerModule.default;
 
   fsClientModule = fsModule.default;
 
@@ -54,6 +58,11 @@ export const createMcpClient = async () => {
       local: true,
       description: 'browser tools',
       localClient: browserClient,
+    },
+    [MCPServerName.CodeRunner]: {
+      name: MCPServerName.CodeRunner,
+      description: 'code runner tool',
+      localClient: codeRunnerClient,
     },
   };
 
