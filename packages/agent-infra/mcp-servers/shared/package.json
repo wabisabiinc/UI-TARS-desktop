@@ -12,7 +12,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "rm -rf dist && rslib build",
+    "build": "shx rm -rf dist && rslib build",
     "prepare": "npm run build",
     "watch": "rslib build --watch"
   },
