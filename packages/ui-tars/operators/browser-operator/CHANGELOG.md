@@ -6,5 +6,5 @@
 
 - feat: ui-tars add adb operator
 - Updated dependencies
-  - @agent-infra/logger@0.0.2-beta.0
+  - @agent-infra/logger@0.0.1-beta.0
   - @ui-tars/sdk@1.2.0-beta.23

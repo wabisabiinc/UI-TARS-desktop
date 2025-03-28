@@ -1,6 +1,6 @@
 # @agent-infra/logger
 
-## 0.0.2-beta.0
+## 0.0.1-beta.0
 
 ### Patch Changes
 
