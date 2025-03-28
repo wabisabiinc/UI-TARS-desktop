@@ -15,6 +15,10 @@
   "ignore": [
     "ui-tars-desktop",
     "ui-tars-desktop-renderer",
-    "@common/*"
+    "agent-tars-app",
+    "agent-tars-app-renderer",
+    "@common/*",
+    "@agent-infra/*",
+    "!@agent-infra/logger"
   ]
 }
