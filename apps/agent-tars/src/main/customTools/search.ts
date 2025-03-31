@@ -1,4 +1,4 @@
-import { SearchProvider, ToolCall } from '@agent-infra/shared';
+import { SearchProvider, SearchSettings, ToolCall } from '@agent-infra/shared';
 import {
   SearchClient,
   SearchProvider as SearchProviderEnum,
@@ -31,8 +31,11 @@ const searchByTavily = async (options: { count: number; query: string }) => {
   };
 };
 
-export async function search(toolCall: ToolCall): Promise<MCPToolResult> {
-  const currentSearchConfig = SettingStore.get('search');
+export async function search(
+  toolCall: ToolCall,
+  settings?: SearchSettings,
+): Promise<MCPToolResult> {
+  const currentSearchConfig = settings || SettingStore.get('search');
   const args = JSON.parse(toolCall.function.arguments);
 
   try {
@@ -125,11 +128,12 @@ export async function search(toolCall: ToolCall): Promise<MCPToolResult> {
       },
     ];
   } catch (e) {
-    logger.error('Search error:', e);
+    const rawErrorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+    logger.error('Search error: ' + rawErrorMessage);
     return [
       {
         isError: true,
-        content: [JSON.stringify(e)],
+        content: [rawErrorMessage],
       },
     ];
   }

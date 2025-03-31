@@ -1,10 +1,68 @@
-import { Input, Select, SelectItem, Divider } from '@nextui-org/react';
+import { useState } from 'react';
+import { Button, Input, Select, SelectItem, Divider } from '@nextui-org/react';
 import { SearchSettings, SearchProvider } from '@agent-infra/shared';
 import { getSearchProviderLogo } from './searchUtils';
+import toast from 'react-hot-toast';
+import { ipcClient } from '@renderer/api';
+import { FiAlertCircle } from 'react-icons/fi';
 
 interface SearchSettingsTabProps {
   settings: SearchSettings;
   setSettings: (settings: SearchSettings) => void;
+}
+
+interface TestSearchServiceProps {
+  settings: SearchSettings;
+}
+
+function TestSearchService({ settings }: TestSearchServiceProps) {
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  return (
+    <>
+      <Button
+        color="primary"
+        variant="flat"
+        isLoading={isLoading}
+        onClick={async () => {
+          try {
+            setIsLoading(true);
+            const { success, message } =
+              await ipcClient.testSearchService(settings);
+
+            if (success) {
+              toast.success('Search service is ready');
+              setErrorMessage(''); // 清除之前的错误信息
+            } else {
+              setErrorMessage(message);
+            }
+          } catch (error) {
+            setErrorMessage(String(error));
+          } finally {
+            setIsLoading(false);
+          }
+        }}
+      >
+        Test Search Service
+      </Button>
+
+      {errorMessage && (
+        <div className="mt-4 p-3 bg-danger-50 dark:bg-danger-900/10 border border-danger-200 rounded-md">
+          <div className="flex items-center gap-2 mb-2">
+            <FiAlertCircle className="text-danger" size={16} />
+            <p className="text-danger font-medium">Search Service Error:</p>
+          </div>
+          <p className="text-danger-600 dark:text-danger-400 text-sm font-mono my-2">
+            {errorMessage}
+          </p>
+          <p className="text-xs text-danger-500">
+            Please check your search provider settings and try again.
+          </p>
+        </div>
+      )}
+    </>
+  );
 }
 
 export function SearchSettingsTab({
@@ -118,6 +176,8 @@ export function SearchSettingsTab({
           description="Override the default SearXNG API endpoint"
         />
       )}
+
+      <TestSearchService settings={settings} />
     </div>
   );
 }
