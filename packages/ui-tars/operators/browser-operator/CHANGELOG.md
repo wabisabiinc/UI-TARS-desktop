@@ -1,4 +1,4 @@
-# @ui-tars/operator-adb
+# @ui-tars/operator-browser
 
 ## 1.2.0-beta.24
 
@@ -6,7 +6,8 @@
 
 - chore: publish adb
 - Updated dependencies
-  - @ui-tars/shared@1.2.0-beta.24
+  - @agent-infra/logger@0.0.1-beta.1
+  - @ui-tars/sdk@1.2.0-beta.24
 
 ## 1.2.0-beta.23
 
@@ -14,4 +15,5 @@
 
 - feat: ui-tars add adb operator
 - Updated dependencies
-  - @ui-tars/shared@1.2.0-beta.23
+  - @agent-infra/logger@0.0.1-beta.0
+  - @ui-tars/sdk@1.2.0-beta.23
