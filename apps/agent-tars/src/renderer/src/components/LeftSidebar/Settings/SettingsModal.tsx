@@ -14,6 +14,7 @@ import { ModelSettingsTab } from './ModelSettingsTab';
 import { FileSystemSettingsTab } from './FileSystemSettingsTab';
 import { SearchSettingsTab } from './SearchSettingsTab';
 import { useAppSettings } from './useAppSettings';
+import { MCPServersSettingsTab } from './MCPServersSettingsTab';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -48,8 +49,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   };
 
+  console.log('settings', settings);
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <ModalContent>
         {(onModalClose) => (
           <>
@@ -81,6 +84,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     settings={settings.fileSystem}
                     setSettings={(fsSettings) =>
                       setSettings({ ...settings, fileSystem: fsSettings })
+                    }
+                  />
+                </Tab>
+                <Tab key="mcp-servers" title="MCP Servers">
+                  <MCPServersSettingsTab
+                    settings={settings.mcp}
+                    setSettings={(mcpSettings) =>
+                      setSettings({ ...settings, mcp: mcpSettings })
                     }
                   />
                 </Tab>

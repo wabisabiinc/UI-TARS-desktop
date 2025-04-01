@@ -3,6 +3,8 @@ import { MCPServerName } from '@agent-infra/shared';
 import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
+import { logger } from '@main/utils/logger';
+import { getActiveMcpSettings } from './tools';
 
 // Keep track of the filesystem client to allow updating allowed directories
 let fsClientModule: any = null;
@@ -55,7 +57,10 @@ export const createMcpClient = async () => {
       description: 'browser tools',
       localClient: browserClient,
     },
+    ...getActiveMcpSettings(),
   };
+
+  logger.info('toolsMap', toolsMap);
 
   const client = new MCPClient(Object.values(toolsMap));
   mapClientRef.current = client;

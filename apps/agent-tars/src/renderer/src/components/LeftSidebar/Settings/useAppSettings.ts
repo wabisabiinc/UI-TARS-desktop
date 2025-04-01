@@ -5,6 +5,7 @@ import {
   ModelSettings,
   ModelProvider,
   SearchSettings,
+  MCPSettings,
   SearchProvider,
 } from '@agent-infra/shared';
 import { ipcClient } from '@renderer/api';
@@ -28,10 +29,15 @@ const DEFAULT_SEARCH_SETTINGS: SearchSettings = {
   apiKey: '',
 };
 
+const DEFAULT_MCP_SETTINGS: MCPSettings = {
+  mcpServers: [],
+};
+
 export const appSettingsAtom = atom<AppSettings>({
   model: DEFAULT_MODEL_SETTINGS,
   fileSystem: DEFAULT_FILESYSTEM_SETTINGS,
   search: DEFAULT_SEARCH_SETTINGS,
+  mcp: DEFAULT_MCP_SETTINGS,
 });
 
 export function useAppSettings() {
@@ -46,6 +52,7 @@ export function useAppSettings() {
         model: settings.model || DEFAULT_MODEL_SETTINGS,
         fileSystem: settings.fileSystem || DEFAULT_FILESYSTEM_SETTINGS,
         search: settings.search || DEFAULT_SEARCH_SETTINGS,
+        mcp: settings.mcp || DEFAULT_MCP_SETTINGS,
       });
     }
     loadSettings();
@@ -120,7 +127,8 @@ export function useAppSettings() {
 
     try {
       // Save all settings
-      await ipcClient.updateAppSettings(settings);
+      const newSettings = await ipcClient.getSettings();
+      await ipcClient.updateAppSettings(newSettings);
 
       toast.success('Settings saved successfully');
       return true;

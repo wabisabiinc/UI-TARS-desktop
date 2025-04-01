@@ -1,3 +1,5 @@
+import { type MCPServer } from '@agent-infra/mcp-shared/client';
+
 export enum ModelProvider {
   OPENAI = 'openai',
   ANTHROPIC = 'anthropic',
@@ -34,8 +36,17 @@ export interface SearchSettings {
   defaultEngine?: 'bing';
 }
 
+export type MCPServerSetting = MCPServer & {
+  id: string;
+};
+
+export interface MCPSettings {
+  mcpServers: MCPServerSetting[];
+}
+
 export interface AppSettings {
   model: ModelSettings;
   fileSystem: FileSystemSettings;
   search: SearchSettings;
+  mcp: MCPSettings;
 }
