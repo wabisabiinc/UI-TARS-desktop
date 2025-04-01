@@ -1,4 +1,4 @@
-import { ToolPlatform, toolToPlatformMap } from '@renderer/type/agent';
+import { ToolPlatform, toolToPlatformMap } from '@main/agent/agent-type';
 import { TerminalPanel } from './platform/TerminalPanel';
 import { SearchPanel } from './platform/SearchPanel';
 import { EventContentDescriptor, EventItem } from '@renderer/type/event';

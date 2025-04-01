@@ -2,7 +2,7 @@ import {
   ActionStatus,
   ToolCallParam,
   ToolCallType,
-} from '@renderer/type/agent';
+} from '@main/agent/agent-type';
 
 interface LoadingTipMeta {
   name: string;

@@ -4,7 +4,7 @@ import {
   EventStreamUIMeta,
   extractEventStreamUIMeta,
 } from '@renderer/utils/parseEvents';
-import { PlanTaskStatus } from '@renderer/type/agent';
+import { PlanTaskStatus } from '@main/agent/agent-type';
 import { useEffect, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { eventsAtom } from '@renderer/state/chat';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { EventItem } from '@renderer/type/event';
-import { PlanTask, PlanTaskStatus } from '@renderer/type/agent';
+import { PlanTask, PlanTaskStatus } from '@main/agent/agent-type';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { HiOutlineChevronUpDown } from 'react-icons/hi2';
 import { EventRenderer } from './EventRenderer';

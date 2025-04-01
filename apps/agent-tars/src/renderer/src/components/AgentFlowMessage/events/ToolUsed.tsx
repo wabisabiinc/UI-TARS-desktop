@@ -3,7 +3,7 @@ import {
   ActionStatus,
   ToolPlatform,
   toolToPlatformMap,
-} from '@renderer/type/agent';
+} from '@main/agent/agent-type';
 import { FiCheck, FiX, FiLoader, FiSearch, FiGlobe } from 'react-icons/fi';
 import {
   FiFolder, // FileSystem

@@ -2,7 +2,7 @@ import {
   ActionStatus,
   ToolPlatform,
   toolToPlatformMap,
-} from '@renderer/type/agent';
+} from '@main/agent/agent-type';
 import { getLoadingTipFromToolCall } from './getLoadingTipForToolCall';
 
 export function normalizeToolUsedInfo(

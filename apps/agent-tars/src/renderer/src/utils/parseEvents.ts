@@ -1,4 +1,4 @@
-import { PlanTask, PlanTaskStatus } from '@renderer/type/agent';
+import { PlanTask, PlanTaskStatus } from '@main/agent/agent-type';
 import { EventItem, EventType } from '@renderer/type/event';
 
 export enum UIGroupType {

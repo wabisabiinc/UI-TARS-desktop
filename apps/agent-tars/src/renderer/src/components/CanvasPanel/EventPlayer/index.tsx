@@ -14,7 +14,7 @@ import {
   planTasksAtom,
 } from '@renderer/state/chat';
 import { PlayerControls } from './PlayerControls';
-import { ActionStatus } from '@renderer/type/agent';
+import { ActionStatus } from '@main/agent/agent-type';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   EventContentDescriptor,

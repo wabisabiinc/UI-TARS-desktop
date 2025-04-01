@@ -1,97 +1,81 @@
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
-import { InputFile, MessageRole } from '@vendor/chat-ui';
-import { AgentFlow } from '../agent/AgentFlow';
-import { EventItem } from '@renderer/type/event';
-import { useAtom } from 'jotai';
-import {
-  agentStatusTipAtom,
-  currentAgentFlowIdRefAtom,
-  currentEventIdAtom,
-  eventsAtom,
-  planTasksAtom,
-} from '@renderer/state/chat';
+import { InputFile } from '@vendor/chat-ui';
+import { ipcClient } from '@renderer/api';
 import { v4 as uuid } from 'uuid';
-import { PlanTask } from '@renderer/type/agent';
-import { showCanvasAtom } from '@renderer/state/canvas';
 import { useChatSessions } from './useChatSession';
 import { DEFAULT_APP_ID } from '@renderer/components/LeftSidebar';
-import { ipcClient } from '@renderer/api';
 import { Message } from '@agent-infra/shared';
-
-export interface AppContext {
-  chatUtils: ReturnType<typeof useAppChat>;
-  request: {
-    inputText: string;
-    inputFiles: InputFile[];
-  };
-  agentFlowId: string;
-  setEventId: (eventId: string) => void;
-  setEvents: React.Dispatch<React.SetStateAction<EventItem[]>>;
-  setAgentStatusTip: (status: string) => void;
-  setPlanTasks: (tasks: PlanTask[]) => void;
-  setShowCanvas: (show: boolean) => void;
-}
+import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
+import { useAtom } from 'jotai';
+import { showCanvasAtom } from '@renderer/state/canvas';
 
 export function useAgentFlow() {
   const chatUtils = useAppChat();
-  const [, setEvents] = useAtom(eventsAtom);
-  const [, setAgentStatusTip] = useAtom(agentStatusTipAtom);
-  const [currentAgentFlowIdRef] = useAtom(currentAgentFlowIdRefAtom);
   const [, setShowCanvas] = useAtom(showCanvasAtom);
-  const [, setEventId] = useAtom(currentEventIdAtom);
-  const [, setPlanTasks] = useAtom(planTasksAtom);
   const { updateChatSession, currentSessionId } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
 
+  // This function now communicates with the main process Agent service
   const updateSessionTitle = useCallback(
     async (input: string) => {
-      if (!currentSessionId) {
-        return;
+      if (!currentSessionId) return;
+
+      try {
+        const result = await ipcClient.askLLMText({
+          messages: [
+            Message.systemMessage(
+              'You are conversation summary expert. Please give a title for the conversation topic, the topic should be no more than 20 words. Output only the topic content, no other words. Use the same language as the user input.',
+            ),
+            Message.userMessage(
+              `user input: ${input}, please give me the topic title.`,
+            ),
+          ],
+          requestId: uuid(),
+        });
+
+        await updateChatSession(currentSessionId, { name: result });
+      } catch (error) {
+        console.error('Failed to update session title:', error);
       }
-      const userMessages = chatUtils.messages
-        .filter((m) => m.role === MessageRole.User)
-        .slice(-5);
-      const userMessageContent =
-        userMessages.map((m) => m.content).join('\n') + input;
-      const result = await ipcClient.askLLMText({
-        messages: [
-          Message.systemMessage(
-            `You are conversation summary expert.Please give a title for the coversation topic, the topic should be no more than 20 words.You can only output the topic content, don't output any other words.Use the same with as the language of the user input.The language should be the same as the user input.`,
-          ),
-          Message.userMessage(
-            `user input: ${userMessageContent}, please give me the topic title.`,
-          ),
-        ],
-        requestId: uuid(),
-      });
-      await updateChatSession(currentSessionId, {
-        name: result,
-      });
     },
-    [currentSessionId, updateChatSession, chatUtils.messages],
+    [currentSessionId, updateChatSession],
   );
 
+  // The main function that launches the Agent flow
   return useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
-      const agentFlowId = uuid();
-      currentAgentFlowIdRef.current = agentFlowId;
-      const agentFlow = new AgentFlow({
-        chatUtils,
-        setEvents,
-        setEventId,
-        setAgentStatusTip,
-        setPlanTasks,
-        setShowCanvas,
-        agentFlowId,
-        request: {
+      try {
+        // Show loading state for the user
+        await chatUtils.addMessage(
+          ChatMessageUtil.assistantThinkMessage('Starting Agent TARS...'),
+        );
+
+        // Call the main process to start the agent
+        const result = await window.electron.ipcRenderer.invoke('agent:start', {
           inputText,
-          inputFiles,
-        },
-      });
-      await Promise.all([agentFlow.run(), updateSessionTitle(inputText)]);
+        });
+
+        // We don't need to do much here since the agent service will
+        // send updates through IPC events, which are handled by the useAgent hook
+
+        // Show the canvas that displays agent activity
+        setShowCanvas(true);
+
+        // Update the chat session title in the background
+        updateSessionTitle(inputText);
+
+        return result.agentId;
+      } catch (error) {
+        console.error('Failed to launch agent:', error);
+        await chatUtils.addMessage(
+          ChatMessageUtil.assistantTextMessage(
+            `Error starting Agent: ${error.message}`,
+          ),
+        );
+      }
     },
-    [chatUtils, setEvents, updateSessionTitle],
+    [chatUtils, setShowCanvas, updateSessionTitle],
   );
 }

@@ -1,4 +1,4 @@
-import { ActionStatus, PlanTask } from './agent';
+import { ActionStatus, PlanTask } from '@main/agent/agent-type';
 
 export enum EventType {
   UserMessage = 'user-message',

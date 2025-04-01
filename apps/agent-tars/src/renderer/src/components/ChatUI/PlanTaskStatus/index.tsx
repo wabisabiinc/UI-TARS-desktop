@@ -1,7 +1,7 @@
 import { planTasksAtom } from '@renderer/state/chat';
 import { useAtom } from 'jotai';
 import { useState } from 'react';
-import { PlanTaskStatus as TaskStatus } from '@renderer/type/agent';
+import { PlanTaskStatus as TaskStatus } from '@main/agent/agent-type';
 import { Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { FiClock, FiCheck, FiX } from 'react-icons/fi';

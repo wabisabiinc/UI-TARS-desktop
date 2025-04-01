@@ -1,4 +1,4 @@
-import { ToolCallType } from '@renderer/type/agent';
+import { ToolCallType } from '@main/agent/agent-type';
 import {
   checkPathPermission,
   normalizePath,

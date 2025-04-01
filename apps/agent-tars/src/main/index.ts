@@ -10,6 +10,7 @@ import { logger } from './utils/logger';
 import { setupExternalLinks } from './utils/links';
 import { ErrorReporter } from './utils/errorReporter';
 import { AppUpdater } from './utils/updateApp';
+import { AgentService } from './agent/AgentService';
 
 function createWindow(): BrowserWindow {
   // Create the browser window.
@@ -148,3 +149,6 @@ app.on('window-all-closed', async () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+// Initialize Agent 服务
+AgentService.getInstance().init();

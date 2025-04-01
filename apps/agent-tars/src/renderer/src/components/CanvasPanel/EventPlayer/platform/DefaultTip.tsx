@@ -1,4 +1,4 @@
-import { ActionStatus } from '@renderer/type/agent';
+import { ActionStatus } from '@main/agent/agent-type';
 import { FiCheckCircle } from 'react-icons/fi';
 
 export function DefaultTip({

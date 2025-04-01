@@ -1,7 +1,7 @@
 import { EventItem } from '@renderer/type/event';
 import { atom } from 'jotai';
 import EventEmitter from 'eventemitter3';
-import { PlanTask } from '@renderer/type/agent';
+import { PlanTask } from '@main/agent/agent-type';
 
 export interface UserInterruptEvent {
   type: 'user-interrupt';

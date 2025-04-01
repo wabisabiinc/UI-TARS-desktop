@@ -1,7 +1,7 @@
 import { UIGroup, UIGroupType } from '@renderer/utils/parseEvents';
 import { StepSection } from './StepSection';
 import { ChatText } from './events/ChatText';
-import { PlanTask } from '@renderer/type/agent';
+import { PlanTask } from '@main/agent/agent-type';
 import { LoadingStatus } from './events/LoadingStatus';
 import { AgentFlowEnd } from './events/End';
 import { EventType } from '@renderer/type/event';
