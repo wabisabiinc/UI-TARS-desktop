@@ -20,6 +20,7 @@ import { useAppChat } from '@renderer/hooks/useAppChat';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
+import { WelcomeScreen } from '../WelcomeScreen';
 
 declare global {
   interface Window {
@@ -36,6 +37,7 @@ declare global {
 
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const addUserMessage = useAddUserMessage();
   const launchAgentFlow = useAgentFlow();
   const chatUIRef = useRef<{
@@ -44,12 +46,13 @@ export function OpenAgentChatUI() {
     focusInput: () => void;
   }>(null);
   const isDarkMode = useThemeMode();
-  const { initMessages, setMessages } = useAppChat();
+  const { initMessages, setMessages, messages } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
+
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       try {
@@ -76,11 +79,13 @@ export function OpenAgentChatUI() {
 
   useEffect(() => {
     async function init() {
+      setIsInitialized(false);
       const messages =
         window.__OMEGA_REPORT_DATA__?.messages ?? (await initMessages());
       setMessages(messages || []);
       const events = extractHistoryEvents(messages as unknown as MessageItem[]);
       setEvents(events);
+      setIsInitialized(true);
     }
     init();
   }, [currentSessionId]);
@@ -109,7 +114,7 @@ export function OpenAgentChatUI() {
         storageDbName={STORAGE_DB_NAME}
         features={{
           clearConversationHistory: true,
-          uploadFiles: true,
+          uploadFiles: false,
         }}
         onMessageAbort={() => {
           setIsSending(false);
@@ -128,13 +133,17 @@ export function OpenAgentChatUI() {
           setEvents([]);
         }}
         slots={{
-          beforeMessageList: <MenuHeader />,
+          beforeMessageList: (
+            <>
+              <MenuHeader />
+              {isInitialized && messages.length === 0 && <WelcomeScreen />}
+            </>
+          ),
           beforeInputContainer: <BeforeInputContainer />,
           customFeatures: (
             <>
               <div className="flex gap-2">
                 {isSending ? <AgentStatusTip /> : null}
-                {/* <PlanTaskStatus /> */}
               </div>
             </>
           ),
