@@ -2,6 +2,8 @@ import fs, { readdirSync } from 'node:fs';
 import { cp, readdir } from 'node:fs/promises';
 import path, { resolve } from 'node:path';
 import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerDeb } from '@electron-forge/maker-deb';
+import { MakerRpm } from '@electron-forge/maker-rpm';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
@@ -211,6 +213,21 @@ const config: ForgeConfig = {
         { x: 180, y: 170, type: 'file', path: opts.appPath },
         { x: 480, y: 170, type: 'link', path: '/Applications' },
       ],
+    }),
+    // Add Linux makers
+    new MakerDeb({
+      options: {
+        icon: 'resources/icon.png',
+        categories: ['Utility'],
+        homepage: 'https://agent-tars.com',
+      },
+    }),
+    new MakerRpm({
+      options: {
+        icon: 'resources/icon.png',
+        categories: ['Utility'],
+        homepage: 'https://agent-tars.com',
+      },
     }),
   ],
   plugins: [

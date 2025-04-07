@@ -24,6 +24,8 @@
     "publish:mac": "npm run build:reporter && electron-vite build && electron-forge publish --arch=universal --platform=darwin",
     "publish:win32": "npm run build:reporter && electron-vite build && electron-forge publish --arch=x64 --platform=win32",
     "publish:win32-arm64": "npm run build:reporter && electron-vite build && electron-forge publish --arch=arm64 --platform=win32",
+    "publish:linux": "npm run build:reporter && electron-vite build && electron-forge publish --arch=x64 --platform=linux",
+    "publish:linux-arm64": "npm run build:reporter && electron-vite build && electron-forge publish --arch=arm64 --platform=linux",
     "dev:reporter": "vite dev",
     "build:reporter": "vite build"
   },

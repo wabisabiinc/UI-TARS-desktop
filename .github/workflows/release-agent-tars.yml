@@ -13,6 +13,31 @@ permissions:
   attestations: write
 
 jobs:
+  publish_on_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Show operating system info
+        run: |
+          echo "Operating System:"
+          uname -a
+      - name: Install pnpm
+        run: npm install -g pnpm@9
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xvfb
+      - name: Install app dependencies
+        run: pnpm install
+      - name: Publish Linux x64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cd apps/agent-tars && pnpm run publish:linux
+
   publish_on_mac:
     strategy:
       fail-fast: false
