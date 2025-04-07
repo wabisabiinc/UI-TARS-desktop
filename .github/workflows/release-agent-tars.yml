@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xvfb
+          sudo apt-get install -y libgtk-3-dev libnotify-dev libnss3 libxss1 libasound2-dev libxtst6 xvfb libgbm-dev libdrm-dev
       - name: Install app dependencies
         run: pnpm install
       - name: Publish Linux x64
@@ -85,10 +85,6 @@ jobs:
           security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
-
-          # apply provisioning profile
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
       - name: install dependencies
         run: pnpm install
       - name: publish Mac Universal
