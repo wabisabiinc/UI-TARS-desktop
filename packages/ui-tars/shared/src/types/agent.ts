@@ -10,6 +10,7 @@ export interface Message {
 export type Status = `${StatusEnum}`;
 export enum StatusEnum {
   RUNNING = 'running',
+  PAUSE = 'pause',
   END = 'end',
   INIT = 'init',
   MAX_LOOP = 'max_loop',

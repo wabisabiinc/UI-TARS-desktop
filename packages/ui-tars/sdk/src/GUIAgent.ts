@@ -37,6 +37,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
   private isPaused = false;
   private resumePromise: Promise<void> | null = null;
   private resolveResume: (() => void) | null = null;
+  private isStopped = false;
 
   constructor(config: GUIAgentConfig<T>) {
     super(config);
@@ -101,12 +102,17 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
     try {
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        // 检查是否暂停
+        // check pause status
         if (this.isPaused && this.resumePromise) {
           await this.resumePromise;
         }
 
-        if (data.status !== StatusEnum.RUNNING || signal?.aborted) {
+        if (
+          this.isStopped ||
+          (data.status !== StatusEnum.RUNNING &&
+            data.status !== StatusEnum.PAUSE) ||
+          signal?.aborted
+        ) {
           signal?.aborted && (data.status = StatusEnum.END);
           await onData?.({ data: { ...data, conversations: [] } });
           break;
@@ -281,7 +287,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             break;
           }
 
-          if (!signal?.aborted) {
+          if (!signal?.aborted && !this.isStopped) {
             logger.info(
               'GUIAgent Action Inputs:',
               parsedPrediction.action_inputs,
@@ -362,6 +368,10 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
       this.resolveResume = null;
     }
     this.isPaused = false;
+  }
+
+  public stop() {
+    this.isStopped = true;
   }
 
   private buildSystemPrompt() {
