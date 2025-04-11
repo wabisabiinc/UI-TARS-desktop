@@ -3,6 +3,7 @@
     "baseUrl": ".",
     "moduleResolution": "bundler",
     "paths": {
+      "@/*": ["./src/*"],
       "@shared/*": ["./src/shared/*"],
       "@main/*": ["./src/main/*"],
       "@renderer/*": ["./src/renderer/src/*"],
