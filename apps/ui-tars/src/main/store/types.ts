@@ -25,6 +25,7 @@ export type AppState = {
   theme: 'dark' | 'light';
   ensurePermissions: { screenCapture?: boolean; accessibility?: boolean };
   instructions: string | null;
+  currentGUIAgent: object | null;
   restUserData: Omit<GUIAgentData, 'status' | 'conversations'> | null;
   status: GUIAgentData['status'];
   errorMsg: string | null;

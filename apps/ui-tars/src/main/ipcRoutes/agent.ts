@@ -9,6 +9,7 @@ import { runAgent } from '@main/services/runAgent';
 import { showWindow } from '@main/window/index';
 
 import { closeScreenMarker } from '@main/window/ScreenMarker';
+import { GUIAgent } from '@ui-tars/sdk';
 
 const t = initIpc.create();
 
@@ -29,13 +30,30 @@ export const agentRoute = t.router({
 
     store.setState({ thinking: false });
   }),
+  pauseRun: t.procedure.input<void>().handle(async () => {
+    const { currentGUIAgent } = store.getState();
+    if (currentGUIAgent instanceof GUIAgent) {
+      currentGUIAgent.pause();
+      store.setState({ status: StatusEnum.PAUSE, thinking: false });
+    }
+  }),
+  resumeRun: t.procedure.input<void>().handle(async () => {
+    const { currentGUIAgent } = store.getState();
+    if (currentGUIAgent instanceof GUIAgent) {
+      currentGUIAgent.resume();
+      store.setState({ status: StatusEnum.RUNNING, thinking: false });
+    }
+  }),
   stopRun: t.procedure.input<void>().handle(async () => {
-    const { abortController } = store.getState();
+    const { abortController, currentGUIAgent } = store.getState();
     store.setState({ status: StatusEnum.END, thinking: false });
 
     showWindow();
 
     abortController?.abort();
+    if (currentGUIAgent instanceof GUIAgent) {
+      currentGUIAgent.stop();
+    }
 
     closeScreenMarker();
   }),

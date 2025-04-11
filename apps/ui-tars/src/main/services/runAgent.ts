@@ -133,6 +133,11 @@ export const runAgent = async (
     },
   });
 
+  setState({
+    ...getState(),
+    currentGUIAgent: guiAgent,
+  });
+
   await hideWindowBlock(async () => {
     await UTIOService.getInstance().sendInstruction(instructions);
 
