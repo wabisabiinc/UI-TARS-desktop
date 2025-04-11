@@ -34,6 +34,10 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
   private readonly logger: NonNullable<GUIAgentConfig<T>['logger']>;
   private systemPrompt: string;
 
+  private isPaused = false;
+  private resumePromise: Promise<void> | null = null;
+  private resolveResume: (() => void) | null = null;
+
   constructor(config: GUIAgentConfig<T>) {
     super(config);
     this.operator = config.operator;
@@ -97,7 +101,10 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
     try {
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        console.log('[run_data_status]', data.status);
+        // 检查是否暂停
+        if (this.isPaused && this.resumePromise) {
+          await this.resumePromise;
+        }
 
         if (data.status !== StatusEnum.RUNNING || signal?.aborted) {
           signal?.aborted && (data.status = StatusEnum.END);
@@ -339,6 +346,22 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
 
       logger.info('[GUIAgent] finally: status', data.status);
     }
+  }
+
+  public pause() {
+    this.isPaused = true;
+    this.resumePromise = new Promise((resolve) => {
+      this.resolveResume = resolve;
+    });
+  }
+
+  public resume() {
+    if (this.resolveResume) {
+      this.resolveResume();
+      this.resumePromise = null;
+      this.resolveResume = null;
+    }
+    this.isPaused = false;
   }
 
   private buildSystemPrompt() {
