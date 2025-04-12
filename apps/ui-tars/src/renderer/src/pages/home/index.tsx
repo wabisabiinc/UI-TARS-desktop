@@ -10,7 +10,33 @@ import RunMessages from '@renderer/components/RunMessages';
 import { useStore } from '@renderer/hooks/useStore';
 import { isWindows } from '@renderer/utils/os';
 
-export default function Home() {
+import { AppSidebar } from '@/renderer/src/components/SideBar/app-sidebar';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@renderer/components/ui/sidebar';
+import { DragArea } from '@renderer/components/Common/drag';
+
+export default function Page() {
+  return (
+    <div>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <DragArea></DragArea>
+          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <div className="flex items-center gap-2 px-4">
+              <SidebarTrigger className="-ml-1" />
+            </div>
+          </header>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
+  );
+}
+
+export function Home() {
   const { messages, thinking, errorMsg } = useStore();
 
   return (

@@ -6,6 +6,8 @@ import { Box, Flex, HStack, IconButton, Image } from '@chakra-ui/react';
 import { IoIosSettings } from 'react-icons/io';
 // import { useDispatch } from 'zutron';
 
+import { Button } from '@renderer/components/ui/button';
+
 import logoVector from '@resources/logo-full.png?url';
 import { api } from '@renderer/api';
 
@@ -24,6 +26,7 @@ export default function Header({ className }: { className?: string }) {
             draggable={false}
           />
         </HStack>
+        <Button>UI TARS 123</Button>
         <Box position="absolute" right="4">
           <IconButton
             aria-label="Settings"

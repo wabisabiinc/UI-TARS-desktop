@@ -6,8 +6,8 @@ import { ChakraProvider } from '@chakra-ui/react';
 import { Route, HashRouter as Router, Routes } from 'react-router';
 import { lazy, Suspense } from 'react';
 
-import './App.css';
-import { chakraUItheme } from './theme';
+import './styles/globals.css';
+// import { chakraUItheme } from './theme';
 
 const Home = lazy(() => import('./pages/home'));
 const Settings = lazy(() => import('./pages/settings'));
@@ -16,23 +16,21 @@ const InProgressing = lazy(() => import('./pages/inProgressing'));
 
 export default function App() {
   return (
-    <ChakraProvider theme={chakraUItheme}>
-      <Router>
-        <Suspense
-          fallback={
-            <div className="loading-container">
-              <div className="loading-spinner" />
-            </div>
-          }
-        >
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/launcher" element={<Launcher />} />
-            <Route path="/in-progressing" element={<InProgressing />} />
-          </Routes>
-        </Suspense>
-      </Router>
-    </ChakraProvider>
+    <Router>
+      <Suspense
+        fallback={
+          <div className="loading-container">
+            <div className="loading-spinner" />
+          </div>
+        }
+      >
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/launcher" element={<Launcher />} />
+          <Route path="/in-progressing" element={<InProgressing />} />
+        </Routes>
+      </Suspense>
+    </Router>
   );
 }
