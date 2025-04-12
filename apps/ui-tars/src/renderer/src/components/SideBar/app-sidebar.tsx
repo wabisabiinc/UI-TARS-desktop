@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as React from 'react';
-import { Smartphone, History, Monitor, Gamepad2 } from 'lucide-react';
+import { Smartphone, Monitor, Gamepad2 } from 'lucide-react';
 
 import { NavMain } from '@/renderer/src/components/SideBar/nav-main';
 import { NavHistory } from '@/renderer/src/components/SideBar/nav-history';
@@ -20,11 +20,6 @@ import { DragArea } from '@renderer/components/Common/drag';
 
 // This is sample data.
 const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
   navMain: [
     {
       title: 'Playground',
@@ -98,7 +93,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavHistory history={data.history} />
       </SidebarContent>
       <SidebarFooter className="p-0">
-        <NavSettings user={data.user} />
+        <NavSettings />
       </SidebarFooter>
     </Sidebar>
   );

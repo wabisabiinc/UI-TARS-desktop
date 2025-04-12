@@ -5,36 +5,13 @@
 import { Settings } from 'lucide-react';
 
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@renderer/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@renderer/components/ui/dropdown-menu';
-import {
   SidebarGroup,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from '@renderer/components/ui/sidebar';
 
-export function NavSettings({
-  user,
-}: {
-  user: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
-}) {
+export function NavSettings() {
   return (
     <SidebarGroup>
       <SidebarMenu>
