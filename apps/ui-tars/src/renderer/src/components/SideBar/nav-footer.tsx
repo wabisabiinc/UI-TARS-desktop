@@ -11,12 +11,19 @@ import {
   SidebarMenuItem,
 } from '@renderer/components/ui/sidebar';
 
-export function NavSettings() {
+interface NavSettingsProps {
+  onSettingsClick: () => void;
+}
+
+export function NavSettings({ onSettingsClick }: NavSettingsProps) {
   return (
     <SidebarGroup>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton className="h-12 font-medium">
+          <SidebarMenuButton
+            className="h-12 font-medium"
+            onClick={onSettingsClick}
+          >
             <Settings strokeWidth={2} />
             <span>Settings</span>
           </SidebarMenuButton>

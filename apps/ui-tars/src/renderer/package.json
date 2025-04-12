@@ -32,7 +32,10 @@
     "swr": "^2.3.0",
     "tailwind-merge": "3.1.0",
     "tw-animate-css": "1.2.5",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.0",
+    "idb-keyval": "6.2.1",
+    "uuid": "11.1.0",
+    "dayjs": "1.11.13"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

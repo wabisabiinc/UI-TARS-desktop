@@ -2,21 +2,23 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as React from 'react';
+import { useCallback, type ComponentProps } from 'react';
 import { Smartphone, Monitor, Gamepad2 } from 'lucide-react';
 
-import { NavMain } from '@/renderer/src/components/SideBar/nav-main';
-import { NavHistory } from '@/renderer/src/components/SideBar/nav-history';
-import { NavSettings } from '@/renderer/src/components/SideBar/nav-footer';
-import { UITarsHeader } from '@/renderer/src/components/SideBar/nav-header';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarRail,
 } from '@renderer/components/ui/sidebar';
 import { DragArea } from '@renderer/components/Common/drag';
+
+// import { NavMain } from './nav-main';
+import { NavHistory } from './nav-history';
+import { NavSettings } from './nav-footer';
+import { UITarsHeader } from './nav-header';
+
+import { api } from '@renderer/api';
 
 // This is sample data.
 const data = {
@@ -81,7 +83,11 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+  const onSettingsClick = useCallback(async () => {
+    await api.openSettingsWindow();
+  }, []);
+
   return (
     <Sidebar collapsible="icon" className="select-none" {...props}>
       <DragArea></DragArea>
@@ -93,7 +99,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavHistory history={data.history} />
       </SidebarContent>
       <SidebarFooter className="p-0">
-        <NavSettings />
+        <NavSettings onSettingsClick={onSettingsClick} />
       </SidebarFooter>
     </Sidebar>
   );
