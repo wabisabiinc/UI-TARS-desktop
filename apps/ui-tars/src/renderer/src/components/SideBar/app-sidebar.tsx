@@ -7,7 +7,7 @@ import { Smartphone, History, Monitor, Gamepad2 } from 'lucide-react';
 
 import { NavMain } from '@/renderer/src/components/SideBar/nav-main';
 import { NavHistory } from '@/renderer/src/components/SideBar/nav-history';
-import { NavUser } from '@/renderer/src/components/SideBar/nav-user';
+import { NavSettings } from '@/renderer/src/components/SideBar/nav-footer';
 import { UITarsHeader } from '@/renderer/src/components/SideBar/nav-header';
 import {
   Sidebar,
@@ -88,7 +88,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="select-none" {...props}>
       <DragArea></DragArea>
       <SidebarHeader>
         <UITarsHeader />
@@ -97,10 +97,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* <NavMain items={data.navMain} /> */}
         <NavHistory history={data.history} />
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
+      <SidebarFooter className="p-0">
+        <NavSettings user={data.user} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   );
 }
