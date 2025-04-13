@@ -131,6 +131,7 @@ export const runAgent = async (
         maxRetries: 1,
       },
     },
+    maxLoopCount: settings.maxLoopCount,
   });
 
   setState({

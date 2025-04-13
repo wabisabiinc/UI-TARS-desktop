@@ -23,6 +23,7 @@ export const PresetSchema = z.object({
   // Optional fields
   language: z.enum(['zh', 'en']).optional(),
   screenshotScale: z.number().min(0.1).max(1).optional(),
+  maxLoopCount: z.number().min(25).max(200).optional(),
   reportStorageBaseUrl: z.string().url().optional(),
   utioBaseUrl: z.string().url().optional(),
   presetSource: PresetSourceSchema.optional(),
