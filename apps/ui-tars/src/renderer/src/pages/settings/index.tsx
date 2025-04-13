@@ -122,6 +122,68 @@ export default function Settings() {
     }
   };
 
+  const renderBanner = () => {
+    if (!isRemoteAutoUpdatedPreset) {
+      return null;
+    }
+
+    return (
+      <Card className="p-4 mb-4 bg-gray-50">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-700">
+              Remote Preset Management
+            </span>
+            <TooltipProvider>
+              <CNTooltip>
+                <TooltipTrigger>
+                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  When using remote preset, settings will be read-only
+                </TooltipContent>
+              </CNTooltip>
+            </TooltipProvider>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-600 line-clamp-2">
+              {settings.presetSource?.url}
+            </p>
+            {settings.presetSource?.lastUpdated && (
+              <p className="text-xs text-gray-500 mt-1">
+                {`Last updated: ${new Date(settings.presetSource!.lastUpdated).toLocaleString()}`}
+              </p>
+            )}
+          </div>
+
+          <CNButton
+            variant="outline"
+            size="sm"
+            className="mb-0"
+            onClick={handleUpdatePreset}
+          >
+            Update Preset
+          </CNButton>
+
+          <CNButton
+            variant="outline"
+            size="sm"
+            className="text-red-400 border-red-400 hover:bg-red-50 hover:text-red-500 ml-4 mb-0"
+            onClick={async () => {
+              // await window.electron.setting.resetPreset();
+              sonnerToast.success('Reset to manual mode successfully', {
+                duration: 1500,
+              });
+            }}
+          >
+            Reset to Manual
+          </CNButton>
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <>
       <DragArea></DragArea>
@@ -129,59 +191,12 @@ export default function Settings() {
         Settings
       </h1>
       <div className="m-4 mt-2">
-        <Card className="p-4 mb-4 bg-gray-50">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-700">
-                Remote Preset Management
-              </span>
-              <TooltipProvider>
-                <CNTooltip>
-                  <TooltipTrigger>
-                    <Info className="w-4 h-4 text-gray-400 hover:text-gray-500" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    When using remote preset, settings will be read-only
-                  </TooltipContent>
-                </CNTooltip>
-              </TooltipProvider>
-            </div>
+        <h2>Model Settings</h2>
+        {renderBanner()}
 
-            <div>
-              <p className="text-sm text-gray-600 line-clamp-2">
-                {settings.presetSource?.url}
-              </p>
-              {settings.presetSource?.lastUpdated && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {`Last updated: ${new Date(settings.presetSource!.lastUpdated).toLocaleString()}`}
-                </p>
-              )}
-            </div>
+        <h2>Agent Settings</h2>
 
-            <CNButton
-              variant="outline"
-              size="sm"
-              className="mb-0"
-              onClick={handleUpdatePreset}
-            >
-              Update Preset
-            </CNButton>
-
-            <CNButton
-              variant="outline"
-              size="sm"
-              className="text-red-400 border-red-400 hover:bg-red-50 hover:text-red-500 ml-4 mb-0"
-              onClick={async () => {
-                // await window.electron.setting.resetPreset();
-                sonnerToast.success('Reset to manual mode successfully', {
-                  duration: 1500,
-                });
-              }}
-            >
-              Reset to Manual
-            </CNButton>
-          </div>
-        </Card>
+        <h2>Report Settings</h2>
       </div>
 
       <Box h="100vh" overflow="hidden" px={6} pt={0} pb={0}>
