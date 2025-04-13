@@ -3,7 +3,12 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { GUIAgentData, StatusEnum, ShareVersion } from '@ui-tars/shared/types';
+import {
+  GUIAgentData,
+  StatusEnum,
+  ShareVersion,
+  ErrorStatusEnum,
+} from '@ui-tars/shared/types';
 import { IMAGE_PLACEHOLDER, MAX_LOOP_COUNT } from '@ui-tars/shared/constants';
 import { sleep } from '@ui-tars/shared/utils';
 import asyncRetry from 'async-retry';
@@ -134,11 +139,15 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
 
         if (loopCnt >= maxLoopCount || snapshotErrCnt >= MAX_SNAPSHOT_ERR_CNT) {
           Object.assign(data, {
-            status: StatusEnum.MAX_LOOP,
-            errMsg:
-              loopCnt >= maxLoopCount
-                ? 'Exceeds the maximum number of loops'
-                : 'Too many screenshot failures',
+            status:
+              loopCnt >= maxLoopCount ? StatusEnum.MAX_LOOP : StatusEnum.ERROR,
+            ...(snapshotErrCnt >= MAX_SNAPSHOT_ERR_CNT && {
+              error: {
+                code: ErrorStatusEnum.SCREENSHOT_ERROR,
+                error: 'Too many screenshot failures',
+                stack: 'null',
+              },
+            }),
           });
           break;
         }
@@ -292,7 +301,11 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.ERROR_ENV) {
             Object.assign(data, {
               status: StatusEnum.ERROR,
-              errMsg: parsedPrediction,
+              error: {
+                code: ErrorStatusEnum.ENVIRONMENT_ERROR,
+                error: 'The environment error occurred when parsing the action',
+                stack: 'null',
+              },
             });
             break;
           } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.FINISHED) {
@@ -350,21 +363,30 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         (error.name === 'AbortError' || error.message?.includes('aborted'))
       ) {
         logger.info('Request was aborted');
+        data.status = StatusEnum.USER_STOPPED;
         return;
       }
 
       logger.error('[GUIAgent] run error', error);
-      onError?.({
-        data,
-        error: {
-          code: -1,
-          error: 'GUIAgent Service Error',
-          stack: `${error}`,
-        },
-      });
+      data.status = StatusEnum.ERROR;
+      data.error = {
+        code: ErrorStatusEnum.EXECUTE_ERROR,
+        error: 'GUIAgent Service Error',
+        stack: `${error}`,
+      };
       throw error;
     } finally {
       await onData?.({ data: { ...data, conversations: [] } });
+      if (data.status === StatusEnum.ERROR) {
+        onError?.({
+          data,
+          error: data.error || {
+            code: ErrorStatusEnum.UNKNOWN_ERROR,
+            error: 'Unkown error occurred',
+            stack: 'null',
+          },
+        });
+      }
       logger.info('[GUIAgent] finally: status', data.status);
     }
   }

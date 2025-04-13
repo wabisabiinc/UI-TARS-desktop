@@ -7,6 +7,27 @@ export interface Message {
   value: string; // <image>
 }
 
+export enum ErrorStatusEnum {
+  /** 100000 */
+  SCREENSHOT_ERROR = -100000,
+  /** 100001 */
+  EXECUTE_ERROR = -100001,
+  /** 100002 */
+  ENVIRONMENT_ERROR = -100002,
+  /** 100003 */
+  INVOKE_TIMEOUT_ERROR = -100003,
+  /** 100004 */
+  INVOKE_RETRY_ERROR = -100004,
+  /** 100099 */
+  UNKNOWN_ERROR = -100099,
+}
+
+export interface GUIAgentError {
+  code: ErrorStatusEnum;
+  error: string;
+  stack?: string;
+}
+
 export type Status = `${StatusEnum}`;
 export enum StatusEnum {
   INIT = 'init',

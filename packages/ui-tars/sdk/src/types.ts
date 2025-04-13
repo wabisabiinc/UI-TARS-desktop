@@ -7,6 +7,7 @@ import {
   GUIAgentData,
   PredictionParsed,
   ScreenshotResult,
+  GUIAgentError,
   StatusEnum,
 } from '@ui-tars/shared/types';
 
@@ -68,13 +69,6 @@ export type Logger = Pick<Console, 'log' | 'error' | 'warn' | 'info'>;
 export interface RetryConfig {
   maxRetries: number;
   onRetry?: (error: Error, attempt: number) => void;
-}
-
-export interface GUIAgentError {
-  // TODO: define error code
-  code: number;
-  error: string;
-  stack?: string;
 }
 
 export interface GUIAgentConfig<TOperator> {
