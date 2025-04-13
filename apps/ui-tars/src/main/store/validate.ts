@@ -25,6 +25,7 @@ export const PresetSchema = z.object({
   screenshotScale: z.number().min(0.1).max(1).optional(),
   maxLoopCount: z.number().min(25).max(200).optional(),
   loopIntervalInMs: z.number().min(0).max(3000).optional(),
+  operator: z.enum(['nutjs', 'browser']).optional(),
   reportStorageBaseUrl: z.string().url().optional(),
   utioBaseUrl: z.string().url().optional(),
   presetSource: PresetSourceSchema.optional(),

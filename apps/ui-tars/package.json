@@ -97,6 +97,7 @@
     "@ui-tars/action-parser": "workspace:*",
     "@ui-tars/electron-ipc": "workspace:*",
     "@ui-tars/operator-nut-js": "workspace:*",
+    "@ui-tars/operator-browser": "workspace:*",
     "@ui-tars/sdk": "workspace:*",
     "@ui-tars/shared": "workspace:*",
     "@ui-tars/utio": "workspace:*",

@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type { BrowserInterface, Page } from '@agent-infra/browser';
-import { Logger, defaultLogger } from '@agent-infra/logger';
+import { LocalBrowser } from '@agent-infra/browser';
+import { ConsoleLogger, Logger, defaultLogger } from '@agent-infra/logger';
 import { Operator, parseBoxToScreenCoords } from '@ui-tars/sdk/core';
 import type {
   ScreenshotOutput,
@@ -461,5 +462,27 @@ export class BrowserOperator extends Operator {
       this.logger.info('Page closed successfully');
     }
     this.logger.info('Cleanup completed');
+  }
+}
+
+export class DefaultBrowserOperator extends BrowserOperator {
+  public static async create(): Promise<DefaultBrowserOperator> {
+    const logger = new ConsoleLogger('[BrowserGUIAgent]');
+    const browser = new LocalBrowser({
+      logger,
+    });
+    await browser.launch();
+
+    // Navigate to a page
+    const openingPage = await browser.createPage();
+    await openingPage.goto('https://www.google.com/', {
+      waitUntil: 'networkidle2',
+    });
+
+    return new DefaultBrowserOperator({
+      browser,
+      logger,
+      highlightClickableElements: true,
+    });
   }
 }

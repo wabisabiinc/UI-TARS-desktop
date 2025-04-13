@@ -12,6 +12,7 @@ import { GUIAgent, type GUIAgentConfig } from '@ui-tars/sdk';
 import { markClickPosition } from '@main/utils/image';
 import { UTIOService } from '@main/services/utio';
 import { NutJSElectronOperator } from '../agent/operator';
+import { DefaultBrowserOperator } from '@ui-tars/operator-browser';
 import { getSystemPrompt } from '../agent/prompts';
 import {
   closeScreenMarker,
@@ -107,6 +108,13 @@ export const runAgent = async (
     });
   };
 
+  let operator: NutJSElectronOperator | DefaultBrowserOperator;
+  if (settings.operator === 'nutjs') {
+    operator = new NutJSElectronOperator();
+  } else {
+    operator = await DefaultBrowserOperator.create();
+  }
+
   const guiAgent = new GUIAgent({
     model: {
       baseURL: settings.vlmBaseUrl,
@@ -116,7 +124,7 @@ export const runAgent = async (
     systemPrompt: getSystemPrompt(language),
     logger,
     signal: abortController?.signal,
-    operator: new NutJSElectronOperator(),
+    operator: operator,
     onData: handleData,
     onError: ({ error }) => {
       logger.error('[runAgent error]', settings, error);

@@ -20,6 +20,7 @@ export const DEFAULT_SETTING: LocalStore = {
   vlmModelName: env.vlmModelName || '',
   maxLoopCount: 100,
   loopIntervalInMs: 0,
+  operator: 'browser',
   reportStorageBaseUrl: '',
   utioBaseUrl: '',
 };
