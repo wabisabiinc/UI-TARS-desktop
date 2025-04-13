@@ -23,6 +23,7 @@ import {
 } from '@main/window/ScreenMarker';
 import { SettingStore } from '@main/store/setting';
 import { AppState } from '@main/store/types';
+import { GUIAgentManager } from '../ipcRoutes/agent';
 
 export const runAgent = async (
   setState: (state: AppState) => void,
@@ -135,10 +136,7 @@ export const runAgent = async (
     loopIntervalInMs: settings.loopIntervalInMs,
   });
 
-  setState({
-    ...getState(),
-    currentGUIAgent: guiAgent,
-  });
+  GUIAgentManager.getInstance().setAgent(guiAgent);
 
   await hideWindowBlock(async () => {
     await UTIOService.getInstance().sendInstruction(instructions);
