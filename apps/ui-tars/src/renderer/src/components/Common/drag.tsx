@@ -5,5 +5,5 @@ export const DragArea = () => {
     return null;
   }
 
-  return <div className={'w-full pt-7 draggable-area'} />;
+  return <div className={'w-full h-7 draggable-area'} />;
 };

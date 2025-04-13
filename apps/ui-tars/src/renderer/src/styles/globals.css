@@ -122,3 +122,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+.medium-zoom-overlay,
+.medium-zoom-image--opened {
+  z-index: 11;
+}

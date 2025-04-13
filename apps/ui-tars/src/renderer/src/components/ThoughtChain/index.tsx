@@ -1,32 +1,40 @@
-/**
- * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
- * SPDX-License-Identifier: Apache-2.0
- */
+import { useEffect, useState } from 'react';
 import {
-  Box,
-  Button,
-  Collapse,
-  HStack,
-  Icon,
-  Text,
-  VStack,
-  useDisclosure,
-} from '@chakra-ui/react';
-import { AiOutlineDrag } from 'react-icons/ai';
-import { BiSolidError } from 'react-icons/bi';
-import { FaMousePointer } from 'react-icons/fa';
-import { FiType } from 'react-icons/fi';
-import { ImCheckboxChecked } from 'react-icons/im';
-import { MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md';
-import { PiMouseScrollFill } from 'react-icons/pi';
-import { SiAutohotkey } from 'react-icons/si';
-import { TbHandClick } from 'react-icons/tb';
-import { FaPersonWalkingArrowLoopLeft } from 'react-icons/fa6';
+  ChevronDown,
+  ChevronUp,
+  MousePointer,
+  MousePointer2,
+  Keyboard,
+  Type,
+  MousePointerClick,
+  ScrollText,
+  AlertCircle,
+  CheckSquare,
+  RotateCcw,
+} from 'lucide-react';
 
+import { Button } from '@renderer/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@renderer/components/ui/collapsible';
+import { cn } from '@renderer/utils';
 import { PredictionParsed } from '@ui-tars/shared/types';
-
 import Image from '../Image';
-import { useEffect } from 'react';
+
+const actionIconMap = {
+  scroll: ScrollText,
+  drag: MousePointer2,
+  hotkey: Keyboard,
+  type: Type,
+  click: MousePointerClick,
+  left_double: MousePointerClick,
+  error_env: AlertCircle,
+  finished: CheckSquare,
+  call_user: RotateCcw,
+};
+
 interface ThoughtStepCardProps {
   step: PredictionParsed;
   index: number;
@@ -34,137 +42,91 @@ interface ThoughtStepCardProps {
   active: boolean;
 }
 
-const actionIconMap = {
-  scroll: PiMouseScrollFill,
-  drag: AiOutlineDrag,
-  hotkey: SiAutohotkey,
-  type: FiType,
-  click: TbHandClick,
-  left_double: TbHandClick,
-  error_env: BiSolidError,
-  finished: ImCheckboxChecked,
-  call_user: FaPersonWalkingArrowLoopLeft,
-};
-
-const ThoughtStepCard = ({
-  step,
-  borderRadius,
-  active,
-}: ThoughtStepCardProps) => {
-  const { isOpen, onToggle } = useDisclosure({
-    defaultIsOpen: true,
-  });
-  const { isOpen: isThoughtOpen, onToggle: onThoughtToggle } = useDisclosure({
-    defaultIsOpen: true,
-  });
+function ThoughtStepCard({ step, borderRadius, active }: ThoughtStepCardProps) {
+  const [isReflectionOpen, setIsReflectionOpen] = useState(true);
+  const [isThoughtOpen, setIsThoughtOpen] = useState(true);
 
   useEffect(() => {
     if (!active) {
-      console.log('activeactive', active);
-      onToggle();
-      onThoughtToggle();
+      setIsReflectionOpen(false);
+      setIsThoughtOpen(false);
     }
   }, [active]);
 
+  const ActionIcon = actionIconMap[step?.action_type] || MousePointer;
+
   return (
-    <Box
-      bg="#e1e0db"
-      borderRadius={borderRadius}
-      overflow="hidden"
-      boxShadow="sm"
+    <div
+      className={cn('bg-secondary/20 overflow-hidden shadow-sm', borderRadius)}
     >
-      {/* 反思部分（可折叠） */}
-      {Boolean(step.reflection) && (
-        <>
-          <Button
-            onClick={onToggle}
-            variant="ghost"
-            width="100%"
-            size="sm"
-            leftIcon={isOpen ? <MdKeyboardArrowUp /> : <MdKeyboardArrowDown />}
-            color="gray.600"
-            justifyContent="flex-start"
-            bg="rgba(0, 0, 0, 0.05)"
-            _hover={{ bg: 'rgba(0, 0, 0, 0.02)' }}
-          >
-            Reflection
-          </Button>
-          <Collapse in={isOpen}>
-            <Box
-              p={4}
-              bg="rgba(255, 255, 255, 0.4)"
-              borderTop="1px solid"
-              borderColor="rgba(0, 0, 0, 0.1)"
+      {step.reflection && (
+        <Collapsible open={isReflectionOpen} onOpenChange={setIsReflectionOpen}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start bg-secondary/10 hover:bg-secondary/20"
             >
-              <Text color="gray.600" fontSize="sm" fontFamily="monospace">
-                {step.reflection}
-              </Text>
-            </Box>
-          </Collapse>
-        </>
-      )}
-      {/* 思考部分 */}
-      {Boolean(step.thought) && (
-        <>
-          <Button
-            onClick={onThoughtToggle}
-            variant="ghost"
-            width="100%"
-            size="sm"
-            leftIcon={
-              isThoughtOpen ? <MdKeyboardArrowUp /> : <MdKeyboardArrowDown />
-            }
-            color="gray.600"
-            justifyContent="flex-start"
-            bg="rgba(0, 0, 0, 0.05)"
-            _hover={{ bg: 'rgba(0, 0, 0, 0.02)' }}
-          >
-            Thought
-          </Button>
-          <Collapse in={isThoughtOpen}>
-            <Box p={4}>
-              <Text color="gray.600" fontSize="sm" fontFamily="monospace">
-                {step.thought}
-              </Text>
-            </Box>
-          </Collapse>
-        </>
+              {isReflectionOpen ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+              <span className="ml-2">Reflection</span>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="p-4 bg-background/40 border-t">
+            <pre className="text-sm text-muted-foreground font-mono whitespace-pre-wrap">
+              {step.reflection}
+            </pre>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
-      {/* 动作部分 */}
-      {Boolean(step.action_type) && (
-        <Box
-          p={4}
-          bg="rgba(0, 0, 0, 0.03)"
-          borderTop="1px solid"
-          borderColor="rgba(0, 0, 0, 0.1)"
-        >
-          <HStack spacing={3}>
-            <Icon
-              as={actionIconMap[step?.action_type] || FaMousePointer}
-              color="gray.600"
-            />
+      {step.thought && (
+        <Collapsible open={isThoughtOpen} onOpenChange={setIsThoughtOpen}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start bg-secondary/10 hover:bg-secondary/20"
+            >
+              {isThoughtOpen ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+              <span className="ml-2">Thought</span>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="p-4">
+            <pre className="text-sm text-muted-foreground font-mono whitespace-pre-wrap">
+              {step.thought}
+            </pre>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {step.action_type && (
+        <div className="p-4 bg-secondary/5 border-t flex items-center gap-3">
+          <ActionIcon className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
             {step.action_type === 'call_user' ? (
-              <Text fontSize="sm" color="gray.600">
-                Waiting for user to take control
-              </Text>
+              'Waiting for user to take control'
             ) : (
-              <Text fontSize="sm" color="gray.600">
+              <>
                 Action: {step.action_type}
                 {step.action_inputs?.start_box &&
-                  `(start_box: ${step.action_inputs.start_box})`}
-                {Boolean(step.action_inputs?.content) &&
-                  `(${step.action_inputs.content})`}
-                {Boolean(step.action_inputs?.key) &&
-                  `(${step.action_inputs.key})`}
-              </Text>
+                  ` (start_box: ${step.action_inputs.start_box})`}
+                {step.action_inputs?.content &&
+                  ` (${step.action_inputs.content})`}
+                {step.action_inputs?.key && ` (${step.action_inputs.key})`}
+              </>
             )}
-          </HStack>
-        </Box>
+          </span>
+        </div>
       )}
-    </Box>
+    </div>
   );
-};
+}
 
 interface ThoughtChainProps {
   steps: PredictionParsed[];
@@ -174,26 +136,22 @@ interface ThoughtChainProps {
 }
 
 const RADIUS = {
-  top: 'var(--chakra-radii-md) var(--chakra-radii-md) 0 0',
-  bottom: '0 0 var(--chakra-radii-md) var(--chakra-radii-md)',
-  none: '0',
-  all: 'md',
+  top: 'rounded-t-md',
+  bottom: 'rounded-b-md',
+  none: '',
+  all: 'rounded-md',
 };
 
-const ThoughtChain = ({
+export default function ThoughtChain({
   steps,
   active,
   somImage,
   somImageHighlighted,
-}: ThoughtChainProps) => {
-  const { isOpen: isImageOpen, onToggle: onImageToggle } = useDisclosure({
-    defaultIsOpen: true,
-  });
-
-  console.log('activeactive', active);
+}: ThoughtChainProps) {
+  const [isImageOpen, setIsImageOpen] = useState(true);
 
   return (
-    <VStack gap={0} align="stretch" w="100%">
+    <div className="w-full flex flex-col gap-0">
       {steps?.map?.((step, index) => (
         <ThoughtStepCard
           key={index}
@@ -205,48 +163,41 @@ const ThoughtChain = ({
           }
         />
       ))}
-      {Boolean(somImage) && (
-        <Box
-          bg="#e1e0db"
-          overflow="hidden"
-          boxShadow="sm"
-          borderRadius={RADIUS.bottom}
+
+      {somImage && (
+        <div
+          className={cn(
+            'bg-secondary/20 overflow-hidden shadow-sm',
+            RADIUS.bottom,
+          )}
         >
-          <Button
-            onClick={onImageToggle}
-            variant="ghost"
-            width="100%"
-            size="sm"
-            leftIcon={
-              isImageOpen ? <MdKeyboardArrowUp /> : <MdKeyboardArrowDown />
-            }
-            color="gray.600"
-            justifyContent="flex-start"
-            _hover={{ bg: 'rgba(0, 0, 0, 0.05)' }}
-          >
-            Marked Areas
-          </Button>
-          <Collapse in={isImageOpen}>
-            <Box
-              p={4}
-              bg="rgba(255, 255, 255, 0.4)"
-              borderTop="1px solid"
-              borderColor="rgba(0, 0, 0, 0.1)"
-            >
-              <Box
-                display="inline-block"
-                p={1}
-                borderRadius="md"
-                bg={somImageHighlighted ? 'red.500' : undefined}
+          <Collapsible open={isImageOpen} onOpenChange={setIsImageOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-start hover:bg-secondary/20"
+              >
+                {isImageOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+                <span className="ml-2">Marked Areas</span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="p-4 bg-background/40 border-t">
+              <div
+                className={cn(
+                  'inline-block p-1 rounded-md',
+                  somImageHighlighted && 'bg-destructive',
+                )}
               >
                 <Image src={`data:image/png;base64,${somImage}`} alt="SoM" />
-              </Box>
-            </Box>
-          </Collapse>
-        </Box>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
       )}
-    </VStack>
+    </div>
   );
-};
-
-export default ThoughtChain;
+}

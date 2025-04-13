@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { forwardRef, useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
 import { StatusEnum } from '@ui-tars/shared/types';
@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { Textarea } from '@renderer/components/ui/textarea';
 
-const ChatInput = forwardRef((_props, _ref) => {
+const ChatInput = () => {
   const {
     status,
     instructions: savedInstructions,
@@ -139,7 +139,7 @@ const ChatInput = forwardRef((_props, _ref) => {
   };
 
   return (
-    <div className="p-4 border-t border-border">
+    <div className="p-4 w-full">
       <div className="flex flex-col space-y-4">
         <div className="relative w-full">
           <Textarea
@@ -233,6 +233,6 @@ const ChatInput = forwardRef((_props, _ref) => {
       </div>
     </div>
   );
-});
+};
 
 export default ChatInput;

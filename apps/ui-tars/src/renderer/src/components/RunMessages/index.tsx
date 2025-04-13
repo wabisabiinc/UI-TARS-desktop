@@ -1,20 +1,21 @@
+// /apps/ui-tars/src/renderer/src/components/RunMessages/index.tsx
 /**
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { Box, Center, Flex, Spinner } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@renderer/utils';
+import { ScrollArea } from '@renderer/components/ui/scroll-area';
+import { Card } from '@renderer/components/ui/card';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
-
 import { type ConversationWithSoM } from '@main/shared/types';
 import Duration from '@renderer/components/Duration';
 import Image from '@renderer/components/Image';
 import LoadingText from '@renderer/components/LoadingText';
-
 import Prompts from '../Prompts';
 import ThoughtChain from '../ThoughtChain';
-import './index.scss';
 import { api } from '@renderer/api';
 
 interface RunMessagesProps {
@@ -26,33 +27,28 @@ interface RunMessagesProps {
   errorMsg?: string | null;
 }
 
-const DurationWrapper = (props: { timing: ConversationWithSoM['timing'] }) => (
-  <Box
-    className="duration-component"
-    opacity={0}
-    visibility="hidden"
-    transition="all .2s"
-  >
-    <Duration timing={props.timing} />
-  </Box>
+const DurationWrapper = ({
+  timing,
+}: {
+  timing: ConversationWithSoM['timing'];
+}) => (
+  <div className="opacity-0 invisible transition-all duration-200 group-hover:opacity-100 group-hover:visible">
+    <Duration timing={timing} />
+  </div>
 );
 
-const RunMessages: React.FC<RunMessagesProps> = (props) => {
+const RunMessages: React.FC<RunMessagesProps> = ({
+  messages = [],
+  thinking,
+  autoScroll,
+  loading,
+  highlightedFrame,
+  errorMsg,
+}) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  // const dispatch = useDispatch(window.zutron);
-  const {
-    messages,
-    thinking,
-    autoScroll,
-    loading,
-    highlightedFrame,
-    errorMsg,
-  } = props;
-
-  const suggestions = [];
+  const suggestions: string[] = [];
 
   const handleSelect = async (suggestion: string) => {
-    console.log('suggestion', suggestion);
     await api.setInstructions({ instructions: suggestion });
   };
 
@@ -67,34 +63,22 @@ const RunMessages: React.FC<RunMessagesProps> = (props) => {
     }
   }, [messages, autoScroll, thinking]);
 
+  if (loading) {
+    return (
+      <div className="items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <Box flex="1" overflowY="auto" p="4">
-      <Box
-        ref={containerRef}
-        w="100%"
-        h="100%"
-        bg="white"
-        borderRadius="16px"
-        border="1px solid"
-        borderColor="rgba(112, 107, 87, 0.5)"
-        p={4}
-        overflow="auto"
-        css={{
-          '&::-webkit-scrollbar': 'initial',
-          '&::-webkit-scrollbar-track': 'initial',
-          '&::-webkit-scrollbar-thumb': 'border-radius: 4px',
-        }}
-      >
-        {Boolean(loading) && (
-          <Center h="100%">
-            <Spinner />
-          </Center>
-        )}
+    <div className="flex-1 px-4 flex flex-col h-full">
+      <ScrollArea ref={containerRef} className="px-4">
         {!messages?.length && suggestions?.length > 0 && (
           <Prompts suggestions={suggestions} onSelect={handleSelect} />
         )}
-        {messages?.map((m, idx) => {
-          // 计算当前消息之前的图片总数
+
+        {messages?.map((message, idx) => {
           const imageIndex = messages
             .slice(0, idx)
             .filter(
@@ -103,113 +87,81 @@ const RunMessages: React.FC<RunMessagesProps> = (props) => {
             )?.length;
           const highlightedImageFrame = highlightedFrame === imageIndex;
 
-          if (m?.from === 'human') {
-            if (m?.value === IMAGE_PLACEHOLDER) {
-              const imageData = m.screenshotBase64;
-              const mime = m.screenshotContext?.mime || 'image/png';
+          if (message?.from === 'human') {
+            if (message?.value === IMAGE_PLACEHOLDER) {
+              const imageData = message.screenshotBase64;
+              const mime = message.screenshotContext?.mime || 'image/png';
 
               return imageData ? (
-                <Flex
-                  key={`${idx}`}
+                <div
+                  key={idx}
                   id={`snapshot-image-${imageIndex}`}
-                  gap={2}
-                  mb={4}
-                  justify="flex-end"
-                  _hover={{
-                    '& .duration-component': {
-                      opacity: 1,
-                      visibility: 'visible',
-                    },
-                  }}
+                  className="flex gap-2 mb-4 justify-end group"
                 >
-                  <Box>
-                    <Box
-                      p={2}
-                      borderRadius="md"
-                      bg={highlightedImageFrame ? 'red.500' : 'gray.50'}
+                  <div>
+                    <div
+                      className={cn(
+                        'p-2 rounded-md',
+                        highlightedImageFrame ? 'bg-red-500' : 'bg-secondary',
+                      )}
                     >
                       <Image
                         src={`data:${mime};base64,${imageData}`}
-                        alt="image"
+                        alt="screenshot"
                       />
-                    </Box>
-                    <DurationWrapper timing={m.timing} />
-                  </Box>
-                </Flex>
+                    </div>
+                    <DurationWrapper timing={message.timing} />
+                  </div>
+                </div>
               ) : null;
             }
-            // user instruction
+
             return (
-              <Flex
-                key={`${idx}`}
-                gap={2}
-                mb={4}
-                alignItems="center"
-                flexDirection="row"
-                justify="flex-end"
+              <div
+                key={idx}
+                className="flex gap-2 mb-4 items-center justify-end"
               >
-                <Box key={`${idx}`} p={3} borderRadius="md" bg="gray.50">
-                  <Box fontFamily="monospace" color="blue.600">
-                    {m?.value}
-                  </Box>
-                </Box>
-              </Flex>
-            );
-          } else {
-            const { predictionParsed, screenshotBase64WithElementMarker } = m;
-            return (
-              <Flex
-                key={`${idx}`}
-                p={3}
-                justify="flex-start"
-                maxW="80%"
-                _hover={{
-                  '& .duration-component': {
-                    opacity: 1,
-                    visibility: 'visible',
-                  },
-                }}
-              >
-                <Box w="100%">
-                  {predictionParsed?.length && (
-                    <Box id={`snapshot-image-${imageIndex}`}>
-                      <ThoughtChain
-                        steps={predictionParsed}
-                        active={
-                          !messages
-                            .slice(idx + 1)
-                            .some((m) => m.from !== 'human')
-                        }
-                        somImage={screenshotBase64WithElementMarker}
-                        somImageHighlighted={highlightedImageFrame}
-                      />
-                    </Box>
-                  )}
-                  <DurationWrapper timing={m.timing} />
-                </Box>
-              </Flex>
+                <div className="p-3 rounded-md bg-secondary font-mono text-blue-600">
+                  {message?.value}
+                </div>
+              </div>
             );
           }
+
+          const { predictionParsed, screenshotBase64WithElementMarker } =
+            message;
+          return (
+            <div key={idx} className="flex p-3 justify-start max-w-[80%] group">
+              <div className="w-full">
+                {predictionParsed?.length && (
+                  <div id={`snapshot-image-${imageIndex}`}>
+                    <ThoughtChain
+                      steps={predictionParsed}
+                      active={
+                        !messages.slice(idx + 1).some((m) => m.from !== 'human')
+                      }
+                      somImage={screenshotBase64WithElementMarker}
+                      somImageHighlighted={highlightedImageFrame}
+                    />
+                  </div>
+                )}
+                <DurationWrapper timing={message.timing} />
+              </div>
+            </div>
+          );
         })}
+
         {thinking && <LoadingText>Thinking...</LoadingText>}
+
         {errorMsg && (
-          <Flex
-            gap={2}
-            mb={4}
-            alignItems="center"
-            flexDirection="row"
-            justify="flex-start"
-            maxW="80%"
-          >
-            <Box p={3} borderRadius="md" bg="gray.50" w="100%">
-              <Box fontFamily="monospace" color="red">
-                ERROR: {errorMsg}
-              </Box>
-            </Box>
-          </Flex>
+          <div className="flex gap-2 mb-4 items-center justify-start max-w-[80%]">
+            <div className="p-3 rounded-md bg-secondary w-full font-mono text-red-500">
+              ERROR: {errorMsg}
+            </div>
+          </div>
         )}
-      </Box>
-    </Box>
+      </ScrollArea>
+    </div>
   );
 };
 
