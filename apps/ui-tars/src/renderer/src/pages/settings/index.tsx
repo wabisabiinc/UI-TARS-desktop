@@ -192,10 +192,11 @@ export default function Settings() {
       </h1>
       <div className="m-4 mt-2">
         <h2>Model Settings</h2>
+        <CNButton variant="outline" onClick={() => setPresetModalOpen(true)}>
+          Import Preset Config
+        </CNButton>
         {renderBanner()}
-
         <h2>Agent Settings</h2>
-
         <h2>Report Settings</h2>
       </div>
 
