@@ -130,7 +130,6 @@ const RunMessages: React.FC<RunMessagesProps> = (props) => {
                     >
                       <Image
                         src={`data:${mime};base64,${imageData}`}
-                        maxH="200px"
                         alt="image"
                       />
                     </Box>

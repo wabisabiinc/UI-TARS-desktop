@@ -1,20 +1,14 @@
-/**
- * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
- * SPDX-License-Identifier: Apache-2.0
- */
-import { Box } from '@chakra-ui/react';
+import { Loader2 } from 'lucide-react';
 
-import './index.scss';
-
-interface ThinkingProps {
+interface LoadingTextProps {
   children: React.ReactNode;
-  className?: string;
 }
 
-export default (props: ThinkingProps) => {
+export default function LoadingText({ children }: LoadingTextProps) {
   return (
-    <Box as="span" className="loading-shimmer">
-      {props.children}
-    </Box>
+    <span className="inline-flex items-center gap-2 text-muted-foreground animate-pulse">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      {children}
+    </span>
   );
-};
+}

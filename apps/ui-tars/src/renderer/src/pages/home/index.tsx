@@ -33,7 +33,7 @@ export default function Page() {
               <SidebarTrigger className="-ml-1" />
             </div>
           </header> */}
-          {/* <ChakraProvider theme={chakraUItheme}>
+          <ChakraProvider theme={chakraUItheme}>
             <Flex h="90vh">
               <Box
                 minW={400}
@@ -54,7 +54,7 @@ export default function Page() {
                 </Flex>
               </Box>
             </Flex>
-          </ChakraProvider> */}
+          </ChakraProvider>
           <ChatInput />
         </SidebarInset>
       </SidebarProvider>

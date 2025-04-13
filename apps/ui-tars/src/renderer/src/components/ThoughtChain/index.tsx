@@ -239,11 +239,7 @@ const ThoughtChain = ({
                 borderRadius="md"
                 bg={somImageHighlighted ? 'red.500' : undefined}
               >
-                <Image
-                  maxH="200px"
-                  src={`data:image/png;base64,${somImage}`}
-                  alt="SoM"
-                />
+                <Image src={`data:image/png;base64,${somImage}`} alt="SoM" />
               </Box>
             </Box>
           </Collapse>
