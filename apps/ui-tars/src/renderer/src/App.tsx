@@ -17,23 +17,23 @@ const InProgressing = lazy(() => import('./pages/inProgressing'));
 
 export default function App() {
   return (
-    <ChakraProvider theme={chakraUItheme}>
-      <Router>
-        <Suspense
-          fallback={
-            <div className="loading-container">
-              <div className="loading-spinner" />
-            </div>
-          }
-        >
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/settings" element={<Settings2 />} />
-            <Route path="/launcher" element={<Launcher />} />
-            <Route path="/in-progressing" element={<InProgressing />} />
-          </Routes>
-        </Suspense>
-      </Router>
-    </ChakraProvider>
+    // <ChakraProvider theme={chakraUItheme}>
+    <Router>
+      <Suspense
+        fallback={
+          <div className="loading-container">
+            <div className="loading-spinner" />
+          </div>
+        }
+      >
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/settings" element={<Settings2 />} />
+          <Route path="/launcher" element={<Launcher />} />
+          <Route path="/in-progressing" element={<InProgressing />} />
+        </Routes>
+      </Suspense>
+    </Router>
+    // </ChakraProvider>
   );
 }

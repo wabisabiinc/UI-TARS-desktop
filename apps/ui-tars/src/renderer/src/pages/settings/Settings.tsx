@@ -116,7 +116,7 @@ export default function Settings() {
     console.log('onSubmit', values);
 
     updateSetting(values);
-    toast.success('Settings saved successfully');
+    // toast.success('Settings saved successfully');
     await api.closeSettingsWindow();
     await api.showMainWindow();
   };
@@ -368,6 +368,14 @@ export default function Settings() {
 
       <div className="border-t p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex justify-between items-center">
+          <Button
+            variant="outline"
+            className="text-red-400 border-red-400 hover:bg-red-50 hover:text-red-500"
+            onClick={handleClearSettings}
+          >
+            <Trash className="h-4 w-4" />
+            Clear
+          </Button>
           <div className="flex gap-4">
             <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
               Save
@@ -376,14 +384,6 @@ export default function Settings() {
               Cancel
             </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive"
-            onClick={handleClearSettings}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 

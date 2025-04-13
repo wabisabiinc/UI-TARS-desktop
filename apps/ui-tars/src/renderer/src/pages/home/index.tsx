@@ -19,7 +19,7 @@ import {
 import { DragArea } from '@renderer/components/Common/drag';
 import { chakraUItheme } from '../../theme';
 
-export function Page() {
+export default function Page() {
   const { messages, thinking, errorMsg } = useStore();
 
   return (
@@ -65,7 +65,7 @@ export function Page() {
   );
 }
 
-export default function Home() {
+export function Home() {
   const { messages, thinking, errorMsg } = useStore();
 
   return (
