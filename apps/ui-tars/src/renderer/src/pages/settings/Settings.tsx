@@ -211,7 +211,11 @@ export default function Settings() {
               >
                 <h2 className="text-lg font-medium">{SECTIONS.vlm}</h2>
                 {!isRemoteAutoUpdatedPreset && (
-                  <Button variant="outline" onClick={handlePresetModal}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePresetModal}
+                  >
                     Import Preset Config
                   </Button>
                 )}
@@ -288,6 +292,7 @@ export default function Settings() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -344,7 +349,7 @@ export default function Settings() {
                         <FormControl>
                           <Input
                             type="number"
-                            disabled={isRemoteAutoUpdatedPreset}
+                            // disabled={isRemoteAutoUpdatedPreset}
                             placeholder="Enter a number between 25-200"
                             {...field}
                             value={field.value === 0 ? '' : field.value}
@@ -367,7 +372,7 @@ export default function Settings() {
                       <FormControl>
                         <Input
                           type="number"
-                          disabled={isRemoteAutoUpdatedPreset}
+                          // disabled={isRemoteAutoUpdatedPreset}
                           placeholder="Enter a number between 0-3000"
                           {...field}
                           value={field.value === 0 ? '' : field.value}
@@ -402,6 +407,7 @@ export default function Settings() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -419,6 +425,7 @@ export default function Settings() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -433,6 +440,7 @@ export default function Settings() {
         <div className="flex justify-between items-center">
           <Button
             variant="outline"
+            type="button"
             className="text-red-400 border-red-400 hover:bg-red-50 hover:text-red-500"
             onClick={handleClearSettings}
           >
@@ -440,7 +448,7 @@ export default function Settings() {
             Clear
           </Button>
           <div className="flex gap-4">
-            <Button variant="outline" onClick={onCancel}>
+            <Button variant="outline" type="button" onClick={onCancel}>
               Cancel
             </Button>
             <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
