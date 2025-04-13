@@ -202,9 +202,11 @@ export default function Settings() {
                 className="space-y-6 ml-1 mr-4"
               >
                 <h2 className="text-lg font-medium">{SECTIONS.model}</h2>
-                <Button variant="outline" onClick={handlePresetModal}>
-                  Import Preset Config
-                </Button>
+                {!isRemoteAutoUpdatedPreset && (
+                  <Button variant="outline" onClick={handlePresetModal}>
+                    Import Preset Config
+                  </Button>
+                )}
                 {isRemoteAutoUpdatedPreset && (
                   <PresetBanner
                     url={settings.presetSource?.url}
