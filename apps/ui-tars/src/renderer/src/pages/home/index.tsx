@@ -44,10 +44,6 @@ export default function Page() {
                 bg="background.primary"
               >
                 <Flex direction="column" h="full">
-                  {!isWindows && (
-                    <Box className="draggable-area" w="100%" pt={5} />
-                  )}
-                  <Header />
                   <RunMessages
                     autoScroll
                     messages={messages}

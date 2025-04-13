@@ -1,0 +1,234 @@
+import { Share, FileText, Video, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useState, useRef } from 'react';
+
+import { Button } from '@renderer/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@renderer/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@renderer/components/ui/alert-dialog';
+import { ComputerUseUserData } from '@ui-tars/shared/types';
+import { reportHTMLContent } from '@renderer/utils/html';
+import { uploadReport } from '@renderer/utils/share';
+
+interface ShareOptionsProps {
+  running: boolean;
+  canSaveRecording: boolean;
+  lastHumanMessage: string;
+  messages: any[];
+  settings: any;
+  onSaveRecording: () => void;
+  restUserData: any;
+  status: string;
+}
+
+export function ShareOptions({
+  running,
+  canSaveRecording,
+  lastHumanMessage,
+  messages,
+  settings,
+  onSaveRecording,
+  restUserData,
+  status,
+}: ShareOptionsProps) {
+  const [isSharing, setIsSharing] = useState(false);
+  const [isShareConfirmOpen, setIsShareConfirmOpen] = useState(false);
+  const [pendingShareType, setPendingShareType] = useState<
+    'report' | 'video' | null
+  >(null);
+  const isSharePending = useRef(false);
+  const shareTimeoutRef = useRef<NodeJS.Timeout>();
+  const SHARE_TIMEOUT = 100000;
+
+  const processShare = async (
+    type: 'report' | 'video',
+    allowCollectShareReport: boolean,
+  ) => {
+    if (isSharePending.current) return;
+
+    try {
+      setIsSharing(true);
+      isSharePending.current = true;
+
+      shareTimeoutRef.current = setTimeout(() => {
+        setIsSharing(false);
+        isSharePending.current = false;
+        toast.error('Share timeout', {
+          description: 'Please try again later',
+        });
+      }, SHARE_TIMEOUT);
+
+      if (type === 'video') {
+        onSaveRecording();
+      } else if (type === 'report') {
+        const response = await fetch(
+          'https://cdn.jsdelivr.net/npm/@ui-tars/visualizer/dist/report/index.html',
+        );
+        const html = await response.text();
+
+        const userData = {
+          ...restUserData,
+          status,
+          conversations: messages,
+        } as ComputerUseUserData;
+
+        const htmlContent = reportHTMLContent(html, [userData]);
+
+        let uploadSuccess = false;
+
+        if (allowCollectShareReport) {
+          let reportUrl: string | undefined;
+
+          if (settings?.reportStorageBaseUrl) {
+            try {
+              const { url } = await uploadReport(
+                htmlContent,
+                settings.reportStorageBaseUrl,
+              );
+              reportUrl = url;
+              uploadSuccess = true;
+              await navigator.clipboard.writeText(url);
+              toast.success('Report link copied to clipboard!');
+            } catch (error) {
+              console.error('Upload report failed:', error);
+              toast.error('Failed to upload report', {
+                description:
+                  error instanceof Error
+                    ? error.message
+                    : JSON.stringify(error),
+              });
+            }
+          }
+
+          // Only send UTIO data if user consented
+          if (settings?.utioBaseUrl) {
+            const lastScreenshot = messages
+              .filter((m) => m.screenshotBase64)
+              .pop()?.screenshotBase64;
+
+            await window.electron.utio.shareReport({
+              type: 'shareReport',
+              instruction: lastHumanMessage,
+              lastScreenshot,
+              report: reportUrl,
+            });
+          }
+        }
+
+        // Only fall back to file download if upload was not configured or failed
+        if (!settings?.reportStorageBaseUrl || !uploadSuccess) {
+          const blob = new Blob([htmlContent], { type: 'text/html' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `report-${Date.now()}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }
+      }
+    } catch (error) {
+      console.error('Share failed:', error);
+      toast.error('Failed to generate share content', {
+        description:
+          error instanceof Error ? error.message : JSON.stringify(error),
+      });
+    } finally {
+      if (shareTimeoutRef.current) {
+        clearTimeout(shareTimeoutRef.current);
+      }
+      setIsSharing(false);
+      isSharePending.current = false;
+    }
+  };
+
+  const handleShare = async (type: 'report' | 'video') => {
+    if (isSharePending.current) return;
+
+    if (type === 'report' && settings?.reportStorageBaseUrl) {
+      setPendingShareType(type);
+      setIsShareConfirmOpen(true);
+      return;
+    }
+
+    await processShare(type, false);
+  };
+
+  return (
+    <>
+      {!running && messages?.length > 1 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              {isSharing ? (
+                <Loader2 className="h-4 w-4" />
+              ) : (
+                <Share className="h-4 w-4" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {canSaveRecording && (
+              <DropdownMenuItem onClick={() => handleShare('video')}>
+                <Video className="mr-2 h-4 w-4" />
+                Export as Video
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => handleShare('report')}>
+              <FileText className="mr-2 h-4 w-4" />
+              Export as HTML
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      <AlertDialog
+        open={isShareConfirmOpen}
+        onOpenChange={setIsShareConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Share Report</AlertDialogTitle>
+            <AlertDialogDescription>
+              📢 Would you like to share your report to help us improve{' '}
+              <b>UI-TARS</b>? This includes your screen recordings and actions.
+              <br />
+              <br />
+              💡 We encourage you to create a clean and privacy-free desktop
+              environment before each use.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                if (pendingShareType) processShare(pendingShareType, false);
+              }}
+            >
+              No, just download
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingShareType) processShare(pendingShareType, true);
+              }}
+            >
+              Yes, continue!
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

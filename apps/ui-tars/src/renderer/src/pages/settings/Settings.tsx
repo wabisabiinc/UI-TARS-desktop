@@ -167,7 +167,7 @@ export default function Settings() {
 
   const handleClearSettings = async () => {
     try {
-      await clearSetting();
+      // await clearSetting();
       toast.success('All settings cleared successfully');
     } catch (error) {
       toast.error('Failed to clear settings', {
@@ -462,7 +462,7 @@ export default function Settings() {
         isOpen={isPresetModalOpen}
         onClose={() => setPresetModalOpen(false)}
       />
-      <Toaster />
+      {/* <Toaster /> */}
     </div>
   );
 }
