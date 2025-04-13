@@ -2,10 +2,7 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { Box, Button, Flex, HStack, Spinner, VStack } from '@chakra-ui/react';
 import React, { forwardRef, useEffect, useMemo, useRef } from 'react';
-import { FaPaperPlane, FaStop, FaTrash } from 'react-icons/fa';
-import { IoPlay } from 'react-icons/io5';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
 import { StatusEnum } from '@ui-tars/shared/types';
@@ -13,12 +10,30 @@ import { StatusEnum } from '@ui-tars/shared/types';
 import { useRunAgent } from '@renderer/hooks/useRunAgent';
 import { useStore } from '@renderer/hooks/useStore';
 
+import { Button } from '@renderer/components/ui/button';
 import { isCallUserMessage } from '@renderer/utils/message';
 import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
 import { useSetting } from '@renderer/hooks/useSetting';
 import { api } from '@renderer/api';
 
 import { ShareOptions } from './ShareOptions';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@renderer/components/ui/dropdown-menu';
+import {
+  ChevronDown,
+  Globe,
+  Monitor,
+  Play,
+  Send,
+  Square,
+  Trash2,
+  Loader2,
+} from 'lucide-react';
+import { Textarea } from '@renderer/components/ui/textarea';
 
 const ChatInput = forwardRef((_props, _ref) => {
   const {
@@ -115,8 +130,6 @@ const ChatInput = forwardRef((_props, _ref) => {
       .find((m) => m?.from === 'human' && m?.value !== IMAGE_PLACEHOLDER)
       ?.value || '';
 
-  const [isSharing, setIsSharing] = React.useState(false);
-
   const handleClearMessages = async () => {
     await api.clearHistory();
   };
@@ -126,64 +139,51 @@ const ChatInput = forwardRef((_props, _ref) => {
   };
 
   return (
-    <Box p="4" borderTop="1px" borderColor="gray.200">
-      <Flex direction="column" h="full">
-        <VStack spacing={4} align="center" h="100%" w="100%">
-          <Box position="relative" width="100%">
-            <Box
-              as="textarea"
-              ref={textareaRef}
-              placeholder={
-                running && lastHumanMessage && messages?.length > 1
-                  ? lastHumanMessage
-                  : 'What can I do for you today?'
-              }
-              width="100%"
-              height="auto"
-              rows={1}
-              p={4}
-              borderRadius="16px"
-              border="1px solid"
-              borderColor="rgba(112, 107, 87, 0.5)"
-              verticalAlign="top"
-              resize="none"
-              overflow="hidden"
-              sx={{
-                transition: 'box-shadow 0.2s, border-color 0.2s',
-                _hover: { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)' },
-                _focus: {
-                  borderColor: 'blackAlpha.500',
-                  outline: 'none',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                },
-              }}
-              value={localInstructions}
-              disabled={running}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                setLocalInstructions(e.target.value);
-              }}
-              onKeyDown={handleKeyDown}
-            />
-            {!localInstructions && !running && (
-              <Box
-                position="absolute"
-                as="small"
-                right={4}
-                top="50%"
-                transform="translateY(-50%)"
-                fontSize="xs"
-                color="gray.500"
-                pointerEvents="none"
-              >
-                `Enter` to run
-              </Box>
-            )}
-          </Box>
-          <HStack justify="space-between" align="center" w="100%">
-            <div style={{ display: 'none' }}>
-              <video ref={recordRefs.videoRef} />
-              <canvas ref={recordRefs.canvasRef} />
-            </div>
+    <div className="p-4 border-t border-border">
+      <div className="flex flex-col space-y-4">
+        <div className="relative w-full">
+          <Textarea
+            ref={textareaRef}
+            placeholder={
+              running && lastHumanMessage && messages?.length > 1
+                ? lastHumanMessage
+                : 'What can I do for you today?'
+            }
+            className="min-h-[120px] rounded-2xl resize-none px-4 pb-16" // 调整内边距
+            value={localInstructions}
+            disabled={running}
+            onChange={(e) => setLocalInstructions(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          {!localInstructions && !running && (
+            <span className="absolute right-4 top-4 text-xs text-muted-foreground pointer-events-none">
+              `Enter` to run
+            </span>
+          )}
+
+          <div className="absolute left-4 bottom-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  <Monitor className="h-4 w-4 mr-2" />
+                  Computer Use
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>
+                  <Monitor className="h-4 w-4 mr-2" />
+                  Computer Use
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Globe className="h-4 w-4 mr-2" />
+                  Browser Use
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="absolute right-4 bottom-4 flex items-center gap-2">
             <ShareOptions
               running={running}
               canSaveRecording={canSaveRecording}
@@ -194,42 +194,44 @@ const ChatInput = forwardRef((_props, _ref) => {
               restUserData={restUserData}
               status={status}
             />
-            <HStack gap={4}>
-              {running && <Spinner size="sm" color="gray.500" mr={2} />}
-              {Boolean(needClear) && (
-                <Button
-                  variant="tars-ghost"
-                  onClick={handleClearMessages}
-                  aria-label="Clear Messages"
-                >
-                  <FaTrash />
-                </Button>
-              )}
+            {running && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+            {needClear && (
               <Button
-                variant="tars-ghost"
-                onClick={running ? stopRun : startRun}
-                isDisabled={!running && localInstructions?.trim() === ''}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8" // 调整按钮大小
+                onClick={handleClearMessages}
+                aria-label="Clear Messages"
               >
-                {(() => {
-                  if (running) {
-                    return <FaStop />;
-                  }
-                  if (isCallUser) {
-                    return (
-                      <>
-                        <IoPlay />
-                        Return control to UI-TARS
-                      </>
-                    );
-                  }
-                  return <FaPaperPlane />;
-                })()}
+                <Trash2 className="h-4 w-4" />
               </Button>
-            </HStack>
-          </HStack>
-        </VStack>
-      </Flex>
-    </Box>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8" // 调整按钮大小
+              onClick={running ? stopRun : startRun}
+              disabled={!running && localInstructions?.trim() === ''}
+            >
+              {running ? (
+                <Square className="h-4 w-4" />
+              ) : isCallUser ? (
+                <Play className="h-4 w-4" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'none' }}>
+        <video ref={recordRefs.videoRef} />
+        <canvas ref={recordRefs.canvasRef} />
+      </div>
+    </div>
   );
 });
 
