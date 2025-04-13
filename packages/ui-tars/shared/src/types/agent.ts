@@ -9,11 +9,13 @@ export interface Message {
 
 export type Status = `${StatusEnum}`;
 export enum StatusEnum {
+  INIT = 'init',
   RUNNING = 'running',
   PAUSE = 'pause',
   END = 'end',
-  INIT = 'init',
+  CALL_USER = 'call_user',
   MAX_LOOP = 'max_loop',
+  USER_STOPPED = 'user_stopped',
   ERROR = 'error',
 }
 export interface VlmResponse {

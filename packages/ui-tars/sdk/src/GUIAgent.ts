@@ -104,7 +104,21 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
       while (true) {
         // check pause status
         if (this.isPaused && this.resumePromise) {
+          data.status = StatusEnum.PAUSE;
+          await onData?.({
+            data: {
+              ...data,
+              conversations: [],
+            },
+          });
           await this.resumePromise;
+          data.status = StatusEnum.RUNNING;
+          await onData?.({
+            data: {
+              ...data,
+              conversations: [],
+            },
+          });
         }
 
         if (
@@ -113,8 +127,8 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             data.status !== StatusEnum.PAUSE) ||
           signal?.aborted
         ) {
-          signal?.aborted && (data.status = StatusEnum.END);
-          await onData?.({ data: { ...data, conversations: [] } });
+          // check if stop or aborted
+          signal?.aborted && (data.status = StatusEnum.USER_STOPPED);
           break;
         }
 
@@ -126,7 +140,6 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                 ? 'Exceeds the maximum number of loops'
                 : 'Too many screenshot failures',
           });
-          await onData?.({ data: { ...data, conversations: [] } });
           break;
         }
 
@@ -273,13 +286,16 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           logger.info('GUIAgent Action:', actionType);
 
           // handle internal action spaces
-          if (
-            [
-              INTERNAL_ACTION_SPACES_ENUM.CALL_USER,
-              INTERNAL_ACTION_SPACES_ENUM.ERROR_ENV,
-              INTERNAL_ACTION_SPACES_ENUM.FINISHED,
-            ].includes(actionType as unknown as INTERNAL_ACTION_SPACES_ENUM)
-          ) {
+          if (actionType === INTERNAL_ACTION_SPACES_ENUM.CALL_USER) {
+            data.status = StatusEnum.CALL_USER;
+            break;
+          } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.ERROR_ENV) {
+            Object.assign(data, {
+              status: StatusEnum.ERROR,
+              errMsg: parsedPrediction,
+            });
+            break;
+          } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.FINISHED) {
             data.status = StatusEnum.END;
             break;
           } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.MAX_LOOP) {
@@ -348,18 +364,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
       });
       throw error;
     } finally {
-      const prevStatus = data.status;
-      data.status = StatusEnum.END;
-
-      if (data.status !== prevStatus) {
-        await onData?.({
-          data: {
-            ...data,
-            conversations: [],
-          },
-        });
-      }
-
+      await onData?.({ data: { ...data, conversations: [] } });
       logger.info('[GUIAgent] finally: status', data.status);
     }
   }
