@@ -70,7 +70,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent className="max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Import Preset</DialogTitle>
           <DialogDescription>
@@ -78,7 +78,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="local" className="w-full mb-4">
+        <Tabs defaultValue="local" className="w-full mb-6">
           <TabsList className="grid w-full grid-cols-2 mb-2">
             <TabsTrigger value="local">Local File</TabsTrigger>
             <TabsTrigger value="remote">Remote URL</TabsTrigger>
@@ -96,7 +96,10 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
                 className="hidden"
                 onChange={handleFileChange}
               />
-              <Button onClick={() => fileInputRef.current?.click()}>
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Choose File
               </Button>
             </div>
@@ -125,7 +128,7 @@ export function PresetImport({ isOpen, onClose }: PresetImportProps) {
           </TabsContent>
         </Tabs>
 
-        <DialogFooter>
+        <DialogFooter className="flex flex-row items-center justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

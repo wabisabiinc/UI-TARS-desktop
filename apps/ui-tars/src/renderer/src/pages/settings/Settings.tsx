@@ -320,7 +320,7 @@ export default function Settings() {
               <div
                 id="report"
                 ref={(el) => (sectionRefs.current.report = el)}
-                className="space-y-6 pt-6"
+                className="space-y-6 pt-6 ml-1 mr-4"
               >
                 <h2 className="text-lg font-medium">{SECTIONS.report}</h2>
                 {/* Report Settings Fields */}
