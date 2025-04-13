@@ -97,6 +97,8 @@ export interface GUIAgentConfig<TOperator> {
   };
   /** Maximum number of turns for Agent to execute, @default 25 */
   maxLoopCount?: number;
+  /** Time interval between two loop iterations (in milliseconds), @default 0 */
+  loopIntervalInMs?: number;
 }
 
 export interface AgentContext<T = Operator> extends GUIAgentConfig<T> {

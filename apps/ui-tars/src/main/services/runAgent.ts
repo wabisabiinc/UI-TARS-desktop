@@ -132,6 +132,7 @@ export const runAgent = async (
       },
     },
     maxLoopCount: settings.maxLoopCount,
+    loopIntervalInMs: settings.loopIntervalInMs,
   });
 
   setState({

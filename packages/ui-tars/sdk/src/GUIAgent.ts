@@ -317,6 +317,16 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             }
           }
         }
+
+        if (this.config.loopIntervalInMs && this.config.loopIntervalInMs > 0) {
+          logger.info(
+            `[GUIAgent] sleep for ${this.config.loopIntervalInMs}ms before next loop`,
+          );
+          await sleep(this.config.loopIntervalInMs);
+          logger.info(
+            `[GUIAgent] sleep for ${this.config.loopIntervalInMs}ms before next loop done`,
+          );
+        }
       }
     } catch (error) {
       if (
