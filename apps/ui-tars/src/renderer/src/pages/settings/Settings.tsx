@@ -17,6 +17,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from '@renderer/components/ui/form';
 import {
   Select,
@@ -40,12 +41,15 @@ const formSchema = z.object({
   vlmBaseUrl: z.string().url(),
   vlmApiKey: z.string(),
   vlmModelName: z.string(),
+  maxLoopCount: z.number().min(25).max(200),
+  loopIntervalInMs: z.number().min(0).max(3000),
   reportStorageBaseUrl: z.string().url().optional(),
   utioBaseUrl: z.string().url().optional(),
 });
 
 const SECTIONS = {
-  model: 'Model Settings',
+  vlm: 'VLM Settings',
+  chat: 'Chat Settings',
   report: 'Report Settings',
 } as const;
 
@@ -53,7 +57,7 @@ export default function Settings() {
   const { settings, updateSetting, clearSetting, updatePresetFromRemote } =
     useSetting();
   const [isPresetModalOpen, setPresetModalOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('model');
+  const [activeSection, setActiveSection] = useState('vlm');
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const isRemoteAutoUpdatedPreset =
@@ -70,6 +74,8 @@ export default function Settings() {
       vlmBaseUrl: '',
       vlmApiKey: '',
       vlmModelName: '',
+      maxLoopCount: 100,
+      loopIntervalInMs: 0,
       reportStorageBaseUrl: '',
       utioBaseUrl: '',
       ...settings,
@@ -83,6 +89,8 @@ export default function Settings() {
         vlmBaseUrl: settings.vlmBaseUrl,
         vlmApiKey: settings.vlmApiKey,
         vlmModelName: settings.vlmModelName,
+        maxLoopCount: settings.maxLoopCount,
+        loopIntervalInMs: settings.loopIntervalInMs,
         reportStorageBaseUrl: settings.reportStorageBaseUrl,
         utioBaseUrl: settings.utioBaseUrl,
       });
@@ -197,11 +205,11 @@ export default function Settings() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <div
-                id="model"
-                ref={(el) => (sectionRefs.current.model = el)}
+                id="vlm"
+                ref={(el) => (sectionRefs.current.vlm = el)}
                 className="space-y-6 ml-1 mr-4"
               >
-                <h2 className="text-lg font-medium">{SECTIONS.model}</h2>
+                <h2 className="text-lg font-medium">{SECTIONS.vlm}</h2>
                 {!isRemoteAutoUpdatedPreset && (
                   <Button variant="outline" onClick={handlePresetModal}>
                     Import Preset Config
@@ -220,7 +228,6 @@ export default function Settings() {
                   control={form.control}
                   name="language"
                   render={({ field }) => {
-                    console.log('language field', field);
                     return (
                       <FormItem>
                         <FormLabel>Language</FormLabel>
@@ -278,7 +285,7 @@ export default function Settings() {
                         <Input
                           disabled={isRemoteAutoUpdatedPreset}
                           placeholder="Enter VLM Base URL"
-                          defaultValue={field.value}
+                          {...field}
                         />
                       </FormControl>
                     </FormItem>
@@ -295,7 +302,7 @@ export default function Settings() {
                         <Input
                           disabled={isRemoteAutoUpdatedPreset}
                           placeholder="Enter VLM API_Key"
-                          defaultValue={field.value}
+                          {...field}
                         />
                       </FormControl>
                     </FormItem>
@@ -312,13 +319,69 @@ export default function Settings() {
                         <Input
                           disabled={isRemoteAutoUpdatedPreset}
                           placeholder="Enter VLM Model Name"
-                          defaultValue={field.value}
+                          {...field}
                         />
                       </FormControl>
                     </FormItem>
                   )}
                 />
               </div>
+              {/* Chat Settings */}
+              <div
+                id="chat"
+                ref={(el) => (sectionRefs.current.chat = el)}
+                className="space-y-6 pt-6 ml-1 mr-4"
+              >
+                <h2 className="text-lg font-medium">{SECTIONS.chat}</h2>
+                <FormField
+                  control={form.control}
+                  name="maxLoopCount"
+                  render={({ field }) => {
+                    // console.log('field', field);
+                    return (
+                      <FormItem>
+                        <FormLabel>Max Loop</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            disabled={isRemoteAutoUpdatedPreset}
+                            placeholder="Enter a number between 25-200"
+                            {...field}
+                            value={field.value === 0 ? '' : field.value}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+                <FormField
+                  control={form.control}
+                  name="loopIntervalInMs"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loop Interval (ms)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          disabled={isRemoteAutoUpdatedPreset}
+                          placeholder="Enter a number between 0-3000"
+                          {...field}
+                          value={field.value === 0 ? '' : field.value}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <div
                 id="report"
                 ref={(el) => (sectionRefs.current.report = el)}
@@ -336,7 +399,7 @@ export default function Settings() {
                         <Input
                           disabled={isRemoteAutoUpdatedPreset}
                           placeholder="https://your-report-storage-endpoint.com/upload"
-                          defaultValue={field.value}
+                          {...field}
                         />
                       </FormControl>
                     </FormItem>
@@ -353,7 +416,7 @@ export default function Settings() {
                         <Input
                           disabled={isRemoteAutoUpdatedPreset}
                           placeholder="https://your-utio-endpoint.com/collect"
-                          defaultValue={field.value}
+                          {...field}
                         />
                       </FormControl>
                     </FormItem>
@@ -377,11 +440,11 @@ export default function Settings() {
             Clear
           </Button>
           <div className="flex gap-4">
-            <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
-              Save
-            </Button>
             <Button variant="outline" onClick={onCancel}>
               Cancel
+            </Button>
+            <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
+              Save
             </Button>
           </div>
         </div>
