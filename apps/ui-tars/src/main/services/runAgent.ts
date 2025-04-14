@@ -115,7 +115,7 @@ export const runAgent = async (
   if (settings.operator === 'nutjs') {
     operator = new NutJSElectronOperator();
   } else {
-    operator = await DefaultBrowserOperator.getInstance(true);
+    operator = await DefaultBrowserOperator.getInstance(false);
   }
 
   const guiAgent = new GUIAgent({
