@@ -14,6 +14,7 @@ export class UIHelper {
   private styleId = 'gui-agent-helper-styles';
   private containerId = 'gui-agent-helper-container';
   private highlightClass = 'gui-agent-clickable-highlight';
+  private waterFlowId = 'gui-agent-water-flow';
 
   /**
    * Creates a new UIHelper instance
@@ -341,6 +342,104 @@ export class UIHelper {
     this.logger.info('Showing click indicator done.');
   }
 
+  async showWaterFlow() {
+    this.logger.info('Showing water flow effect...');
+
+    await this.injectStyles();
+    const page = await this.getCurrentPage();
+
+    await page.evaluate((waterFlowId: string) => {
+      if (document.getElementById(waterFlowId)) return;
+
+      const waterFlow = document.createElement('div');
+      waterFlow.id = waterFlowId;
+      waterFlow.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 2147483647;
+      `;
+
+      const style = document.createElement('style');
+      style.textContent = `
+        #${waterFlowId}::before {
+          content: "";
+          position: fixed;
+          top: 0; right: 0; bottom: 0; left: 0;
+          pointer-events: none;
+          z-index: 9999;
+          background:
+            linear-gradient(to right, rgba(30, 144, 255, 0.4), transparent 50%) left,
+            linear-gradient(to left, rgba(30, 144, 255, 0.4), transparent 50%) right,
+            linear-gradient(to bottom, rgba(30, 144, 255, 0.4), transparent 50%) top,
+            linear-gradient(to top, rgba(30, 144, 255, 0.4), transparent 50%) bottom;
+          background-repeat: no-repeat;
+          background-size: 10% 100%, 10% 100%, 100% 10%, 100% 10%;
+          animation: waterflow 5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          filter: blur(8px);
+        }
+
+        @keyframes waterflow {
+          0%, 100% {
+            background-image:
+              linear-gradient(to right, rgba(30, 144, 255, 0.4), transparent 50%),
+              linear-gradient(to left, rgba(30, 144, 255, 0.4), transparent 50%),
+              linear-gradient(to bottom, rgba(30, 144, 255, 0.4), transparent 50%),
+              linear-gradient(to top, rgba(30, 144, 255, 0.4), transparent 50%);
+            transform: scale(1);
+          }
+          25% {
+            background-image:
+              linear-gradient(to right, rgba(30, 144, 255, 0.39), transparent 52%),
+              linear-gradient(to left, rgba(30, 144, 255, 0.39), transparent 52%),
+              linear-gradient(to bottom, rgba(30, 144, 255, 0.39), transparent 52%),
+              linear-gradient(to top, rgba(30, 144, 255, 0.39), transparent 52%);
+            transform: scale(1.03);
+          }
+          50% {
+            background-image:
+              linear-gradient(to right, rgba(30, 144, 255, 0.38), transparent 55%),
+              linear-gradient(to left, rgba(30, 144, 255, 0.38), transparent 55%),
+              linear-gradient(to bottom, rgba(30, 144, 255, 0.38), transparent 55%),
+              linear-gradient(to top, rgba(30, 144, 255, 0.38), transparent 55%);
+            transform: scale(1.05);
+          }
+          75% {
+            background-image:
+              linear-gradient(to right, rgba(30, 144, 255, 0.39), transparent 52%),
+              linear-gradient(to left, rgba(30, 144, 255, 0.39), transparent 52%),
+              linear-gradient(to bottom, rgba(30, 144, 255, 0.39), transparent 52%),
+              linear-gradient(to top, rgba(30, 144, 255, 0.39), transparent 52%);
+            transform: scale(1.03);
+          }
+        }
+      `;
+
+      document.head.appendChild(style);
+      document.body.appendChild(waterFlow);
+    }, this.waterFlowId);
+
+    this.logger.info('Water flow effect shown.');
+  }
+
+  async hideWaterFlow() {
+    this.logger.info('Hiding water flow effect...');
+
+    const page = await this.getCurrentPage();
+
+    await page.evaluate((waterFlowId: string) => {
+      const waterFlow = document.getElementById(waterFlowId);
+      if (waterFlow) {
+        waterFlow.remove();
+      }
+    }, this.waterFlowId);
+
+    this.logger.info('Water flow effect hidden.');
+  }
+
   /**
    * Highlights all clickable elements on the page using SoM-inspired approach
    * Should be called before taking a screenshot to show interactive elements
@@ -547,6 +646,7 @@ export class UIHelper {
     try {
       this.logger.info('Cleaning up...');
       await this.removeClickableHighlights();
+      await this.hideWaterFlow();
 
       const page = await this.getCurrentPage();
       await page.evaluate((containerId: string) => {
