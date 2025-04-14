@@ -70,7 +70,12 @@ const SnapshotImage: React.FC<ImageProps> = (props) => {
 
   return (
     <div className="relative group">
-      <img ref={imgRef} src={src} className="max-h-[200px]" alt={alt} />
+      <img
+        ref={imgRef}
+        src={src}
+        className="max-w-full max-h-full object-contain"
+        alt={alt}
+      />
       <button
         onClick={handleCopyImage}
         className="absolute bottom-2 right-2 p-1.5 rounded-md bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity"
