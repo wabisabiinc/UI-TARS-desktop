@@ -240,7 +240,7 @@ export class BrowserOperator extends Operator {
           break;
 
         case 'wait':
-          await this.delay(1000);
+          await this.delay(5000);
           break;
 
         case 'finished':

@@ -120,7 +120,7 @@ export class NutJSOperator extends Operator {
     switch (action_type) {
       case 'wait':
         logger.info('[NutjsOperator] wait', action_inputs);
-        await sleep(1000);
+        await sleep(5000);
         break;
 
       case 'mouse_move':
