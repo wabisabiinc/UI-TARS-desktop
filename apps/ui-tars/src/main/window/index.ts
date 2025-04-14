@@ -132,11 +132,7 @@ export async function hideWindowBlock<T>(
     mainWindow?.setAlwaysOnTop(true);
     mainWindow?.setFocusable(false);
     try {
-      if (mainWindow) {
-        originalBounds = mainWindow.getBounds();
-        const { width: screenWidth } = screen.getPrimaryDisplay().size;
-        mainWindow.setPosition(screenWidth - originalBounds.width, 0);
-      }
+      mainWindow?.hide();
     } catch (e) {
       logger.error(e);
     }
@@ -153,6 +149,7 @@ export async function hideWindowBlock<T>(
       mainWindow?.setBounds(originalBounds);
     }
     mainWindow?.setFocusable(true);
+    mainWindow?.show();
   }
 }
 
