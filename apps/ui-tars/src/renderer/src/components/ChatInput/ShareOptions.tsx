@@ -173,7 +173,7 @@ export function ShareOptions() {
       {!running && messages?.length > 1 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="mr-6">
+            <Button variant="ghost" size="icon" className="mr-1">
               {isSharing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

@@ -37,7 +37,7 @@ export const SelectOperator = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { settings, updateSetting } = useSetting();
 
-  console.log('settings', settings);
+  // console.log('settings', settings);
 
   const currentOperator = settings.operator || 'nutjs';
 

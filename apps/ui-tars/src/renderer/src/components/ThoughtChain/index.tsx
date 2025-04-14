@@ -11,6 +11,7 @@ import {
   AlertCircle,
   CheckSquare,
   RotateCcw,
+  Hourglass,
 } from 'lucide-react';
 
 import { Button } from '@renderer/components/ui/button';
@@ -33,6 +34,7 @@ const actionIconMap = {
   error_env: AlertCircle,
   finished: CheckSquare,
   call_user: RotateCcw,
+  wait: Hourglass,
 };
 
 interface ThoughtStepCardProps {
@@ -44,12 +46,10 @@ interface ThoughtStepCardProps {
 
 function ThoughtStepCard({ step, borderRadius, active }: ThoughtStepCardProps) {
   const [isReflectionOpen, setIsReflectionOpen] = useState(true);
-  const [isThoughtOpen, setIsThoughtOpen] = useState(true);
 
   useEffect(() => {
     if (!active) {
       setIsReflectionOpen(false);
-      setIsThoughtOpen(false);
     }
   }, [active]);
 
@@ -83,26 +83,11 @@ function ThoughtStepCard({ step, borderRadius, active }: ThoughtStepCardProps) {
       )}
 
       {step.thought && (
-        <Collapsible open={isThoughtOpen} onOpenChange={setIsThoughtOpen}>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-start bg-secondary/10 hover:bg-secondary/20"
-            >
-              {isThoughtOpen ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-              <span className="ml-2">Thought</span>
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="p-4">
-            <pre className="text-sm text-muted-foreground font-mono whitespace-pre-wrap">
-              {step.thought}
-            </pre>
-          </CollapsibleContent>
-        </Collapsible>
+        <div className="p-4">
+          <pre className="text-sm text-muted-foreground font-mono whitespace-pre-wrap">
+            {step.thought}
+          </pre>
+        </div>
       )}
 
       {step.action_type && (
