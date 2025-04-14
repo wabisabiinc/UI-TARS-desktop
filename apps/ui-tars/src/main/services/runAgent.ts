@@ -13,7 +13,7 @@ import { markClickPosition } from '@main/utils/image';
 import { UTIOService } from '@main/services/utio';
 import { NutJSElectronOperator } from '../agent/operator';
 import { DefaultBrowserOperator } from '@ui-tars/operator-browser';
-import { getSystemPrompt } from '../agent/prompts';
+import { getSystemPrompt, getSystemPromptV1_5 } from '../agent/prompts';
 import {
   closeScreenMarker,
   hidePauseButton,
@@ -124,7 +124,10 @@ export const runAgent = async (
       apiKey: settings.vlmApiKey,
       model: settings.vlmModelName,
     },
-    systemPrompt: getSystemPrompt(language),
+    systemPrompt: getSystemPromptV1_5(
+      language,
+      'normal', // Only support normal mode for now.
+    ),
     logger,
     signal: abortController?.signal,
     operator: operator,
