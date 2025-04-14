@@ -54,6 +54,8 @@ export class BrowserOperator extends Operator {
 
   private highlightClickableElements = true;
 
+  private showActionInfo = true;
+
   /**
    * Creates a new BrowserOperator instance
    * @param options Configuration options for the browser operator
@@ -71,6 +73,10 @@ export class BrowserOperator extends Operator {
 
     if (options.highlightClickableElements === false) {
       this.highlightClickableElements = false;
+    }
+
+    if (options.showActionInfo === false) {
+      this.showActionInfo = false;
     }
   }
 
@@ -181,7 +187,9 @@ export class BrowserOperator extends Operator {
     const { parsedPrediction, screenWidth, screenHeight } = params;
 
     // Show action info in UI
-    await this.uiHelper?.showActionInfo(parsedPrediction);
+    if (this.showActionInfo) {
+      await this.uiHelper?.showActionInfo(parsedPrediction);
+    }
 
     // Add this line to trigger plugin hook
     await this.options.onOperatorAction?.(parsedPrediction);
@@ -490,7 +498,8 @@ export class DefaultBrowserOperator extends BrowserOperator {
   }
 
   public static async getInstance(
-    highlight = true,
+    highlight = false,
+    showActionInfo = false,
   ): Promise<DefaultBrowserOperator> {
     if (!this.instance) {
       if (!this.logger) {
@@ -506,6 +515,7 @@ export class DefaultBrowserOperator extends BrowserOperator {
         browser: this.browser,
         logger: this.logger,
         highlightClickableElements: highlight,
+        showActionInfo: showActionInfo,
       });
     }
 
