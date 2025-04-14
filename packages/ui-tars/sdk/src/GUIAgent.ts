@@ -295,10 +295,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           logger.info('GUIAgent Action:', actionType);
 
           // handle internal action spaces
-          if (actionType === INTERNAL_ACTION_SPACES_ENUM.CALL_USER) {
-            data.status = StatusEnum.CALL_USER;
-            break;
-          } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.ERROR_ENV) {
+          if (actionType === INTERNAL_ACTION_SPACES_ENUM.ERROR_ENV) {
             Object.assign(data, {
               status: StatusEnum.ERROR,
               error: {
@@ -307,9 +304,6 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
                 stack: 'null',
               },
             });
-            break;
-          } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.FINISHED) {
-            data.status = StatusEnum.END;
             break;
           } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.MAX_LOOP) {
             data.status = StatusEnum.MAX_LOOP;
@@ -344,6 +338,15 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             if (executeOutput && executeOutput?.status) {
               data.status = executeOutput.status;
             }
+          }
+
+          // Action types must break the loop after operator execution:
+          if (actionType === INTERNAL_ACTION_SPACES_ENUM.CALL_USER) {
+            data.status = StatusEnum.CALL_USER;
+            break;
+          } else if (actionType === INTERNAL_ACTION_SPACES_ENUM.FINISHED) {
+            data.status = StatusEnum.END;
+            break;
           }
         }
 
