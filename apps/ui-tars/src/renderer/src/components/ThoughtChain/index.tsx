@@ -15,7 +15,6 @@ import {
   Hourglass,
 } from 'lucide-react';
 
-import { cn } from '@renderer/utils';
 import { PredictionParsed } from '@ui-tars/shared/types';
 
 const actionIconMap = {
@@ -41,28 +40,28 @@ function ThoughtStepCard({ step }: ThoughtStepCardProps) {
   const ActionIcon = actionIconMap[step?.action_type] || MousePointer;
 
   return (
-    <div className={cn('bg-secondary/20 overflow-hidden shadow-sm')}>
+    <>
       {step.reflection && (
         <>
           <span className="ml-2">Reflection</span>
-          <pre className="text-sm text-muted-foreground font-mono whitespace-pre-wrap">
+          <pre className="text-muted-foreground font-mono whitespace-pre-wrap">
             {step.reflection}
           </pre>
         </>
       )}
 
       {step.thought && (
-        <div className="p-4">
-          <pre className="text-sm text-muted-foreground font-mono whitespace-pre-wrap">
+        <div className="py-4">
+          <pre className="text-muted-foreground font-mono whitespace-pre-wrap">
             {step.thought}
           </pre>
         </div>
       )}
 
       {step.action_type && (
-        <div className="p-4 bg-secondary/5 border-t flex items-center gap-3">
+        <div className="py-4 bg-secondary/5 border-t flex items-center gap-3">
           <ActionIcon className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
+          <span className="text-muted-foreground">
             {step.action_type === 'call_user' ? (
               'Waiting for user to take control'
             ) : (
@@ -78,7 +77,7 @@ function ThoughtStepCard({ step }: ThoughtStepCardProps) {
           </span>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

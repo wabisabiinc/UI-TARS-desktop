@@ -23,6 +23,7 @@ import { ShareOptions } from '@renderer/components/ChatInput/ShareOptions';
 import { ClearHistory } from '@renderer/components/ChatInput/ClearHistory';
 import { useStore } from '@renderer/hooks/useStore';
 import ImageGallery from '../ImageGallery';
+import { HumanTextMessage, ScreenshotMessage } from './Messages';
 
 const DurationWrapper = ({
   timing,
@@ -34,19 +35,12 @@ const DurationWrapper = ({
   </div>
 );
 
-const HumanTextMessage = ({ text }: { text: string }) => {
-  return (
-    <div className="flex gap-2 mb-4 items-center justify-end">
-      <div className="p-3 rounded-md bg-secondary font-mono">{text}</div>
-    </div>
-  );
-};
-
 const RunMessages = () => {
   const { messages = [], thinking, errorMsg } = useStore();
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const suggestions: string[] = [];
+  const [selectImg, setSelectImg] = useState<number | undefined>(undefined);
 
   const handleSelect = async (suggestion: string) => {
     await api.setInstructions({ instructions: suggestion });
@@ -97,7 +91,12 @@ const RunMessages = () => {
             if (message?.from === 'human') {
               if (message?.value === IMAGE_PLACEHOLDER) {
                 // screen shot
-                return null;
+                return (
+                  <ScreenshotMessage
+                    key={`message-${idx}`}
+                    onClick={() => setSelectImg(idx)}
+                  />
+                );
               }
 
               return (
@@ -149,7 +148,7 @@ const RunMessages = () => {
             : 'w-0 opacity-0 overflow-hidden',
         )}
       >
-        <ImageGallery messages={messages} />
+        <ImageGallery messages={messages} selectImgIndex={selectImg} />
       </div>
     </div>
   );

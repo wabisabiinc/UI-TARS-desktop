@@ -1,14 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@renderer/components/ui/button';
 import { type ConversationWithSoM } from '@main/shared/types';
 import Image from '@renderer/components/Image';
 
 interface ImageGalleryProps {
+  selectImgIndex?: number;
   messages: ConversationWithSoM[];
 }
 
-const ImageGallery: React.FC<ImageGalleryProps> = ({ messages }) => {
+const ImageGallery: React.FC<ImageGalleryProps> = ({
+  messages,
+  selectImgIndex,
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const imageEntries = useMemo(() => {
@@ -21,6 +25,18 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ messages }) => {
       }))
       .filter((entry) => entry.imageData);
   }, [messages]);
+
+  useEffect(() => {
+    if (typeof selectImgIndex === 'number') {
+      const targetIndex = imageEntries.findIndex(
+        (entry) => entry.originalIndex === selectImgIndex,
+      );
+      if (targetIndex !== -1) {
+        setCurrentIndex(targetIndex);
+      }
+    }
+    console.log('selectImgIndex', selectImgIndex);
+  }, [selectImgIndex, imageEntries]);
 
   const handlePrevious = () => {
     setCurrentIndex(
