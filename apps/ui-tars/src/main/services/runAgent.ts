@@ -37,8 +37,10 @@ export const runAgent = async (
 
   const language = settings.language ?? 'en';
 
-  showPauseButton();
-  showScreenWaterFlow();
+  if (settings.operator === 'nutjs') {
+    showPauseButton();
+    showScreenWaterFlow();
+  }
 
   const handleData: GUIAgentConfig<NutJSElectronOperator>['onData'] = async ({
     data,
@@ -93,6 +95,7 @@ export const runAgent = async (
     );
 
     if (
+      settings.operator === 'nutjs' &&
       predictionParsed?.length &&
       screenshotContext?.size &&
       !abortController?.signal?.aborted
@@ -160,9 +163,11 @@ export const runAgent = async (
         });
       })
       .finally(() => {
-        closeScreenMarker();
-        hidePauseButton();
-        hideScreenWaterFlow();
+        if (settings.operator === 'nutjs') {
+          closeScreenMarker();
+          hidePauseButton();
+          hideScreenWaterFlow();
+        }
       });
   }).catch((e) => {
     logger.error('[runAgent error hideWindowBlock]', settings, e);
