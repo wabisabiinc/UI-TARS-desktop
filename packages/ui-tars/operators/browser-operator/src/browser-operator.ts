@@ -90,6 +90,13 @@ export class BrowserOperator extends Operator {
     return page;
   }
 
+  public setHighlightClickableElements(enable: boolean): void {
+    this.highlightClickableElements = enable;
+    this.logger.info(
+      `Clickable elements highlighting ${enable ? 'enabled' : 'disabled'}`,
+    );
+  }
+
   /**
    * Takes a screenshot of the current browser viewport
    * @returns Promise resolving to screenshot data
@@ -238,6 +245,7 @@ export class BrowserOperator extends Operator {
           if (this.options.onFinalAnswer && parsedPrediction.thought) {
             await this.options.onFinalAnswer(parsedPrediction.thought);
           }
+          this.uiHelper.cleanup();
           break;
 
         default:
@@ -467,25 +475,52 @@ export class BrowserOperator extends Operator {
 }
 
 export class DefaultBrowserOperator extends BrowserOperator {
-  public static async create(
-    highlight: boolean,
-  ): Promise<DefaultBrowserOperator> {
-    const logger = new ConsoleLogger('[Default]');
-    const browser = new LocalBrowser({
-      logger,
-    });
-    await browser.launch();
+  private static instance: DefaultBrowserOperator | null = null;
+  private static browser: LocalBrowser | null = null;
+  private static logger: Logger | null = null;
 
-    // Navigate to a page
-    const openingPage = await browser.createPage();
-    await openingPage.goto('https://www.google.com/', {
+  private constructor(options: BrowserOperatorOptions) {
+    super(options);
+  }
+
+  public static async getInstance(
+    highlight = true,
+  ): Promise<DefaultBrowserOperator> {
+    if (!this.instance) {
+      if (!this.logger) {
+        this.logger = new ConsoleLogger('[Default]');
+      }
+
+      if (!this.browser) {
+        this.browser = new LocalBrowser({ logger: this.logger });
+        await this.browser.launch();
+      }
+
+      this.instance = new DefaultBrowserOperator({
+        browser: this.browser,
+        logger: this.logger,
+        highlightClickableElements: highlight,
+      });
+    }
+
+    const openingPage = await this.browser?.createPage();
+    await openingPage?.goto('https://www.google.com/', {
       waitUntil: 'networkidle2',
     });
 
-    return new DefaultBrowserOperator({
-      browser,
-      logger,
-      highlightClickableElements: highlight,
-    });
+    this.instance.setHighlightClickableElements(highlight);
+
+    return this.instance;
+  }
+
+  public static async destroyInstance(): Promise<void> {
+    if (this.instance) {
+      await this.instance.cleanup();
+      if (this.browser) {
+        await this.browser.close();
+        this.browser = null;
+      }
+      this.instance = null;
+    }
   }
 }
