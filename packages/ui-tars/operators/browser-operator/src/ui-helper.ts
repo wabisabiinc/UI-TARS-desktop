@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { Page } from '@agent-infra/browser';
+import { Logger } from '@agent-infra/logger';
 import { ParsedPrediction } from './types';
 
 /**
@@ -18,7 +19,12 @@ export class UIHelper {
    * Creates a new UIHelper instance
    * @param getCurrentPage Function that returns the current active page
    */
-  constructor(private getCurrentPage: () => Promise<Page>) {}
+  constructor(
+    private getCurrentPage: () => Promise<Page>,
+    private logger: Logger,
+  ) {
+    this.logger = logger.spawn('[UIHelper]');
+  }
 
   /**
    * Injects required CSS styles into the page
@@ -239,6 +245,7 @@ export class UIHelper {
    * @param prediction The parsed prediction containing action details
    */
   async showActionInfo(prediction: ParsedPrediction) {
+    this.logger.info('Showing action info ...');
     await this.injectStyles();
 
     const { action_type, action_inputs, thought } = prediction;
@@ -280,6 +287,7 @@ export class UIHelper {
       },
       { containerId: this.containerId, action_type, action_inputs, thought },
     );
+    this.logger.info('Showing action info done.');
   }
 
   /**
@@ -288,6 +296,7 @@ export class UIHelper {
    * @param y Y coordinate for the click
    */
   async showClickIndicator(x: number, y: number) {
+    this.logger.info('Showing click indicator...');
     await this.injectStyles();
     const page = await this.getCurrentPage();
 
@@ -329,6 +338,7 @@ export class UIHelper {
       },
       { x, y, containerId: this.containerId },
     );
+    this.logger.info('Showing click indicator done.');
   }
 
   /**
@@ -336,6 +346,7 @@ export class UIHelper {
    * Should be called before taking a screenshot to show interactive elements
    */
   async highlightClickableElements() {
+    this.logger.info('Highlighting clickable elements...');
     await this.injectStyles();
     const page = await this.getCurrentPage();
 
@@ -476,12 +487,14 @@ export class UIHelper {
         total: buttonCount + linkCount + inputCount + otherCount,
       };
     }, this.highlightClass);
+    this.logger.info('Highlighting clickable elements done.');
   }
 
   /**
    * Removes highlighting from clickable elements
    */
   async removeClickableHighlights() {
+    this.logger.info('Removing clickable highlights...');
     try {
       const page = await this.getCurrentPage();
       await page.evaluate((highlightClass) => {
@@ -507,6 +520,24 @@ export class UIHelper {
       // Silently handle errors during cleanup
       console.error('Error removing clickable highlights:', error);
     }
+    this.logger.info('Removing clickable highlights done.');
+  }
+
+  async cleanupTemporaryVisuals() {
+    try {
+      this.logger.info('cleanupTemporaryVisuals up...');
+      const page = await this.getCurrentPage();
+      await page.evaluate((containerId: string) => {
+        const container = document.getElementById(containerId);
+        if (container) {
+          container.remove();
+        }
+      }, this.containerId);
+      this.logger.info('cleanupTemporaryVisuals up done!');
+    } catch (error) {
+      // Silently handle errors during cleanup
+      console.error('Error during UIHelper cleanup:', error);
+    }
   }
 
   /**
@@ -514,6 +545,7 @@ export class UIHelper {
    */
   async cleanup() {
     try {
+      this.logger.info('Cleaning up...');
       await this.removeClickableHighlights();
 
       const page = await this.getCurrentPage();
@@ -523,6 +555,7 @@ export class UIHelper {
           container.remove();
         }
       }, this.containerId);
+      this.logger.info('Cleaning up done!');
     } catch (error) {
       // Silently handle errors during cleanup
       console.error('Error during UIHelper cleanup:', error);

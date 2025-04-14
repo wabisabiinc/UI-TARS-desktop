@@ -67,7 +67,7 @@ export class BrowserOperator extends Operator {
     );
 
     // Initialize UIHelper with a function that gets the active page
-    this.uiHelper = new UIHelper(() => this.getActivePage());
+    this.uiHelper = new UIHelper(() => this.getActivePage(), this.logger);
 
     if (options.highlightClickableElements === false) {
       this.highlightClickableElements = false;
@@ -121,6 +121,7 @@ export class BrowserOperator extends Operator {
       const startTime = Date.now();
 
       // Take screenshot
+      await this.uiHelper.cleanupTemporaryVisuals();
       const buffer = await page.screenshot({
         encoding: 'base64',
         fullPage: false, // Capture only the visible area
@@ -466,8 +467,10 @@ export class BrowserOperator extends Operator {
 }
 
 export class DefaultBrowserOperator extends BrowserOperator {
-  public static async create(): Promise<DefaultBrowserOperator> {
-    const logger = new ConsoleLogger('[BrowserGUIAgent]');
+  public static async create(
+    highlight: boolean,
+  ): Promise<DefaultBrowserOperator> {
+    const logger = new ConsoleLogger('[Default]');
     const browser = new LocalBrowser({
       logger,
     });
@@ -482,7 +485,7 @@ export class DefaultBrowserOperator extends BrowserOperator {
     return new DefaultBrowserOperator({
       browser,
       logger,
-      highlightClickableElements: true,
+      highlightClickableElements: highlight,
     });
   }
 }
