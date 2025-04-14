@@ -10,7 +10,6 @@ import { api } from '@renderer/api';
 import { VlmProvider } from '@main/store/types';
 import { useSetting } from '@renderer/hooks/useSetting';
 import { Button } from '@renderer/components/ui/button';
-import { Toaster } from '@renderer/components/ui/sonner';
 import {
   Form,
   FormControl,
@@ -167,7 +166,7 @@ export default function Settings() {
 
   const handleClearSettings = async () => {
     try {
-      // await clearSetting();
+      await clearSetting();
       toast.success('All settings cleared successfully');
     } catch (error) {
       toast.error('Failed to clear settings', {

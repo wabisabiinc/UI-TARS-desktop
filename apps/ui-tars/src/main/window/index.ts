@@ -28,8 +28,8 @@ export function show() {
 export function createMainWindow() {
   mainWindow = createWindow({
     routerPath: '/',
-    width: 430,
-    height: 580,
+    width: 1200,
+    height: 700,
     alwaysOnTop: false,
   });
 

@@ -34,6 +34,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Textarea } from '@renderer/components/ui/textarea';
+import { SelectOperator } from './SelectOperator';
 
 const ChatInput = () => {
   const {
@@ -160,29 +161,7 @@ const ChatInput = () => {
               `Enter` to run
             </span>
           )}
-
-          <div className="absolute left-4 bottom-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
-                  <Monitor className="h-4 w-4 mr-2" />
-                  Computer Use
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem>
-                  <Monitor className="h-4 w-4 mr-2" />
-                  Computer Use
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Globe className="h-4 w-4 mr-2" />
-                  Browser Use
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
+          <SelectOperator />
           <div className="absolute right-4 bottom-4 flex items-center gap-2">
             <ShareOptions
               running={running}
