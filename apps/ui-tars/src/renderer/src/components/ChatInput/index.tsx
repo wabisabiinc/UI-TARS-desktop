@@ -13,11 +13,9 @@ import { useStore } from '@renderer/hooks/useStore';
 import { Button } from '@renderer/components/ui/button';
 import { isCallUserMessage } from '@renderer/utils/message';
 import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
-import { useSetting } from '@renderer/hooks/useSetting';
 import { api } from '@renderer/api';
 
-import { ShareOptions } from './ShareOptions';
-import { Play, Send, Square, Trash2, Loader2 } from 'lucide-react';
+import { Play, Send, Square, Loader2 } from 'lucide-react';
 import { Textarea } from '@renderer/components/ui/textarea';
 import { SelectOperator } from './SelectOperator';
 
@@ -28,7 +26,6 @@ const ChatInput = () => {
     messages,
     restUserData,
   } = useStore();
-  const { settings } = useSetting();
   console.log('ChatInput', status);
 
   const [localInstructions, setLocalInstructions] = React.useState('');
@@ -44,8 +41,6 @@ const ChatInput = () => {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const running = status === StatusEnum.RUNNING;
-  const maxLoop = status === StatusEnum.MAX_LOOP;
-  // const dispatch = useDispatch(window.zutron);
 
   console.log('running', 'status', status, running);
 
@@ -76,8 +71,6 @@ const ChatInput = () => {
       startRun();
     }
   };
-
-  const needClear = (!running && messages?.length > 0) || maxLoop;
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -151,19 +144,8 @@ const ChatInput = () => {
             {running && (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}
-            {needClear && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8" // 调整按钮大小
-                onClick={handleClearMessages}
-                aria-label="Clear Messages"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
             <Button
-              variant="ghost"
+              variant="secondary"
               size="icon"
               className="h-8 w-8" // 调整按钮大小
               onClick={running ? stopRun : startRun}

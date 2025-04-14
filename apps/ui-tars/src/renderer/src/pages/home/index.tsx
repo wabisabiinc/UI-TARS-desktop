@@ -14,6 +14,7 @@ import {
 } from '@renderer/components/ui/sidebar';
 import { DragArea } from '@renderer/components/Common/drag';
 import { ShareOptions } from '@renderer/components/ChatInput/ShareOptions';
+import { ClearHistory } from '@renderer/components/ChatInput/ClearHistory';
 
 export default function Page() {
   const { messages, thinking, errorMsg } = useStore();
@@ -24,7 +25,8 @@ export default function Page() {
       <SidebarInset className="flex-1">
         <DragArea />
         <div className="flex w-full items-center mb-1">
-          <SidebarTrigger className="ml-2" />
+          <SidebarTrigger className="ml-2 mr-auto" />
+          <ClearHistory />
           <ShareOptions />
         </div>
         <div className="flex-1 min-h-0 flex">

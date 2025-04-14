@@ -52,6 +52,7 @@ const RunMessages: React.FC<RunMessagesProps> = ({
   };
 
   useEffect(() => {
+    // TODO: 滚动可能有些问题
     if (autoScroll) {
       setTimeout(() => {
         containerRef.current?.scrollTo({
