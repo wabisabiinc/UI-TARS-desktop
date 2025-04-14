@@ -9,8 +9,6 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area';
 import { Button } from '@renderer/components/ui/button';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
-import { type ConversationWithSoM } from '@main/shared/types';
-import Duration from '@renderer/components/Duration';
 import LoadingText from '@renderer/components/LoadingText';
 import Prompts from '../Prompts';
 import ThoughtChain from '../ThoughtChain';
@@ -25,16 +23,6 @@ import { useStore } from '@renderer/hooks/useStore';
 import ImageGallery from '../ImageGallery';
 import { HumanTextMessage, ScreenshotMessage } from './Messages';
 
-const DurationWrapper = ({
-  timing,
-}: {
-  timing: ConversationWithSoM['timing'];
-}) => (
-  <div className="invisible transition-all duration-200 group-hover:opacity-100 group-hover:visible">
-    <Duration timing={timing} />
-  </div>
-);
-
 const RunMessages = () => {
   const { messages = [], thinking, errorMsg } = useStore();
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -48,12 +36,9 @@ const RunMessages = () => {
 
   useEffect(() => {
     setTimeout(() => {
-      containerRef.current?.scrollTo({
-        top: containerRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+      containerRef.current?.scrollIntoView(false);
     }, 100);
-  }, [messages, thinking]);
+  }, [messages, thinking, errorMsg]);
 
   return (
     <div className="flex-1 min-h-0 flex h-full justify-center">
@@ -82,59 +67,63 @@ const RunMessages = () => {
             />
           </Button>
         </div>
-        <ScrollArea ref={containerRef} className="px-4">
-          {!messages?.length && suggestions?.length > 0 && (
-            <Prompts suggestions={suggestions} onSelect={handleSelect} />
-          )}
+        <div></div>
+        <ScrollArea className="flex-1 min-h-0 px-12">
+          <div ref={containerRef}>
+            {!messages?.length && suggestions?.length > 0 && (
+              <Prompts suggestions={suggestions} onSelect={handleSelect} />
+            )}
 
-          {messages?.map((message, idx) => {
-            if (message?.from === 'human') {
-              if (message?.value === IMAGE_PLACEHOLDER) {
-                // screen shot
+            {messages?.map((message, idx) => {
+              if (message?.from === 'human') {
+                if (message?.value === IMAGE_PLACEHOLDER) {
+                  // screen shot
+                  return (
+                    <ScreenshotMessage
+                      key={`message-${idx}`}
+                      onClick={() => setSelectImg(idx)}
+                    />
+                  );
+                }
+
                 return (
-                  <ScreenshotMessage
+                  <HumanTextMessage
                     key={`message-${idx}`}
+                    text={message?.value}
+                  />
+                );
+              }
+
+              const { predictionParsed, screenshotBase64WithElementMarker } =
+                message;
+
+              if (predictionParsed?.length) {
+                return (
+                  <ThoughtChain
+                    key={idx}
+                    steps={predictionParsed}
+                    active={
+                      !messages.slice(idx + 1).some((m) => m.from !== 'human')
+                    }
+                    hasSomImage={!!screenshotBase64WithElementMarker}
                     onClick={() => setSelectImg(idx)}
                   />
                 );
               }
 
-              return (
-                <HumanTextMessage
-                  key={`message-${idx}`}
-                  text={message?.value}
-                />
-              );
-            }
+              return null;
+            })}
 
-            const { predictionParsed, screenshotBase64WithElementMarker } =
-              message;
+            {thinking && <LoadingText>Thinking...</LoadingText>}
 
-            if (predictionParsed?.length) {
-              return (
-                <ThoughtChain
-                  key={idx}
-                  steps={predictionParsed}
-                  active={
-                    !messages.slice(idx + 1).some((m) => m.from !== 'human')
-                  }
-                  somImage={screenshotBase64WithElementMarker}
-                />
-              );
-            }
-
-            return null;
-          })}
-
-          {thinking && <LoadingText>Thinking...</LoadingText>}
-
-          {errorMsg && (
-            <div className="flex gap-2 mb-4 items-center justify-start max-w-[80%]">
-              <div className="p-3 rounded-md bg-secondary w-full font-mono text-red-500">
-                ERROR: {errorMsg}
+            {errorMsg && (
+              <div className="flex gap-2 my-4 items-center justify-start max-w-[80%]">
+                <div className="p-3 rounded-md bg-secondary w-full font-mono text-red-500">
+                  ERROR: {errorMsg}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </ScrollArea>
         <ChatInput />
       </div>

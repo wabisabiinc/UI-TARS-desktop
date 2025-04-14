@@ -13,11 +13,13 @@ import {
   CheckSquare,
   RotateCcw,
   Hourglass,
+  Camera,
 } from 'lucide-react';
+import { Button } from '@renderer/components/ui/button';
 
 import { PredictionParsed } from '@ui-tars/shared/types';
 
-const actionIconMap = {
+export const actionIconMap = {
   scroll: ScrollText,
   drag: MousePointer2,
   hotkey: Keyboard,
@@ -28,54 +30,64 @@ const actionIconMap = {
   finished: CheckSquare,
   call_user: RotateCcw,
   wait: Hourglass,
+  screenshot: Camera,
 };
 
 interface ThoughtStepCardProps {
   step: PredictionParsed;
   index: number;
   active: boolean;
+  onClick?: () => void;
+  hasSomImage: boolean;
 }
 
-function ThoughtStepCard({ step }: ThoughtStepCardProps) {
+function ThoughtStepCard({ step, onClick, hasSomImage }: ThoughtStepCardProps) {
   const ActionIcon = actionIconMap[step?.action_type] || MousePointer;
 
   return (
     <>
       {step.reflection && (
-        <>
-          <span className="ml-2">Reflection</span>
-          <pre className="text-muted-foreground font-mono whitespace-pre-wrap">
+        <div className="my-3">
+          <pre className="text-gray-600 whitespace-pre-wrap leading-7">
+            <span className="text-gray-900 font-medium">Reflection: </span>
             {step.reflection}
           </pre>
-        </>
+        </div>
       )}
 
       {step.thought && (
-        <div className="py-4">
-          <pre className="text-muted-foreground font-mono whitespace-pre-wrap">
+        <div className="my-3">
+          <pre className="text-gray-600 whitespace-pre-wrap leading-7">
+            <span className="text-gray-900 font-medium">Thought: </span>
             {step.thought}
           </pre>
         </div>
       )}
 
       {step.action_type && (
-        <div className="py-4 bg-secondary/5 border-t flex items-center gap-3">
-          <ActionIcon className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">
-            {step.action_type === 'call_user' ? (
-              'Waiting for user to take control'
-            ) : (
-              <>
-                Action: {step.action_type}
+        <Button
+          variant="outline"
+          className="rounded-full mb-6"
+          onClick={onClick}
+          disabled={!hasSomImage}
+        >
+          <ActionIcon className="h-4 w-4" />
+          {step.action_type === 'call_user' ? (
+            'Waiting for user to take control'
+          ) : (
+            <>
+              Action:
+              <span className="text-gray-600">
+                {step.action_type}
                 {step.action_inputs?.start_box &&
                   ` (start_box: ${step.action_inputs.start_box})`}
                 {step.action_inputs?.content &&
                   ` (${step.action_inputs.content})`}
                 {step.action_inputs?.key && ` (${step.action_inputs.key})`}
-              </>
-            )}
-          </span>
-        </div>
+              </span>
+            </>
+          )}
+        </Button>
       )}
     </>
   );
@@ -84,19 +96,27 @@ function ThoughtStepCard({ step }: ThoughtStepCardProps) {
 interface ThoughtChainProps {
   steps: PredictionParsed[];
   active: boolean;
-  somImage?: string;
+  hasSomImage: boolean;
   somImageHighlighted?: boolean;
+  onClick?: () => void;
 }
 
-export default function ThoughtChain({ steps, active }: ThoughtChainProps) {
+export default function ThoughtChain({
+  steps,
+  active,
+  onClick,
+  hasSomImage,
+}: ThoughtChainProps) {
   return (
-    <div className="w-full flex flex-col gap-0 mb-2">
+    <div>
       {steps?.map?.((step, index) => (
         <ThoughtStepCard
           key={index}
           step={step}
           active={active}
           index={index}
+          onClick={onClick}
+          hasSomImage={hasSomImage}
         />
       ))}
     </div>

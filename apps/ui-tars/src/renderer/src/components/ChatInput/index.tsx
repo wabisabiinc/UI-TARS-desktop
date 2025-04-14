@@ -26,7 +26,7 @@ const ChatInput = () => {
     messages,
     restUserData,
   } = useStore();
-  console.log('ChatInput', status);
+  // console.log('ChatInput', status);
 
   const [localInstructions, setLocalInstructions] = React.useState('');
 
@@ -42,7 +42,7 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const running = status === StatusEnum.RUNNING;
 
-  console.log('running', 'status', status, running);
+  // console.log('running', 'status', status, running);
 
   const startRun = () => {
     startRecording().catch((e) => {

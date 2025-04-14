@@ -127,3 +127,8 @@
 .medium-zoom-image--opened {
   z-index: 11;
 }
+
+[role=button],
+button {
+  cursor: pointer
+}
