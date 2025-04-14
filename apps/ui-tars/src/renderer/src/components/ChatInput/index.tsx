@@ -17,22 +17,7 @@ import { useSetting } from '@renderer/hooks/useSetting';
 import { api } from '@renderer/api';
 
 import { ShareOptions } from './ShareOptions';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@renderer/components/ui/dropdown-menu';
-import {
-  ChevronDown,
-  Globe,
-  Monitor,
-  Play,
-  Send,
-  Square,
-  Trash2,
-  Loader2,
-} from 'lucide-react';
+import { Play, Send, Square, Trash2, Loader2 } from 'lucide-react';
 import { Textarea } from '@renderer/components/ui/textarea';
 import { SelectOperator } from './SelectOperator';
 
@@ -163,16 +148,6 @@ const ChatInput = () => {
           )}
           <SelectOperator />
           <div className="absolute right-4 bottom-4 flex items-center gap-2">
-            <ShareOptions
-              running={running}
-              canSaveRecording={canSaveRecording}
-              lastHumanMessage={lastHumanMessage}
-              messages={messages}
-              settings={settings}
-              onSaveRecording={saveRecording}
-              restUserData={restUserData}
-              status={status}
-            />
             {running && (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}

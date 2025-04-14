@@ -7,7 +7,6 @@ import React, { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@renderer/utils';
 import { ScrollArea } from '@renderer/components/ui/scroll-area';
-import { Card } from '@renderer/components/ui/card';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
 import { type ConversationWithSoM } from '@main/shared/types';
@@ -121,7 +120,7 @@ const RunMessages: React.FC<RunMessagesProps> = ({
                 key={idx}
                 className="flex gap-2 mb-4 items-center justify-end"
               >
-                <div className="p-3 rounded-md bg-secondary font-mono text-blue-600">
+                <div className="p-3 rounded-md bg-secondary font-mono">
                   {message?.value}
                 </div>
               </div>

@@ -1,4 +1,10 @@
-import { Share, FileText, Video, Loader2 } from 'lucide-react';
+import {
+  Share,
+  FileText,
+  Video,
+  Loader2,
+  SquareArrowOutUpRight,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useRef } from 'react';
 
@@ -19,31 +25,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@renderer/components/ui/alert-dialog';
-import { ComputerUseUserData } from '@ui-tars/shared/types';
+import { ComputerUseUserData, StatusEnum } from '@ui-tars/shared/types';
 import { reportHTMLContent } from '@renderer/utils/html';
 import { uploadReport } from '@renderer/utils/share';
+import { useStore } from '@renderer/hooks/useStore';
+import { useSetting } from '@renderer/hooks/useSetting';
+import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
+import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
 
-interface ShareOptionsProps {
-  running: boolean;
-  canSaveRecording: boolean;
-  lastHumanMessage: string;
-  messages: any[];
-  settings: any;
-  onSaveRecording: () => void;
-  restUserData: any;
-  status: string;
-}
+export function ShareOptions() {
+  const { status, messages, restUserData } = useStore();
+  const { settings } = useSetting();
+  const { canSaveRecording, saveRecording } = useScreenRecord();
 
-export function ShareOptions({
-  running,
-  canSaveRecording,
-  lastHumanMessage,
-  messages,
-  settings,
-  onSaveRecording,
-  restUserData,
-  status,
-}: ShareOptionsProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [isShareConfirmOpen, setIsShareConfirmOpen] = useState(false);
   const [pendingShareType, setPendingShareType] = useState<
@@ -52,6 +46,12 @@ export function ShareOptions({
   const isSharePending = useRef(false);
   const shareTimeoutRef = useRef<NodeJS.Timeout>();
   const SHARE_TIMEOUT = 100000;
+  const running = status === StatusEnum.RUNNING;
+  const lastHumanMessage =
+    [...(messages || [])]
+      .reverse()
+      .find((m) => m?.from === 'human' && m?.value !== IMAGE_PLACEHOLDER)
+      ?.value || '';
 
   const processShare = async (
     type: 'report' | 'video',
@@ -72,7 +72,7 @@ export function ShareOptions({
       }, SHARE_TIMEOUT);
 
       if (type === 'video') {
-        onSaveRecording();
+        saveRecording();
       } else if (type === 'report') {
         const response = await fetch(
           'https://cdn.jsdelivr.net/npm/@ui-tars/visualizer/dist/report/index.html',
@@ -173,15 +173,15 @@ export function ShareOptions({
       {!running && messages?.length > 1 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="ml-auto mr-6">
               {isSharing ? (
-                <Loader2 className="h-4 w-4" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Share className="h-4 w-4" />
+                <SquareArrowOutUpRight className="h-4 w-4" />
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <DropdownMenuContent className="mr-4">
             {canSaveRecording && (
               <DropdownMenuItem onClick={() => handleShare('video')}>
                 <Video className="mr-2 h-4 w-4" />
