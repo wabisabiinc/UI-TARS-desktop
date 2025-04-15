@@ -44,8 +44,8 @@ const RunMessages = () => {
       {/* Left Panel */}
       <div
         className={cn(
-          'flex flex-col w-1/2  transition-all duration-300 ease-in-out',
-          isRightPanelOpen ? '' : 'mx-auto',
+          'flex flex-col transition-all duration-300 ease-in-out',
+          isRightPanelOpen ? 'w-1/2' : 'w-2/3 mx-auto',
         )}
       >
         <div className="flex w-full items-center mb-1">
