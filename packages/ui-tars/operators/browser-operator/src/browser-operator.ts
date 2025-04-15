@@ -500,6 +500,7 @@ export class DefaultBrowserOperator extends BrowserOperator {
   public static async getInstance(
     highlight = false,
     showActionInfo = false,
+    isCallUser = false,
   ): Promise<DefaultBrowserOperator> {
     if (!this.instance) {
       if (!this.logger) {
@@ -519,10 +520,12 @@ export class DefaultBrowserOperator extends BrowserOperator {
       });
     }
 
-    const openingPage = await this.browser?.createPage();
-    await openingPage?.goto('https://www.google.com/', {
-      waitUntil: 'networkidle2',
-    });
+    if (!isCallUser) {
+      const openingPage = await this.browser?.createPage();
+      await openingPage?.goto('https://www.google.com/', {
+        waitUntil: 'networkidle2',
+      });
+    }
 
     this.instance.setHighlightClickableElements(highlight);
 

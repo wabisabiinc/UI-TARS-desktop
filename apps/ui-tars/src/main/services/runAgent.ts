@@ -111,11 +111,17 @@ export const runAgent = async (
     });
   };
 
+  const lastStatus = getState().status;
+
   let operator: NutJSElectronOperator | DefaultBrowserOperator;
   if (settings.operator === 'nutjs') {
     operator = new NutJSElectronOperator();
   } else {
-    operator = await DefaultBrowserOperator.getInstance(false, false);
+    operator = await DefaultBrowserOperator.getInstance(
+      false,
+      false,
+      lastStatus === StatusEnum.CALL_USER,
+    );
   }
 
   const guiAgent = new GUIAgent({
@@ -127,6 +133,7 @@ export const runAgent = async (
     systemPrompt: getSystemPromptV1_5(
       language,
       'normal', // Only support normal mode for now.
+      settings.operator,
     ),
     logger,
     signal: abortController?.signal,
