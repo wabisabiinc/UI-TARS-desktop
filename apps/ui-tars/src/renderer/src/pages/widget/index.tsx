@@ -6,6 +6,7 @@ import { useSetting } from '@renderer/hooks/useSetting';
 import logo from '@resources/logo-full.png?url';
 import { Button } from '@renderer/components/ui/button';
 import { useCallback, useMemo, useState } from 'react';
+import { api } from '@renderer/api';
 
 import './widget.css';
 
@@ -31,22 +32,13 @@ const getOperatorLabel = (type: string) => {
   }
 };
 
-interface Action {
-  type: string;
-  action: string;
-  cost?: number;
-  input?: string;
-  reflection?: string | null;
-  thought?: string;
-}
-
 const Widget = () => {
   const { messages = [], errorMsg } = useStore();
   const { settings } = useSetting();
 
   const currentOperator = settings.operator || 'nutjs';
 
-  const lastMessage = messages[messages.length - 2];
+  const lastMessage = messages[messages.length - 1];
 
   const currentAction = useMemo(() => {
     if (!lastMessage) return [];
@@ -86,13 +78,17 @@ const Widget = () => {
 
   const [isPaused, setIsPaused] = useState(false);
 
-  const handlePlayPauseClick = useCallback(() => {
+  const handlePlayPauseClick = useCallback(async () => {
+    if (isPaused) {
+      await api.resumeRun();
+    } else {
+      await api.pauseRun();
+    }
     setIsPaused((prev) => !prev);
-    // TODO: 实现暂停/继续的具体逻辑
-  }, []);
+  }, [isPaused]);
 
-  const handleStop = useCallback(() => {
-    // TODO: 实现停止的具体逻辑
+  const handleStop = useCallback(async () => {
+    await api.stopRun();
   }, []);
 
   return (
