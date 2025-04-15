@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {
+  Conversation,
   GUIAgentData,
   StatusEnum,
   ShareVersion,
@@ -56,7 +57,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
     this.systemPrompt = config.systemPrompt || this.buildSystemPrompt();
   }
 
-  async run(instruction: string) {
+  async run(instruction: string, historyMessages: Conversation[] = []) {
     const { operator, model, logger } = this;
     const {
       signal,
@@ -84,6 +85,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
             cost: 0,
           },
         },
+        ...historyMessages.slice(-10), // limit history messages to 10
       ],
     };
 

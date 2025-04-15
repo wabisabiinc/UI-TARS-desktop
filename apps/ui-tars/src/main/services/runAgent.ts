@@ -32,7 +32,7 @@ export const runAgent = async (
 ) => {
   logger.info('runAgent');
   const settings = SettingStore.getStore();
-  const { instructions, abortController } = getState();
+  const { instructions, abortController, messages } = getState();
   assert(instructions, 'instructions is required');
 
   const language = settings.language ?? 'en';
@@ -152,11 +152,17 @@ export const runAgent = async (
 
   GUIAgentManager.getInstance().setAgent(guiAgent);
 
+  const lastStatus = getState().status;
+
   await hideWindowBlock(async () => {
     await UTIOService.getInstance().sendInstruction(instructions);
 
     await guiAgent
-      .run(instructions)
+      .run(
+        instructions,
+        // Only pass history if the last status is CALL_USER.
+        lastStatus === StatusEnum.CALL_USER ? messages.slice(-10) : [],
+      )
       .catch((e) => {
         logger.error('[runAgentLoop error]', e);
         setState({
