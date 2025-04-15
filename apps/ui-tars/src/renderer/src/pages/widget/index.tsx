@@ -1,14 +1,15 @@
 import { useStore } from '@renderer/hooks/useStore';
-import { Monitor, Globe, Pause, Play, Square } from 'lucide-react';
+import { Monitor, Globe, Pause, Play, Square, Loader } from 'lucide-react';
 import { actionIconMap } from '@renderer/components/ThoughtChain';
 import { useSetting } from '@renderer/hooks/useSetting';
 
 import logo from '@resources/logo-full.png?url';
 import { Button } from '@renderer/components/ui/button';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@renderer/api';
 
 import './widget.css';
+import { StatusEnum } from '@ui-tars/sdk';
 
 const getOperatorIcon = (type: string) => {
   switch (type) {
@@ -33,7 +34,7 @@ const getOperatorLabel = (type: string) => {
 };
 
 const Widget = () => {
-  const { messages = [], errorMsg } = useStore();
+  const { messages = [], errorMsg, status } = useStore();
   const { settings } = useSetting();
 
   const currentOperator = settings.operator || 'nutjs';
@@ -77,14 +78,25 @@ const Widget = () => {
   }, [lastMessage]);
 
   const [isPaused, setIsPaused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === StatusEnum.PAUSE && isLoading) {
+      setIsLoading(false);
+      setIsPaused(true);
+    }
+  }, [status, isLoading]);
 
   const handlePlayPauseClick = useCallback(async () => {
+    if (isLoading) return;
+
     if (isPaused) {
       await api.resumeRun();
+      setIsPaused(false);
     } else {
       await api.pauseRun();
+      setIsLoading(true);
     }
-    setIsPaused((prev) => !prev);
   }, [isPaused]);
 
   const handleStop = useCallback(async () => {
@@ -164,7 +176,9 @@ const Widget = () => {
           onClick={handlePlayPauseClick}
           className="h-8 w-8 border-gray-400 hover:border-gray-500 bg-white/50 hover:bg-white/60"
         >
-          {isPaused ? (
+          {isLoading ? (
+            <Loader className="h-4 w-4 loader-icon" />
+          ) : isPaused ? (
             <Play className="h-4 w-4" />
           ) : (
             <Pause className="h-4 w-4" />

@@ -5,3 +5,17 @@ body {
 .hide_scroll_bar::-webkit-scrollbar {
   display: none;
 }
+
+.loader-icon {
+  animation: spin 2s linear infinite;
+  color: #9ca3af;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
