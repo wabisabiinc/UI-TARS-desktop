@@ -318,7 +318,7 @@ export default function Settings() {
                   name="vlmModelName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>VLM Base URL</FormLabel>
+                      <FormLabel>VLM Model Name</FormLabel>
                       <FormControl>
                         <Input
                           disabled={isRemoteAutoUpdatedPreset}
