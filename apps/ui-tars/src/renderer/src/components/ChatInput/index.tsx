@@ -109,16 +109,12 @@ const ChatInput = () => {
       .find((m) => m?.from === 'human' && m?.value !== IMAGE_PLACEHOLDER)
       ?.value || '';
 
-  const handleClearMessages = async () => {
-    await api.clearHistory();
-  };
-
   const stopRun = async () => {
     await api.stopRun();
   };
 
   return (
-    <div className="p-4 w-full pt-0">
+    <div className="p-4 w-full">
       <div className="flex flex-col space-y-4">
         <div className="relative w-full">
           <Textarea

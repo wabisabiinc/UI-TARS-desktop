@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useEffect, useState } from 'react';
-import { ChevronRight, AlertCircle } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { cn } from '@renderer/utils';
 import { Button } from '@renderer/components/ui/button';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
-import LoadingText from '@renderer/components/LoadingText';
 import Prompts from '../Prompts';
 import ThoughtChain from '../ThoughtChain';
 import { api } from '@renderer/api';
@@ -20,7 +19,12 @@ import { ShareOptions } from '@renderer/components/ChatInput/ShareOptions';
 import { ClearHistory } from '@renderer/components/ChatInput/ClearHistory';
 import { useStore } from '@renderer/hooks/useStore';
 import ImageGallery from '../ImageGallery';
-import { HumanTextMessage, ScreenshotMessage } from './Messages';
+import {
+  ErrorMessage,
+  HumanTextMessage,
+  ScreenshotMessage,
+  LoadingText,
+} from './Messages';
 
 const RunMessages = () => {
   const { messages = [], thinking, errorMsg } = useStore();
@@ -112,19 +116,8 @@ const RunMessages = () => {
               return null;
             })}
 
-            {thinking && <LoadingText>Thinking...</LoadingText>}
-
-            {errorMsg && (
-              <div className="flex flex-col gap-2 my-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                  <span className="font-medium text-red-500">Error</span>
-                </div>
-                <div className="font-mono text-sm text-red-500/90 break-all">
-                  {errorMsg}
-                </div>
-              </div>
-            )}
+            {thinking && <LoadingText text={'Thinking...'} />}
+            {errorMsg && <ErrorMessage text={errorMsg} />}
           </div>
         </div>
         <ChatInput />

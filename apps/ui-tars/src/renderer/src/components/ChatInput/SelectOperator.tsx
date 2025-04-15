@@ -8,6 +8,9 @@ import {
 } from '@renderer/components/ui/dropdown-menu';
 import { useSetting } from '@renderer/hooks/useSetting';
 import { useState } from 'react';
+import { BROWSER_USE, COMPUTERR_USE } from '@renderer/const';
+
+type Operator = 'nutjs' | 'browser';
 
 const getOperatorIcon = (type: string) => {
   switch (type) {
@@ -23,15 +26,13 @@ const getOperatorIcon = (type: string) => {
 const getOperatorLabel = (type: string) => {
   switch (type) {
     case 'nutjs':
-      return 'Computer Use';
+      return COMPUTERR_USE;
     case 'browser':
-      return 'Browser Use';
+      return BROWSER_USE;
     default:
-      return 'Computer Use';
+      return COMPUTERR_USE;
   }
 };
-
-type Operator = 'nutjs' | 'browser';
 
 export const SelectOperator = () => {
   const [isOpen, setIsOpen] = useState(false);

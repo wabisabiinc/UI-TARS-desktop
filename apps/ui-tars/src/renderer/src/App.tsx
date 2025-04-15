@@ -28,6 +28,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/settings" element={<Settings2 />} />
+          <Route path="/widget" element={<Widget />} />
           <Route path="/launcher" element={<Launcher />} />
           <Route path="/in-progressing" element={<InProgressing />} />
         </Routes>
