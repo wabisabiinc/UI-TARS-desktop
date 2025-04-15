@@ -31,7 +31,7 @@ const ChatInput = () => {
     messages,
     restUserData,
   } = useStore();
-  // console.log('ChatInput', status);
+  console.log('ChatInput instructions', savedInstructions);
 
   const [localInstructions, setLocalInstructions] = React.useState('');
 
