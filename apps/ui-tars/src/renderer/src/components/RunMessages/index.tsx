@@ -67,8 +67,7 @@ const RunMessages = () => {
             />
           </Button>
         </div>
-        <div></div>
-        <ScrollArea className="flex-1 min-h-0 px-12">
+        <div className="flex-1 w-full px-12 py-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
           <div ref={containerRef}>
             {!messages?.length && suggestions?.length > 0 && (
               <Prompts suggestions={suggestions} onSelect={handleSelect} />
@@ -117,14 +116,14 @@ const RunMessages = () => {
             {thinking && <LoadingText>Thinking...</LoadingText>}
 
             {errorMsg && (
-              <div className="flex gap-2 my-4 items-center justify-start max-w-[80%]">
+              <div className="flex gap-2 my-4 items-center justify-start">
                 <div className="p-3 rounded-md bg-secondary w-full font-mono text-red-500">
                   ERROR: {errorMsg}
                 </div>
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
         <ChatInput />
       </div>
 

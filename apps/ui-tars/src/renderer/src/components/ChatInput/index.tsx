@@ -118,7 +118,7 @@ const ChatInput = () => {
   };
 
   return (
-    <div className="p-4 w-full">
+    <div className="p-4 w-full pt-0">
       <div className="flex flex-col space-y-4">
         <div className="relative w-full">
           <Textarea

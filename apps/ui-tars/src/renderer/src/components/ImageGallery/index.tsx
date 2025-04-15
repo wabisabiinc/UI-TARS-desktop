@@ -112,7 +112,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   }
 
   const currentEntry = imageEntries[currentIndex];
-  const mime = currentEntry.message.screenshotContext?.mime || 'image/png';
+  const mime = currentEntry?.message?.screenshotContext?.mime || 'image/png';
+
+  if (!currentEntry) {
+    return null;
+  }
 
   return (
     <div className="h-full flex flex-col py-10">
