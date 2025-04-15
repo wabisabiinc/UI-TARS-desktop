@@ -18,6 +18,7 @@ import { setOfMarksOverlays } from '@main/shared/setOfMarks';
 import { server } from '@main/ipcRoutes';
 import path from 'path';
 import MenuBuilder from '../menu';
+import { windowManager } from '../services/windowManager';
 
 class ScreenMarker {
   private static instance: ScreenMarker;
@@ -155,6 +156,8 @@ class ScreenMarker {
       focusable: false,
       resizable: false,
       type: 'toolbar',
+      visualEffectState: 'active', // macOS only
+      backgroundColor: '#00000000', // 透明背景
       webPreferences: {
         preload: path.join(__dirname, '../preload/index.js'),
         sandbox: false,
@@ -179,6 +182,8 @@ class ScreenMarker {
 
     const menuBuilder = new MenuBuilder(this.widgetWindow);
     menuBuilder.buildMenu();
+
+    windowManager.registerWindow(this.widgetWindow);
 
     // 监听来自渲染进程的点击事件
     ipcMain.once('pause-button-clicked', async () => {

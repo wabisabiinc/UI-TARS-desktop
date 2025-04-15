@@ -49,7 +49,7 @@ function ThoughtStepCard({ step, onClick, hasSomImage }: ThoughtStepCardProps) {
       {step.reflection && (
         <div className="my-3">
           <pre className="text-gray-600 whitespace-pre-wrap leading-7">
-            <span className="text-gray-900 font-medium">Reflection: </span>
+            {/* <span className="text-gray-900 font-medium">Reflection: </span> */}
             {step.reflection}
           </pre>
         </div>
@@ -58,7 +58,7 @@ function ThoughtStepCard({ step, onClick, hasSomImage }: ThoughtStepCardProps) {
       {step.thought && (
         <div className="my-3">
           <pre className="text-gray-600 whitespace-pre-wrap leading-7">
-            <span className="text-gray-900 font-medium">Thought: </span>
+            {/* <span className="text-gray-900 font-medium">Thought: </span> */}
             {step.thought}
           </pre>
         </div>

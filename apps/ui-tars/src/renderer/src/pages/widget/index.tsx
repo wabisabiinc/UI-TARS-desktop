@@ -1,12 +1,13 @@
 import { useStore } from '@renderer/hooks/useStore';
-import { Monitor, Globe, Loader2, Pause, Play, Square } from 'lucide-react';
+import { Monitor, Globe, Pause, Play, Square } from 'lucide-react';
 import { actionIconMap } from '@renderer/components/ThoughtChain';
 import { useSetting } from '@renderer/hooks/useSetting';
-import ms from 'ms';
 
 import logo from '@resources/logo-full.png?url';
 import { Button } from '@renderer/components/ui/button';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+
+import './widget.css';
 
 const getOperatorIcon = (type: string) => {
   switch (type) {
@@ -40,74 +41,62 @@ interface Action {
 }
 
 const Widget = () => {
-  const { messages = [], thinking, errorMsg } = useStore();
+  const { messages = [], errorMsg } = useStore();
   const { settings } = useSetting();
 
   const currentOperator = settings.operator || 'nutjs';
 
-  const lastMessage = messages[messages.length - 1];
+  const lastMessage = messages[messages.length - 2];
 
-  console.log('messages', messages, thinking, errorMsg);
-
-  // 获取最后一个 AI 动作
-  const getLastAction = () => {
-    let actions: Action[] = [];
-
-    if (!lastMessage) {
-      return actions;
-    }
+  const currentAction = useMemo(() => {
+    if (!lastMessage) return [];
 
     if (lastMessage.from === 'human') {
-      actions = [
+      return [
         {
           action: 'Screenshot',
           type: 'screenshot',
           cost: lastMessage.timing?.cost,
         },
       ];
-    } else {
-      actions =
-        lastMessage.predictionParsed?.map((item) => {
-          let input = '';
-
-          if (item.action_inputs?.start_box) {
-            input += `(start_box: ${item.action_inputs.start_box})`;
-          }
-          if (item.action_inputs?.content) {
-            input += ` (${item.action_inputs.content})`;
-          }
-          if (item.action_inputs?.key) {
-            input += ` (${item.action_inputs.key})`;
-          }
-
-          return {
-            action: 'Action',
-            type: item.action_type,
-            cost: lastMessage.timing?.cost,
-            input,
-            reflection: item.reflection,
-            thought: item.thought,
-          };
-        }) || [];
     }
 
-    return actions;
-  };
-  const currentAction = getLastAction();
+    return (
+      lastMessage.predictionParsed?.map((item) => {
+        const input = [
+          item.action_inputs?.start_box &&
+            `(start_box: ${item.action_inputs.start_box})`,
+          item.action_inputs?.content && `(${item.action_inputs.content})`,
+          item.action_inputs?.key && `(${item.action_inputs.key})`,
+        ]
+          .filter(Boolean)
+          .join(' ');
+
+        return {
+          action: 'Action',
+          type: item.action_type,
+          cost: lastMessage.timing?.cost,
+          input: input || undefined,
+          reflection: item.reflection,
+          thought: item.thought,
+        };
+      }) || []
+    );
+  }, [lastMessage]);
 
   const [isPaused, setIsPaused] = useState(false);
 
-  const handlePlayPauseClick = () => {
-    setIsPaused(!isPaused);
+  const handlePlayPauseClick = useCallback(() => {
+    setIsPaused((prev) => !prev);
     // TODO: 实现暂停/继续的具体逻辑
-  };
+  }, []);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     // TODO: 实现停止的具体逻辑
-  };
+  }, []);
 
   return (
-    <div className="fixed top-0 right-0 w-80 h-80 bg-background/95 overflow-hidden p-4">
+    <div className="w-80 h-80 overflow-hidden p-4 bg-white/95 dark:bg-gray-800/95">
       <div className="flex">
         {/* Logo */}
         <img src={logo} alt="logo" className="-ml-2 h-6 mr-auto" />
@@ -118,21 +107,17 @@ const Widget = () => {
         </div>
       </div>
 
-      {/* {!!thinking && (
-        <div className="inline-flex items-center text-muted-foreground animate-pulse mt-4">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          Thinking...
-        </div>
-      )} */}
-
       {!!errorMsg && <div>{errorMsg}</div>}
 
-      {!!currentAction.length && !errorMsg && !thinking && (
+      {!!currentAction.length && !errorMsg && (
         <>
           {currentAction.map((action, idx) => {
             const ActionIcon = actionIconMap[action.type];
             return (
-              <div key={idx} className="mt-4 max-h-54 overflow-scroll">
+              <div
+                key={idx}
+                className="mt-4 max-h-54 overflow-scroll hide_scroll_bar"
+              >
                 {/* Actions */}
                 {!!action.type && (
                   <>
@@ -146,7 +131,7 @@ const Widget = () => {
                       <ActionIcon className="w-4 h-4 mr-1.5" strokeWidth={2} />
                       <span className="text-gray-600">{action.type}</span>
                       {action.input && (
-                        <span className="text-gray-600 break-all">
+                        <span className="text-gray-600 break-all truncate">
                           {action.input}
                         </span>
                       )}
@@ -181,7 +166,7 @@ const Widget = () => {
           variant="outline"
           size="icon"
           onClick={handlePlayPauseClick}
-          className="h-8 w-8 border-gray-400 hover:border-gray-500"
+          className="h-8 w-8 border-gray-400 hover:border-gray-500 bg-white/50 hover:bg-white/60"
         >
           {isPaused ? (
             <Play className="h-4 w-4" />
@@ -193,7 +178,7 @@ const Widget = () => {
           variant="outline"
           size="icon"
           onClick={handleStop}
-          className="h-8 w-8 text-red-400 border-red-400 hover:bg-red-50 hover:text-red-500"
+          className="h-8 w-8 text-red-400 border-red-400 bg-white/50 hover:bg-red-50/80 hover:text-red-500"
         >
           <Square className="h-4 w-4 text-red-500" />
         </Button>
