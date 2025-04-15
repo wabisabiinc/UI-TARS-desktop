@@ -16,9 +16,9 @@ import { DefaultBrowserOperator } from '@ui-tars/operator-browser';
 import { getSystemPrompt, getSystemPromptV1_5 } from '../agent/prompts';
 import {
   closeScreenMarker,
-  hidePauseButton,
+  hideWidgetWindow,
   hideScreenWaterFlow,
-  showPauseButton,
+  showWidgetWindow,
   showPredictionMarker,
   showScreenWaterFlow,
 } from '@main/window/ScreenMarker';
@@ -37,8 +37,8 @@ export const runAgent = async (
 
   const language = settings.language ?? 'en';
 
+  showWidgetWindow();
   if (settings.operator === 'nutjs') {
-    showPauseButton();
     showScreenWaterFlow();
   }
 
@@ -173,9 +173,9 @@ export const runAgent = async (
         });
       })
       .finally(() => {
+        hideWidgetWindow();
         if (settings.operator === 'nutjs') {
           closeScreenMarker();
-          hidePauseButton();
           hideScreenWaterFlow();
         }
       });

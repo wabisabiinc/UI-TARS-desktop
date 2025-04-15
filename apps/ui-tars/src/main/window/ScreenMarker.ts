@@ -131,13 +131,12 @@ class ScreenMarker {
     this.screenWaterFlow = null;
   }
 
-  hidePauseButton() {
+  hideWidgetWindow() {
     this.widgetWindow?.close();
     this.widgetWindow = null;
   }
 
-  // 新增：显示暂停按钮
-  showPauseButton() {
+  showWidgetWindow() {
     if (this.widgetWindow) {
       this.widgetWindow.close();
       this.widgetWindow = null;
@@ -315,12 +314,12 @@ export const showPredictionMarker = (
   );
 };
 
-export const showPauseButton = () => {
-  ScreenMarker.getInstance().showPauseButton();
+export const showWidgetWindow = () => {
+  ScreenMarker.getInstance().showWidgetWindow();
 };
 
-export const hidePauseButton = () => {
-  ScreenMarker.getInstance().hidePauseButton();
+export const hideWidgetWindow = () => {
+  ScreenMarker.getInstance().hideWidgetWindow();
 };
 
 export const showScreenWaterFlow = () => {

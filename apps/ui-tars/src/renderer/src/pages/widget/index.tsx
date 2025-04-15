@@ -96,7 +96,7 @@ const Widget = () => {
   }, []);
 
   return (
-    <div className="w-80 h-80 overflow-hidden p-4 bg-white/95 dark:bg-gray-800/95">
+    <div className="w-80 h-80 overflow-hidden p-4 bg-white/90 dark:bg-gray-800/90">
       <div className="flex">
         {/* Logo */}
         <img src={logo} alt="logo" className="-ml-2 h-6 mr-auto" />
