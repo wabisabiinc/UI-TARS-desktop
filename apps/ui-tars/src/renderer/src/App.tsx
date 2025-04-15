@@ -9,10 +9,10 @@ import { Toaster } from 'sonner';
 import './styles/globals.css';
 
 const Home = lazy(() => import('./pages/home'));
-const Settings = lazy(() => import('./pages/settings'));
 const Settings2 = lazy(() => import('./pages/settings/Settings'));
 const Launcher = lazy(() => import('./pages/launcher'));
 const InProgressing = lazy(() => import('./pages/inProgressing'));
+const Widget = lazy(() => import('./pages/widget'));
 
 export default function App() {
   return (

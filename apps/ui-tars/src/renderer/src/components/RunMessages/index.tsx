@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useEffect, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, AlertCircle } from 'lucide-react';
 import { cn } from '@renderer/utils';
-import { ScrollArea } from '@renderer/components/ui/scroll-area';
 import { Button } from '@renderer/components/ui/button';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
@@ -116,9 +115,13 @@ const RunMessages = () => {
             {thinking && <LoadingText>Thinking...</LoadingText>}
 
             {errorMsg && (
-              <div className="flex gap-2 my-4 items-center justify-start">
-                <div className="p-3 rounded-md bg-secondary w-full font-mono text-red-500">
-                  ERROR: {errorMsg}
+              <div className="flex flex-col gap-2 my-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                  <span className="font-medium text-red-500">Error</span>
+                </div>
+                <div className="font-mono text-sm text-red-500/90 break-all">
+                  {errorMsg}
                 </div>
               </div>
             )}
