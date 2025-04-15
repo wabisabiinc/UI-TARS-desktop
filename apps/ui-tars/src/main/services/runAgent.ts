@@ -133,7 +133,6 @@ export const runAgent = async (
     systemPrompt: getSystemPromptV1_5(
       language,
       'normal', // Only support normal mode for now.
-      settings.operator,
     ),
     logger,
     signal: abortController?.signal,
