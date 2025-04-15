@@ -7,7 +7,7 @@
  * found in https://github.com/web-infra-dev/midscene/blob/main/LICENSE
  *
  */
-import { BrowserWindow, ipcMain, screen } from 'electron';
+import { BrowserWindow, ipcMain, screen, app } from 'electron';
 
 import { PredictionParsed, Conversation } from '@ui-tars/shared/types';
 
@@ -16,11 +16,13 @@ import { logger } from '@main/logger';
 
 import { setOfMarksOverlays } from '@main/shared/setOfMarks';
 import { server } from '@main/ipcRoutes';
+import path from 'path';
+import MenuBuilder from '../menu';
 
 class ScreenMarker {
   private static instance: ScreenMarker;
   private currentOverlay: BrowserWindow | null = null;
-  private pauseButton: BrowserWindow | null = null;
+  private widgetWindow: BrowserWindow | null = null;
   private screenWaterFlow: BrowserWindow | null = null;
   private lastShowPredictionMarkerPos: { xPos: number; yPos: number } | null =
     null;
@@ -129,66 +131,54 @@ class ScreenMarker {
   }
 
   hidePauseButton() {
-    this.pauseButton?.close();
-    this.pauseButton = null;
+    this.widgetWindow?.close();
+    this.widgetWindow = null;
   }
 
   // 新增：显示暂停按钮
   showPauseButton() {
-    if (this.pauseButton) {
-      this.pauseButton.close();
-      this.pauseButton = null;
+    if (this.widgetWindow) {
+      this.widgetWindow.close();
+      this.widgetWindow = null;
     }
 
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width: screenWidth } = primaryDisplay.size;
 
-    this.pauseButton = new BrowserWindow({
-      width: 100,
-      height: 40,
+    this.widgetWindow = new BrowserWindow({
+      width: 320,
+      height: 320,
       transparent: true,
       frame: false,
       alwaysOnTop: true,
       skipTaskbar: true,
       focusable: false,
+      resizable: false,
       type: 'toolbar',
-      webPreferences: { nodeIntegration: true, contextIsolation: false },
+      webPreferences: {
+        preload: path.join(__dirname, '../preload/index.js'),
+        sandbox: false,
+        webSecurity: !!env.isDev,
+      },
     });
 
-    this.pauseButton.setFocusable(false);
-    this.pauseButton.setContentProtection(true); // not show for vlm model
-    this.pauseButton.setPosition(Math.floor(screenWidth / 2 - 50), 0);
+    this.widgetWindow.setFocusable(false);
+    this.widgetWindow.setContentProtection(true); // not show for vlm model
+    this.widgetWindow.setPosition(Math.floor(screenWidth - 320 - 32), 32);
 
-    this.pauseButton.loadURL(`data:text/html;charset=UTF-8,
-      <html>
-        <body style="background: transparent; margin: 0; overflow: hidden;">
-          <div id="pauseBtn" style="
-            width: 100px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 0 0 8px 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-          " onclick="window.electron.stopRun()">
-            <span style="
-              color: white;
-              font-family: Arial, Microsoft YaHei;
-              font-size: 14px;
-            ">Pause</span>
-          </div>
-          <script>
-            const { ipcRenderer } = require('electron');
-            window.electron = {
-              stopRun: () => {
-                ipcRenderer.send('pause-button-clicked');
-              }
-            };
-          </script>
-        </body>
-      </html>
-    `);
+    if (!app.isPackaged && env.rendererUrl) {
+      this.widgetWindow.loadURL(env.rendererUrl + '#widget');
+    } else {
+      this.widgetWindow.loadFile(
+        path.join(__dirname, '../renderer/index.html'),
+        {
+          hash: '#widget',
+        },
+      );
+    }
+
+    const menuBuilder = new MenuBuilder(this.widgetWindow);
+    menuBuilder.buildMenu();
 
     // 监听来自渲染进程的点击事件
     ipcMain.once('pause-button-clicked', async () => {
@@ -288,9 +278,9 @@ class ScreenMarker {
       this.currentOverlay.close();
       this.currentOverlay = null;
     }
-    if (this.pauseButton) {
-      this.pauseButton.close();
-      this.pauseButton = null;
+    if (this.widgetWindow) {
+      this.widgetWindow.close();
+      this.widgetWindow = null;
     }
     if (this.screenWaterFlow) {
       this.screenWaterFlow.close();

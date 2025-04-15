@@ -45,13 +45,17 @@ const Widget = () => {
 
   const currentOperator = settings.operator || 'nutjs';
 
-  const lastMessage = messages[messages.length - 6];
+  const lastMessage = messages[messages.length - 1];
 
-  console.log('messages', messages);
+  console.log('messages', messages, thinking, errorMsg);
 
   // 获取最后一个 AI 动作
   const getLastAction = () => {
     let actions: Action[] = [];
+
+    if (!lastMessage) {
+      return actions;
+    }
 
     if (lastMessage.from === 'human') {
       actions = [
@@ -114,12 +118,12 @@ const Widget = () => {
         </div>
       </div>
 
-      {!!thinking && (
+      {/* {!!thinking && (
         <div className="inline-flex items-center text-muted-foreground animate-pulse mt-4">
           <Loader2 className="h-4 w-4 animate-spin mr-2" />
           Thinking...
         </div>
-      )}
+      )} */}
 
       {!!errorMsg && <div>{errorMsg}</div>}
 
