@@ -10,8 +10,13 @@ import { StatusEnum } from '@ui-tars/shared/types';
 import { useRunAgent } from '@renderer/hooks/useRunAgent';
 import { useStore } from '@renderer/hooks/useStore';
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip';
 import { Button } from '@renderer/components/ui/button';
-import { isCallUserMessage } from '@renderer/utils/message';
 import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
 import { api } from '@renderer/api';
 
@@ -29,6 +34,16 @@ const ChatInput = () => {
   // console.log('ChatInput', status);
 
   const [localInstructions, setLocalInstructions] = React.useState('');
+
+  const getInstantInstructions = () => {
+    if (localInstructions?.trim()) {
+      return localInstructions;
+    }
+    if (isCallUser && savedInstructions?.trim()) {
+      return savedInstructions;
+    }
+    return '';
+  };
 
   const { run } = useRunAgent();
   const {
@@ -49,7 +64,7 @@ const ChatInput = () => {
       console.error('start recording failed:', e);
     });
 
-    run(localInstructions, () => {
+    run(getInstantInstructions(), () => {
       setLocalInstructions('');
     });
   };
@@ -64,7 +79,7 @@ const ChatInput = () => {
       e.key === 'Enter' &&
       !e.shiftKey &&
       !e.metaKey &&
-      localInstructions?.trim()
+      getInstantInstructions()
     ) {
       e.preventDefault();
 
@@ -84,15 +99,15 @@ const ChatInput = () => {
     }
   }, [status]);
 
-  const isCallUser = useMemo(() => isCallUserMessage(messages), [messages]);
+  const isCallUser = useMemo(() => status === StatusEnum.CALL_USER, [status]);
 
   /**
    * `call_user` for human-in-the-loop
    */
   useEffect(() => {
-    if (status === StatusEnum.END && isCallUser && savedInstructions) {
-      setLocalInstructions(savedInstructions);
-    }
+    // if (status === StatusEnum.CALL_USER && savedInstructions) {
+    //   setLocalInstructions(savedInstructions);
+    // }
     // record screen when running
     if (status !== StatusEnum.INIT) {
       stopRecording();
@@ -101,7 +116,7 @@ const ChatInput = () => {
     return () => {
       stopRecording();
     };
-  }, [isCallUser, status, savedInstructions]);
+  }, [status]);
 
   const lastHumanMessage =
     [...(messages || [])]
@@ -120,9 +135,11 @@ const ChatInput = () => {
           <Textarea
             ref={textareaRef}
             placeholder={
-              running && lastHumanMessage && messages?.length > 1
-                ? lastHumanMessage
-                : 'What can I do for you today?'
+              isCallUser && savedInstructions
+                ? `${savedInstructions}`
+                : running && lastHumanMessage && messages?.length > 1
+                  ? lastHumanMessage
+                  : 'What can I do for you today?'
             }
             className="min-h-[120px] rounded-2xl resize-none px-4 pb-16" // 调整内边距
             value={localInstructions}
@@ -140,21 +157,49 @@ const ChatInput = () => {
             {running && (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-8 w-8" // 调整按钮大小
-              onClick={running ? stopRun : startRun}
-              disabled={!running && localInstructions?.trim() === ''}
-            >
-              {running ? (
-                <Square className="h-4 w-4" />
-              ) : isCallUser ? (
-                <Play className="h-4 w-4" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
+            {running ? (
+              <Square className="h-4 w-4" />
+            ) : isCallUser && !localInstructions ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 bg-pink-100 hover:bg-pink-200 text-pink-500 border-pink-200"
+                      onClick={running ? stopRun : startRun}
+                      disabled={!running && !getInstantInstructions()}
+                    >
+                      {running ? (
+                        <Square className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="whitespace-pre-line">
+                      send last instructions when you done for ui-tars&apos;s
+                      &apos;CALL_USER&apos;
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8"
+                onClick={running ? stopRun : startRun}
+                disabled={!running && !getInstantInstructions()}
+              >
+                {running ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>
