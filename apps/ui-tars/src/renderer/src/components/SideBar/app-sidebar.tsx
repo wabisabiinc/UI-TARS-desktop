@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useCallback, type ComponentProps } from 'react';
-import { Smartphone, Monitor, Gamepad2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenuButton,
 } from '@renderer/components/ui/sidebar';
 import { DragArea } from '@renderer/components/Common/drag';
 import { Button } from '@renderer/components/ui/button';
@@ -55,8 +56,15 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
         <UITarsHeader />
       </SidebarHeader>
       <SidebarContent>
-        <Button className="mx-4" onClick={onNewChat}>
-          New Chat
+        <Button
+          variant={'outline'}
+          className="mx-4 mt-1 group-data-[state=collapsed]:mx-1.5"
+          onClick={onNewChat}
+        >
+          <Plus />
+          <span className="group-data-[state=collapsed]:hidden transition-opacity duration-200 ease-in-out group-data-[state=expanded]:opacity-100">
+            New Chat
+          </span>
         </Button>
         <NavHistory
           currentSessionId={currentSessionId}
