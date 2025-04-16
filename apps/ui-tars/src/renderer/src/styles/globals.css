@@ -132,3 +132,7 @@
 button {
   cursor: pointer
 }
+
+body {
+  background-color: transparent !important;
+}

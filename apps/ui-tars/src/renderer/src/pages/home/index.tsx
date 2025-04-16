@@ -10,7 +10,7 @@ import { DragArea } from '@renderer/components/Common/drag';
 
 export default function Page() {
   return (
-    <SidebarProvider className="flex h-screen w-full">
+    <SidebarProvider className="flex h-screen w-full bg-white">
       <AppSidebar />
       <SidebarInset className="flex-1">
         <DragArea />

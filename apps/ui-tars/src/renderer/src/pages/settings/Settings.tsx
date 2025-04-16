@@ -177,7 +177,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-white">
       <DragArea />
 
       <div className="flex-1 flex gap-4 p-6 overflow-hidden">
