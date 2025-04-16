@@ -12,23 +12,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@renderer/components/ui/alert-dialog';
-import { useStore } from '@renderer/hooks/useStore';
-import { StatusEnum } from '@ui-tars/shared/types';
 import { useState } from 'react';
+import { useSession } from '@renderer/hooks/useSession';
 
 export const ClearHistory = () => {
-  const { status, messages } = useStore();
-  const running = status === StatusEnum.RUNNING;
   const [open, setOpen] = useState(false);
+  const { currentSessionId, deleteMessages } = useSession();
 
-  const needClear = !running && messages?.length > 0;
-
-  if (!needClear) {
+  if (!currentSessionId) {
     return null;
   }
 
   const handleClearMessages = async () => {
-    await api.clearHistory();
+    await deleteMessages(currentSessionId);
     setOpen(false);
   };
 

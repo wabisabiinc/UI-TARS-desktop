@@ -23,8 +23,13 @@ import { UITarsHeader } from './nav-header';
 import { api } from '@renderer/api';
 
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
-  const { sessions, createSession, deleteSession, setActiveSession } =
-    useSession();
+  const {
+    currentSessionId,
+    sessions,
+    createSession,
+    deleteSession,
+    setActiveSession,
+  } = useSession();
 
   const onSettingsClick = useCallback(async () => {
     await api.openSettingsWindow();
@@ -54,6 +59,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
           New Chat
         </Button>
         <NavHistory
+          currentSessionId={currentSessionId}
           history={sessions}
           onSessionClick={onSessionClick}
           onSessionDelete={onSessionDelete}

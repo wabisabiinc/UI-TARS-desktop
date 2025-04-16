@@ -34,10 +34,12 @@ import {
 import { SessionItem } from '@renderer/db/session';
 
 export function NavHistory({
+  currentSessionId,
   history,
   onSessionClick,
   onSessionDelete,
 }: {
+  currentSessionId: string;
   history: SessionItem[];
   onSessionClick: (id: string) => void;
   onSessionDelete: (id: string) => void;
@@ -67,13 +69,14 @@ export function NavHistory({
                 {history.map((item) => (
                   <SidebarMenuSubItem key={item.id} className="group/item">
                     <SidebarMenuSubButton
+                      className={`hover:bg-neutral-100 hover:text-neutral-600 py-5 cursor-pointer ${item.id === currentSessionId ? 'text-neutral-700 bg-white hover:bg-white' : 'text-neutral-500'}`}
                       onClick={() => onSessionClick(item.id)}
                     >
                       <span className="max-w-42">{item.name}</span>
                     </SidebarMenuSubButton>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <SidebarMenuAction className="invisible group-hover/item:visible [&[data-state=open]]:visible">
+                        <SidebarMenuAction className="invisible group-hover/item:visible [&[data-state=open]]:visible mt-1">
                           <MoreHorizontal />
                           <span className="sr-only">More</span>
                         </SidebarMenuAction>
