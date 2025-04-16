@@ -7,6 +7,7 @@ import {
 import { chatManager } from '@renderer/db/chat';
 import { api } from '@renderer/api';
 import { ConversationWithSoM } from '@/main/shared/types';
+import { sleep } from '@ui-tars/shared/utils';
 
 interface SessionState {
   loading: boolean;
@@ -64,7 +65,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     try {
       set({ loading: true });
       const allSessions = await sessionManager.getAllSessions();
-      set({ sessions: allSessions });
+      set({ sessions: allSessions.reverse() });
     } catch (err) {
       console.error('fetchSessions', err);
 
@@ -83,7 +84,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       await api.clearHistory();
 
       set((state) => ({
-        sessions: [...state.sessions, newSession],
+        sessions: [newSession, ...state.sessions],
         currentSessionId: newSession.id,
       }));
 
@@ -123,6 +124,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   deleteSession: async (id) => {
     try {
       const deleted = await sessionManager.deleteSession(id);
+      await get().deleteMessages(id);
+
       if (deleted) {
         set((state) => ({
           sessions: state.sessions.filter((session) => session.id !== id),
@@ -149,7 +152,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         messages,
       );
       set(() => ({
-        chatMessages: messages,
+        chatMessages: updatedMessages,
       }));
       return updatedMessages;
     } catch (err) {
@@ -221,6 +224,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   setActiveSession: async (sessionId) => {
+    await api.clearHistory();
+    await sleep(100); // hack
+
     set({ currentSessionId: sessionId });
     await get().getMessages(sessionId);
   },

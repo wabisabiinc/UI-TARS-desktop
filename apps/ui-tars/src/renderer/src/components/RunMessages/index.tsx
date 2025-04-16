@@ -40,10 +40,12 @@ const RunMessages = () => {
     await api.setInstructions({ instructions: suggestion });
   };
 
-  console.log('currentSessionId', currentSessionId);
+  // console.log('currentSessionId', currentSessionId);
 
+  // bug: 同一个对话里，新的 message 会覆盖旧的 message，需要检查 chatMessages 是否为空
   useEffect(() => {
-    if (currentSessionId) {
+    // console.log('useEffect updateMessages', currentSessionId, messages);
+    if (currentSessionId && messages.length) {
       updateMessages(currentSessionId, messages);
     }
   }, [messages, currentSessionId]);
