@@ -50,7 +50,9 @@ function DeleteHistoryItem({ onDelete }: { onDelete: () => void }) {
       <AlertDialogTrigger asChild>
         <DropdownMenuItem
           className="text-red-400 focus:bg-red-50 focus:text-red-500"
-          onClick={(e) => e.preventDefault()}
+          onSelect={(event) => {
+            event.preventDefault();
+          }}
         >
           <Trash2 className="text-red-400" />
           <span>Delete</span>
@@ -58,9 +60,9 @@ function DeleteHistoryItem({ onDelete }: { onDelete: () => void }) {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete History</AlertDialogTitle>
+          <AlertDialogTitle>Delete Session</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this history item? This action
+            Are you sure you want to delete this session item? This action
             cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>

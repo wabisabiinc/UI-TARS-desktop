@@ -38,10 +38,6 @@ const RunMessages = () => {
   const isWelcome = currentSessionId === '';
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(!isWelcome);
 
-  const handleSelect = async (suggestion: string) => {
-    await api.setInstructions({ instructions: suggestion });
-  };
-
   // console.log('currentSessionId', currentSessionId, chatMessages);
 
   // bug: 同一个对话里，新的 message 会覆盖旧的 message，需要检查 chatMessages 是否为空
@@ -70,6 +66,15 @@ const RunMessages = () => {
     }, 100);
   }, [messages, thinking, errorMsg]);
 
+  const handleSelect = async (suggestion: string) => {
+    await api.setInstructions({ instructions: suggestion });
+  };
+
+  const handleImageSelect = async (index: number) => {
+    setIsRightPanelOpen(true);
+    setSelectImg(index);
+  };
+
   const renderChatList = () => {
     return (
       <div className="flex-1 w-full px-12 py-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
@@ -85,7 +90,7 @@ const RunMessages = () => {
                 return (
                   <ScreenshotMessage
                     key={`message-${idx}`}
-                    onClick={() => setSelectImg(idx)}
+                    onClick={() => handleImageSelect(idx)}
                   />
                 );
               }
@@ -107,7 +112,7 @@ const RunMessages = () => {
                   key={idx}
                   steps={predictionParsed}
                   hasSomImage={!!screenshotBase64WithElementMarker}
-                  onClick={() => setSelectImg(idx)}
+                  onClick={() => handleImageSelect(idx)}
                 />
               );
             }
