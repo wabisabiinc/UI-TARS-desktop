@@ -17,11 +17,13 @@ import {
   TooltipTrigger,
 } from '@renderer/components/ui/tooltip';
 import { Button } from '@renderer/components/ui/button';
-import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
+// import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
 import { api } from '@renderer/api';
 
 import { Play, Send, Square, Loader2 } from 'lucide-react';
 import { Textarea } from '@renderer/components/ui/textarea';
+import { useSession } from '@renderer/hooks/useSession';
+
 import { SelectOperator } from './SelectOperator';
 
 const ChatInput = () => {
@@ -31,8 +33,6 @@ const ChatInput = () => {
     messages,
     restUserData,
   } = useStore();
-  console.log('ChatInput instructions', savedInstructions);
-
   const [localInstructions, setLocalInstructions] = React.useState('');
 
   const getInstantInstructions = () => {
@@ -46,25 +46,30 @@ const ChatInput = () => {
   };
 
   const { run } = useRunAgent();
-  const {
-    canSaveRecording,
-    startRecording,
-    stopRecording,
-    saveRecording,
-    recordRefs,
-  } = useScreenRecord();
+  // const {
+  //   canSaveRecording,
+  //   startRecording,
+  //   stopRecording,
+  //   saveRecording,
+  //   recordRefs,
+  // } = useScreenRecord();
+
+  const { currentSessionId, updateSession } = useSession();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const running = status === StatusEnum.RUNNING;
 
   // console.log('running', 'status', status, running);
 
-  const startRun = () => {
-    startRecording().catch((e) => {
-      console.error('start recording failed:', e);
-    });
+  const startRun = async () => {
+    // startRecording().catch((e) => {
+    //   console.error('start recording failed:', e);
+    // });
+    const instructions = getInstantInstructions();
 
-    run(getInstantInstructions(), () => {
+    await updateSession(currentSessionId, { name: instructions });
+
+    run(instructions, () => {
       setLocalInstructions('');
     });
   };
@@ -104,19 +109,19 @@ const ChatInput = () => {
   /**
    * `call_user` for human-in-the-loop
    */
-  useEffect(() => {
-    // if (status === StatusEnum.CALL_USER && savedInstructions) {
-    //   setLocalInstructions(savedInstructions);
-    // }
-    // record screen when running
-    if (status !== StatusEnum.INIT) {
-      stopRecording();
-    }
+  // useEffect(() => {
+  //   // if (status === StatusEnum.CALL_USER && savedInstructions) {
+  //   //   setLocalInstructions(savedInstructions);
+  //   // }
+  //   // record screen when running
+  //   if (status !== StatusEnum.INIT) {
+  //     stopRecording();
+  //   }
 
-    return () => {
-      stopRecording();
-    };
-  }, [status]);
+  //   return () => {
+  //     stopRecording();
+  //   };
+  // }, [status]);
 
   const lastHumanMessage =
     [...(messages || [])]
@@ -204,10 +209,10 @@ const ChatInput = () => {
         </div>
       </div>
 
-      <div style={{ display: 'none' }}>
+      {/* <div style={{ display: 'none' }}>
         <video ref={recordRefs.videoRef} />
         <canvas ref={recordRefs.canvasRef} />
-      </div>
+      </div> */}
     </div>
   );
 };

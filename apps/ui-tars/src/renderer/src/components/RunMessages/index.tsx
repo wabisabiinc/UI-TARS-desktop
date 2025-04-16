@@ -18,6 +18,8 @@ import { SidebarTrigger } from '@renderer/components/ui/sidebar';
 import { ShareOptions } from '@renderer/components/ChatInput/ShareOptions';
 import { ClearHistory } from '@renderer/components/ChatInput/ClearHistory';
 import { useStore } from '@renderer/hooks/useStore';
+import { useSession } from '@renderer/hooks/useSession';
+
 import ImageGallery from '../ImageGallery';
 import {
   ErrorMessage,
@@ -32,10 +34,19 @@ const RunMessages = () => {
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const suggestions: string[] = [];
   const [selectImg, setSelectImg] = useState<number | undefined>(undefined);
+  const { currentSessionId, chatMessages, updateMessages } = useSession();
 
   const handleSelect = async (suggestion: string) => {
     await api.setInstructions({ instructions: suggestion });
   };
+
+  console.log('currentSessionId', currentSessionId);
+
+  useEffect(() => {
+    if (currentSessionId) {
+      updateMessages(currentSessionId, messages);
+    }
+  }, [messages, currentSessionId]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -72,11 +83,11 @@ const RunMessages = () => {
         </div>
         <div className="flex-1 w-full px-12 py-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
           <div ref={containerRef}>
-            {!messages?.length && suggestions?.length > 0 && (
+            {!chatMessages?.length && suggestions?.length > 0 && (
               <Prompts suggestions={suggestions} onSelect={handleSelect} />
             )}
 
-            {messages?.map((message, idx) => {
+            {chatMessages?.map((message, idx) => {
               if (message?.from === 'human') {
                 if (message?.value === IMAGE_PLACEHOLDER) {
                   // screen shot
@@ -104,9 +115,6 @@ const RunMessages = () => {
                   <ThoughtChain
                     key={idx}
                     steps={predictionParsed}
-                    active={
-                      !messages.slice(idx + 1).some((m) => m.from !== 'human')
-                    }
                     hasSomImage={!!screenshotBase64WithElementMarker}
                     onClick={() => setSelectImg(idx)}
                   />
@@ -132,7 +140,7 @@ const RunMessages = () => {
             : 'w-0 opacity-0 overflow-hidden',
         )}
       >
-        <ImageGallery messages={messages} selectImgIndex={selectImg} />
+        <ImageGallery messages={chatMessages} selectImgIndex={selectImg} />
       </div>
     </div>
   );

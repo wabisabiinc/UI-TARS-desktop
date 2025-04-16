@@ -36,7 +36,6 @@ export const actionIconMap = {
 interface ThoughtStepCardProps {
   step: PredictionParsed;
   index: number;
-  active: boolean;
   onClick?: () => void;
   hasSomImage: boolean;
 }
@@ -95,7 +94,6 @@ function ThoughtStepCard({ step, onClick, hasSomImage }: ThoughtStepCardProps) {
 
 interface ThoughtChainProps {
   steps: PredictionParsed[];
-  active: boolean;
   hasSomImage: boolean;
   somImageHighlighted?: boolean;
   onClick?: () => void;
@@ -103,7 +101,6 @@ interface ThoughtChainProps {
 
 export default function ThoughtChain({
   steps,
-  active,
   onClick,
   hasSomImage,
 }: ThoughtChainProps) {
@@ -113,7 +110,6 @@ export default function ThoughtChain({
         <ThoughtStepCard
           key={index}
           step={step}
-          active={active}
           index={index}
           onClick={onClick}
           hasSomImage={hasSomImage}

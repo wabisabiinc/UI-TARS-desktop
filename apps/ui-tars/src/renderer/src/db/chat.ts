@@ -1,29 +1,28 @@
 // /apps/ui-tars/src/renderer/src/db/chat.ts
 import { get, set, del, createStore } from 'idb-keyval';
-import { Message } from '@ui-tars/shared/types';
-import { DBName } from './session';
-
-export interface ChatMessage extends Message {
-  id: string;
-  sessionId: string;
-  timestamp: number;
-}
+import { ConversationWithSoM } from '@/main/shared/types';
 
 export interface ChatMetaInfo {
   [key: string]: any;
 }
 
+const DBName = 'ui_tars_db_chat';
 const chatStore = createStore(DBName, 'chats');
 
 export class ChatManager {
   // 创建新消息
-  async createSessionMessages(sessionId: string, message: Message) {
-    const messages = [message];
+  async createSessionMessages(
+    sessionId: string,
+    messages: ConversationWithSoM[],
+  ) {
     await set(sessionId, messages, chatStore);
     return messages;
   }
 
-  async updateSessionMessages(sessionId: string, messages: Message[]) {
+  async updateSessionMessages(
+    sessionId: string,
+    messages: ConversationWithSoM[],
+  ) {
     await set(sessionId, messages, chatStore);
 
     return messages;
@@ -31,7 +30,7 @@ export class ChatManager {
 
   // 获取会话的所有消息
   async getSessionMessages(sessionId: string) {
-    return get<Message[]>(sessionId, chatStore);
+    return get<ConversationWithSoM[]>(sessionId, chatStore);
   }
 
   // 删除会话相关的所有消息

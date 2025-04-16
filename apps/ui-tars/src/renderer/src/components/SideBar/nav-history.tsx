@@ -6,7 +6,6 @@ import {
   Forward,
   MoreHorizontal,
   Trash2,
-  type LucideIcon,
   History,
   ChevronRight,
 } from 'lucide-react';
@@ -32,14 +31,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@renderer/components/ui/collapsible';
+import { SessionItem } from '@renderer/db/session';
 
 export function NavHistory({
   history,
+  onSessionClick,
+  onSessionDelete,
 }: {
-  history: {
-    name: string;
-    icon: LucideIcon;
-  }[];
+  history: SessionItem[];
+  onSessionClick: (id: string) => void;
+  onSessionDelete: (id: string) => void;
 }) {
   return (
     <SidebarGroup>
@@ -64,10 +65,11 @@ export function NavHistory({
             <CollapsibleContent>
               <SidebarMenuSub className="!mr-0 !pr-1">
                 {history.map((item) => (
-                  <SidebarMenuSubItem key={item.name} className="group/item">
-                    <SidebarMenuSubButton>
-                      <item.icon />
-                      <span>{item.name}</span>
+                  <SidebarMenuSubItem key={item.id} className="group/item">
+                    <SidebarMenuSubButton
+                      onClick={() => onSessionClick(item.id)}
+                    >
+                      <span className="max-w-42">{item.name}</span>
                     </SidebarMenuSubButton>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -77,17 +79,19 @@ export function NavHistory({
                         </SidebarMenuAction>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
-                        className="w-36 rounded-lg"
+                        className="rounded-lg"
                         side={'right'}
                         align={'start'}
                       >
                         <DropdownMenuItem>
                           <Forward className="text-muted-foreground" />
-                          <span>Share Chat</span>
+                          <span>Share</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => onSessionDelete(item.id)}
+                        >
                           <Trash2 className="text-muted-foreground" />
-                          <span>Delete Chat</span>
+                          <span>Delete</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

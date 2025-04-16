@@ -5,8 +5,6 @@
 import { get, set, del, entries, createStore } from 'idb-keyval';
 import { v4 } from 'uuid';
 
-export type SessionType = 'pc' | 'mobile' | 'webgame';
-
 // Session 相关的类型定义
 export interface SessionMetaInfo {
   [key: string]: any;
@@ -15,13 +13,12 @@ export interface SessionMetaInfo {
 export interface SessionItem {
   id: string;
   name: string;
-  type: SessionType;
   meta: SessionMetaInfo;
   createdAt: number;
   updatedAt: number;
 }
 
-export const DBName = 'ui_tars_db';
+const DBName = 'ui_tars_db';
 
 // 创建一个专门的 store 实例
 const sessionStore = createStore(DBName, 'sessions');
@@ -31,14 +28,12 @@ export class SessionManager {
   // 创建新的会话
   async createSession(
     name: string,
-    type: SessionType,
     meta: SessionMetaInfo = {},
   ): Promise<SessionItem> {
     const now = Date.now();
     const session: SessionItem = {
       id: `session_${now}_${v4()}`,
       name,
-      type,
       createdAt: now,
       updatedAt: now,
       meta,

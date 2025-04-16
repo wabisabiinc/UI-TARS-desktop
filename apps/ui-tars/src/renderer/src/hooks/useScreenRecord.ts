@@ -195,11 +195,11 @@ export const useScreenRecord = (
   };
 
   const canSaveRecording = !isRecording && recordedChunksRef.current.length > 0;
-  console.log(
-    '[canSaveRecording]',
-    isRecording,
-    recordedChunksRef.current.length,
-  );
+  // console.log(
+  //   '[canSaveRecording]',
+  //   isRecording,
+  //   recordedChunksRef.current.length,
+  // );
 
   return {
     isRecording,

@@ -13,6 +13,7 @@ import {
 } from '@renderer/components/ui/sidebar';
 import { DragArea } from '@renderer/components/Common/drag';
 import { Button } from '@renderer/components/ui/button';
+import { useSession } from '@renderer//hooks/useSession';
 
 // import { NavMain } from './nav-main';
 import { NavHistory } from './nav-history';
@@ -21,72 +22,25 @@ import { UITarsHeader } from './nav-header';
 
 import { api } from '@renderer/api';
 
-// This is sample data.
-const data = {
-  navMain: [
-    {
-      title: 'Playground',
-      url: '#',
-      icon: Smartphone,
-      isActive: true,
-      items: [
-        {
-          title: 'History',
-          url: '#',
-        },
-        {
-          title: 'Starred',
-          url: '#',
-        },
-        {
-          title: 'Settings',
-          url: '#',
-        },
-      ],
-    },
-    {
-      title: 'Settings',
-      url: '#',
-      icon: Smartphone,
-      items: [
-        {
-          title: 'General',
-          url: '#',
-        },
-        {
-          title: 'Team',
-          url: '#',
-        },
-        {
-          title: 'Billing',
-          url: '#',
-        },
-        {
-          title: 'Limits',
-          url: '#',
-        },
-      ],
-    },
-  ],
-  history: [
-    {
-      name: 'Smartphone',
-      icon: Smartphone,
-    },
-    {
-      name: 'Monitor',
-      icon: Monitor,
-    },
-    {
-      name: 'Gamepad2',
-      icon: Gamepad2,
-    },
-  ],
-};
-
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+  const { sessions, createSession, deleteSession, setActiveSession } =
+    useSession();
+
   const onSettingsClick = useCallback(async () => {
     await api.openSettingsWindow();
+  }, []);
+
+  const onNewChat = useCallback(async () => {
+    await createSession(`new session`);
+  }, []);
+
+  const onSessionDelete = useCallback(async (sessionId: string) => {
+    await deleteSession(sessionId);
+  }, []);
+
+  const onSessionClick = useCallback(async (sessionId: string) => {
+    console.log('onSessionClick', sessionId);
+    await setActiveSession(sessionId);
   }, []);
 
   return (
@@ -96,9 +50,14 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
         <UITarsHeader />
       </SidebarHeader>
       <SidebarContent>
-        <Button className="mx-4">New Chat</Button>
-        {/* <NavMain items={data.navMain} /> */}
-        <NavHistory history={data.history} />
+        <Button className="mx-4" onClick={onNewChat}>
+          New Chat
+        </Button>
+        <NavHistory
+          history={sessions}
+          onSessionClick={onSessionClick}
+          onSessionDelete={onSessionDelete}
+        />
       </SidebarContent>
       <SidebarFooter className="p-0">
         <NavSettings onSettingsClick={onSettingsClick} />
