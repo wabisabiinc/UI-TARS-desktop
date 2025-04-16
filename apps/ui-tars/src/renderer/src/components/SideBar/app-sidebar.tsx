@@ -12,6 +12,7 @@ import {
   SidebarHeader,
 } from '@renderer/components/ui/sidebar';
 import { DragArea } from '@renderer/components/Common/drag';
+import { Button } from '@renderer/components/ui/button';
 
 // import { NavMain } from './nav-main';
 import { NavHistory } from './nav-history';
@@ -95,6 +96,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
         <UITarsHeader />
       </SidebarHeader>
       <SidebarContent>
+        <Button className="mx-4">New Chat</Button>
         {/* <NavMain items={data.navMain} /> */}
         <NavHistory history={data.history} />
       </SidebarContent>

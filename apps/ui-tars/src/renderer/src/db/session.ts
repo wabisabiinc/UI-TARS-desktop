@@ -17,7 +17,6 @@ export interface SessionItem {
   name: string;
   type: SessionType;
   meta: SessionMetaInfo;
-  conversationId: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -33,7 +32,6 @@ export class SessionManager {
   async createSession(
     name: string,
     type: SessionType,
-    conversationId: string,
     meta: SessionMetaInfo = {},
   ): Promise<SessionItem> {
     const now = Date.now();
@@ -41,7 +39,6 @@ export class SessionManager {
       id: `session_${now}_${v4()}`,
       name,
       type,
-      conversationId,
       createdAt: now,
       updatedAt: now,
       meta,
