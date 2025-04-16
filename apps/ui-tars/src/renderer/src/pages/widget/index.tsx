@@ -5,11 +5,21 @@ import { useSetting } from '@renderer/hooks/useSetting';
 
 import logo from '@resources/logo-full.png?url';
 import { Button } from '@renderer/components/ui/button';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '@renderer/api';
 
 import './widget.css';
 import { StatusEnum } from '@ui-tars/sdk';
+
+interface Action {
+  action: string;
+  type: string;
+  cost?: number;
+  input?: string;
+  reflection?: string;
+  thought?: string;
+  query?: string;
+}
 
 const getOperatorIcon = (type: string) => {
   switch (type) {
@@ -39,24 +49,29 @@ const Widget = () => {
 
   const currentOperator = settings.operator || 'nutjs';
 
-  const lastMessage = messages[messages.length - 1];
+  const [actions, setActions] = useState<Action[]>([]);
 
-  const currentAction = useMemo(() => {
-    if (!lastMessage) return [];
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+
+    console.log('lastMessage', lastMessage);
 
     if (lastMessage.from === 'human') {
-      const mime = lastMessage.screenshotContext?.mime || 'image/png';
-      return [
-        {
-          action: 'Screenshot',
-          type: 'screenshot',
-          cost: lastMessage.timing?.cost,
-          screenshot: `data:${mime};base64,${lastMessage.screenshotBase64}`,
-        },
-      ];
+      if (!lastMessage.screenshotBase64) {
+        setActions([
+          {
+            action: '',
+            type: '',
+            query: lastMessage.value,
+          },
+        ]);
+        return;
+      } else {
+        return;
+      }
     }
 
-    return (
+    const ac =
       lastMessage.predictionParsed?.map((item) => {
         const input = [
           item.action_inputs?.start_box &&
@@ -72,12 +87,12 @@ const Widget = () => {
           type: item.action_type,
           cost: lastMessage.timing?.cost,
           input: input || undefined,
-          reflection: item.reflection,
+          reflection: item.reflection || '',
           thought: item.thought,
         };
-      }) || []
-    );
-  }, [lastMessage]);
+      }) || [];
+    setActions(ac);
+  }, [messages]);
 
   const [isPaused, setIsPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -106,7 +121,7 @@ const Widget = () => {
   }, []);
 
   return (
-    <div className="w-80 h-120 overflow-hidden p-4 bg-white/90 dark:bg-gray-800/90">
+    <div className="w-100 h-100 overflow-hidden p-4 bg-white/90 dark:bg-gray-800/90">
       <div className="flex">
         {/* Logo */}
         <img src={logo} alt="logo" className="-ml-2 h-6 mr-auto" />
@@ -119,26 +134,31 @@ const Widget = () => {
 
       {!!errorMsg && <div>{errorMsg}</div>}
 
-      {!!currentAction.length && !errorMsg && (
+      {!!actions.length && !errorMsg && (
         <>
-          {currentAction.map((action, idx) => {
+          {actions.map((action, idx) => {
             const ActionIcon = actionIconMap[action.type];
             return (
               <div
                 key={idx}
-                className="mt-4 max-h-92 overflow-scroll hide_scroll_bar"
+                className="mt-4 max-h-70 overflow-scroll hide_scroll_bar"
               >
                 {/* Actions */}
                 {!!action.type && (
                   <>
                     <div className="flex items-baseline">
-                      <div className="text-lg font-medium">Actions</div>
+                      <div className="text-lg font-medium">{action.action}</div>
                       {/* {action.cost && (
                         <span className="text-xs text-gray-500 ml-2">{`(${ms(action.cost)})`}</span>
                       )} */}
                     </div>
                     <div className="flex items-center text-gray-500 text-sm">
-                      <ActionIcon className="w-4 h-4 mr-1.5" strokeWidth={2} />
+                      {!!ActionIcon && (
+                        <ActionIcon
+                          className="w-4 h-4 mr-1.5"
+                          strokeWidth={2}
+                        />
+                      )}
                       <span className="text-gray-600">{action.type}</span>
                       {action.input && (
                         <span className="text-gray-600 break-all truncate">
@@ -166,14 +186,13 @@ const Widget = () => {
                     </div>
                   </>
                 )}
-                {/* Thought */}
-                {!!action.screenshot && (
+                {/* Human Query */}
+                {!!action.query && (
                   <>
-                    <img
-                      className="mt-2"
-                      src={action.screenshot}
-                      alt="screenshot"
-                    />
+                    <div className="text-lg font-medium">Human Query</div>
+                    <div className="text-gray-500 text-sm break-all">
+                      {action.query}
+                    </div>
                   </>
                 )}
               </div>

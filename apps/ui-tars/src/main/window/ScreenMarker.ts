@@ -143,11 +143,11 @@ class ScreenMarker {
     }
 
     const primaryDisplay = screen.getPrimaryDisplay();
-    const { width: screenWidth } = primaryDisplay.size;
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.size;
 
     this.widgetWindow = new BrowserWindow({
-      width: 320,
-      height: 480,
+      width: 400,
+      height: 400,
       transparent: true,
       frame: false,
       alwaysOnTop: true,
@@ -166,7 +166,10 @@ class ScreenMarker {
 
     this.widgetWindow.setFocusable(false);
     this.widgetWindow.setContentProtection(true); // not show for vlm model
-    this.widgetWindow.setPosition(Math.floor(screenWidth - 320 - 32), 32);
+    this.widgetWindow.setPosition(
+      Math.floor(screenWidth - 400 - 32),
+      Math.floor(screenHeight - 400 - 32 - 64),
+    );
 
     if (!app.isPackaged && env.rendererUrl) {
       this.widgetWindow.loadURL(env.rendererUrl + '#widget');

@@ -42,8 +42,8 @@ const formSchema = z.object({
   vlmModelName: z.string(),
   maxLoopCount: z.number().min(25).max(200),
   loopIntervalInMs: z.number().min(0).max(3000),
-  reportStorageBaseUrl: z.string().url().optional(),
-  utioBaseUrl: z.string().url().optional(),
+  reportStorageBaseUrl: z.string().optional(),
+  utioBaseUrl: z.string().optional(),
 });
 
 const SECTIONS = {
