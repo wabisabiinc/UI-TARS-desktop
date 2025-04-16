@@ -218,10 +218,12 @@ export class NutJSOperator extends Operator {
         if (keyStr) {
           const platformCommandKey =
             process.platform === 'darwin' ? Key.LeftCmd : Key.LeftWin;
+          const platformCtrlKey =
+            process.platform === 'darwin' ? Key.LeftCmd : Key.LeftControl;
           const keyMap: Record<string, Key> = {
             return: Key.Enter,
             enter: Key.Enter,
-            ctrl: Key.LeftControl,
+            ctrl: platformCtrlKey,
             shift: Key.LeftShift,
             alt: Key.LeftAlt,
             space: Key.Space,
@@ -244,7 +246,7 @@ export class NutJSOperator extends Operator {
             );
           logger.info('[NutjsOperator] hotkey: ', keys);
           await keyboard.pressKey(...keys);
-          await keyboard.releaseKey(...keys);
+          await keyboard.releaseKey(...keys.reverse());
         }
         break;
       }
