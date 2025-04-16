@@ -262,6 +262,10 @@ export class BrowserOperator extends Operator {
           this.uiHelper.cleanup();
           break;
 
+        case 'user_stop':
+          this.uiHelper.cleanup();
+          break;
+
         default:
           this.logger.warn(
             `[BrowserOperator] Unsupported action: ${action_type}`,

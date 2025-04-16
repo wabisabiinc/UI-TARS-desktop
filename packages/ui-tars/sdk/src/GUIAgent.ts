@@ -379,6 +379,21 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
       };
       throw error;
     } finally {
+      if (data.status === StatusEnum.USER_STOPPED) {
+        await operator.execute({
+          prediction: '',
+          parsedPrediction: {
+            action_inputs: {},
+            reflection: null,
+            action_type: 'user_stop',
+            thought: '',
+          },
+          screenWidth: 0,
+          screenHeight: 0,
+          scaleFactor: 1,
+          factors: [0, 0],
+        });
+      }
       await onData?.({ data: { ...data, conversations: [] } });
       if (data.status === StatusEnum.ERROR) {
         onError?.({

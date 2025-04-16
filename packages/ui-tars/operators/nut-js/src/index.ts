@@ -274,6 +274,7 @@ export class NutJSOperator extends Operator {
       case 'error_env':
       case 'call_user':
       case 'finished':
+      case 'user_stop':
         return { status: StatusEnum.END };
 
       default:
