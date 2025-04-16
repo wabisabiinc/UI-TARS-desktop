@@ -205,6 +205,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   deleteMessages: async (sessionId) => {
     try {
+      await api.clearHistory();
+      await sleep(100); // hack
+
       const deleted = await chatManager.deleteSessionMessages(sessionId);
       if (deleted && sessionId === get().currentSessionId) {
         set(() => ({
