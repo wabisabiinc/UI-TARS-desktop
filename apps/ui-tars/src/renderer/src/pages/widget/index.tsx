@@ -45,11 +45,13 @@ const Widget = () => {
     if (!lastMessage) return [];
 
     if (lastMessage.from === 'human') {
+      const mime = lastMessage.screenshotContext?.mime || 'image/png';
       return [
         {
           action: 'Screenshot',
           type: 'screenshot',
           cost: lastMessage.timing?.cost,
+          screenshot: `data:${mime};base64,${lastMessage.screenshotBase64}`,
         },
       ];
     }
@@ -104,7 +106,7 @@ const Widget = () => {
   }, []);
 
   return (
-    <div className="w-80 h-80 overflow-hidden p-4 bg-white/90 dark:bg-gray-800/90">
+    <div className="w-80 h-120 overflow-hidden p-4 bg-white/90 dark:bg-gray-800/90">
       <div className="flex">
         {/* Logo */}
         <img src={logo} alt="logo" className="-ml-2 h-6 mr-auto" />
@@ -124,7 +126,7 @@ const Widget = () => {
             return (
               <div
                 key={idx}
-                className="mt-4 max-h-54 overflow-scroll hide_scroll_bar"
+                className="mt-4 max-h-92 overflow-scroll hide_scroll_bar"
               >
                 {/* Actions */}
                 {!!action.type && (
@@ -162,6 +164,16 @@ const Widget = () => {
                     <div className="text-gray-500 text-sm break-all">
                       {action.thought}
                     </div>
+                  </>
+                )}
+                {/* Thought */}
+                {!!action.screenshot && (
+                  <>
+                    <img
+                      className="mt-2"
+                      src={action.screenshot}
+                      alt="screenshot"
+                    />
                   </>
                 )}
               </div>

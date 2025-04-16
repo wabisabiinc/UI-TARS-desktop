@@ -147,7 +147,7 @@ class ScreenMarker {
 
     this.widgetWindow = new BrowserWindow({
       width: 320,
-      height: 320,
+      height: 480,
       transparent: true,
       frame: false,
       alwaysOnTop: true,

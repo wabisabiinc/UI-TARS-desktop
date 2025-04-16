@@ -4,7 +4,7 @@ import { Button } from '@renderer/components/ui/button';
 export const HumanTextMessage = ({ text }: { text: string }) => {
   return (
     <div className="flex gap-2 mb-4 mt-8 items-center">
-      <div className="p-3 rounded-md bg-secondary font-mono">{text}</div>
+      <div className="p-3 rounded-md bg-secondary">{text}</div>
     </div>
   );
 };
@@ -29,7 +29,7 @@ export const ErrorMessage = ({ text }: { text: string }) => {
         <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
         <span className="font-medium text-red-500">Error</span>
       </div>
-      <div className="font-mono text-sm text-red-500/90 break-all">{text}</div>
+      <div className="text-sm text-red-500/90 break-all">{text}</div>
     </div>
   );
 };
