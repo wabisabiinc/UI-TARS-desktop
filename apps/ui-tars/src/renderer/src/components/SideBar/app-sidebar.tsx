@@ -57,7 +57,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <Button
           variant={'outline'}
-          className="mx-4 mt-1 group-data-[state=collapsed]:mx-1.5"
+          className="ml-4 mr-2 mt-1 group-data-[state=collapsed]:mx-1.5"
           onClick={onNewChat}
         >
           <Plus />
