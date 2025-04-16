@@ -205,7 +205,9 @@ export default function Settings() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <div
                 id="vlm"
-                ref={(el) => (sectionRefs.current.vlm = el)}
+                ref={(el) => {
+                  sectionRefs.current.vlm = el;
+                }}
                 className="space-y-6 ml-1 mr-4"
               >
                 <h2 className="text-lg font-medium">{SECTIONS.vlm}</h2>
@@ -333,7 +335,9 @@ export default function Settings() {
               {/* Chat Settings */}
               <div
                 id="chat"
-                ref={(el) => (sectionRefs.current.chat = el)}
+                ref={(el) => {
+                  sectionRefs.current.chat = el;
+                }}
                 className="space-y-6 pt-6 ml-1 mr-4"
               >
                 <h2 className="text-lg font-medium">{SECTIONS.chat}</h2>
@@ -388,7 +392,9 @@ export default function Settings() {
 
               <div
                 id="report"
-                ref={(el) => (sectionRefs.current.report = el)}
+                ref={(el) => {
+                  sectionRefs.current.report = el;
+                }}
                 className="space-y-6 pt-6 ml-1 mr-4"
               >
                 <h2 className="text-lg font-medium">{SECTIONS.report}</h2>
