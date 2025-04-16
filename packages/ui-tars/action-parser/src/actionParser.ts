@@ -189,6 +189,9 @@ export function parseActionVlm(
  */
 function parseAction(actionStr: string) {
   try {
+    // Support format: click(start_box='<|box_start|>(x1,y1)<|box_end|>')
+    actionStr = actionStr.replace(/<\|box_start\|>|<\|box_end\|>/g, '');
+
     // Match function name and arguments using regex
     const functionPattern = /^(\w+)\((.*)\)$/;
     const match = actionStr.trim().match(functionPattern);
