@@ -68,8 +68,10 @@ const ChatInput = () => {
     // });
     const instructions = getInstantInstructions();
 
+    console.log('startRun', instructions, restUserData);
+
     if (!currentSessionId) {
-      await createSession(instructions);
+      await createSession(instructions, restUserData || {});
       await sleep(100);
     } else {
       await updateSession(currentSessionId, { name: instructions });

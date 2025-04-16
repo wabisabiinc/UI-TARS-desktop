@@ -15,8 +15,8 @@ import { api } from '@renderer/api';
 import ChatInput from '@renderer/components/ChatInput';
 
 import { SidebarTrigger } from '@renderer/components/ui/sidebar';
-import { ShareOptions } from '@renderer/components/ChatInput/ShareOptions';
-import { ClearHistory } from '@renderer/components/ChatInput/ClearHistory';
+import { ShareOptions } from '@/renderer/src/components/RunMessages/ShareOptions';
+import { ClearHistory } from '@/renderer/src/components/RunMessages/ClearHistory';
 import { useStore } from '@renderer/hooks/useStore';
 import { useSession } from '@renderer/hooks/useSession';
 
@@ -38,7 +38,7 @@ const RunMessages = () => {
   const isWelcome = currentSessionId === '';
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(!isWelcome);
 
-  // console.log('currentSessionId', currentSessionId, chatMessages);
+  // console.log('currentSessionId', currentSessionId);
 
   // bug: 同一个对话里，新的 message 会覆盖旧的 message，需要检查 chatMessages 是否为空
   useEffect(() => {

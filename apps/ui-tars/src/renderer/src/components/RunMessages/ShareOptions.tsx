@@ -1,10 +1,4 @@
-import {
-  Share,
-  FileText,
-  Video,
-  Loader2,
-  SquareArrowOutUpRight,
-} from 'lucide-react';
+import { FileText, Video, Loader2, SquareArrowOutUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useRef } from 'react';
 
@@ -32,9 +26,13 @@ import { useStore } from '@renderer/hooks/useStore';
 import { useSetting } from '@renderer/hooks/useSetting';
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
 import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
+import { useSession } from '@renderer/hooks/useSession';
+
+const SHARE_TIMEOUT = 100000;
 
 export function ShareOptions() {
-  const { status, messages, restUserData } = useStore();
+  const { status } = useStore();
+  const { currentSessionId, chatMessages, sessions } = useSession();
   const { settings } = useSetting();
   const { canSaveRecording, saveRecording } = useScreenRecord();
 
@@ -44,11 +42,11 @@ export function ShareOptions() {
     'report' | 'video' | null
   >(null);
   const isSharePending = useRef(false);
-  const shareTimeoutRef = useRef<NodeJS.Timeout>();
-  const SHARE_TIMEOUT = 100000;
+  const shareTimeoutRef = useRef<NodeJS.Timeout>(null);
+
   const running = status === StatusEnum.RUNNING;
   const lastHumanMessage =
-    [...(messages || [])]
+    [...(chatMessages || [])]
       .reverse()
       .find((m) => m?.from === 'human' && m?.value !== IMAGE_PLACEHOLDER)
       ?.value || '';
@@ -79,11 +77,16 @@ export function ShareOptions() {
         );
         const html = await response.text();
 
+        const restUserData =
+          sessions.find((item) => item.id === currentSessionId)?.meta || {};
+
         const userData = {
           ...restUserData,
           status,
-          conversations: messages,
+          conversations: chatMessages,
         } as ComputerUseUserData;
+
+        console.log('restUserData', userData);
 
         const htmlContent = reportHTMLContent(html, [userData]);
 
@@ -115,7 +118,7 @@ export function ShareOptions() {
 
           // Only send UTIO data if user consented
           if (settings?.utioBaseUrl) {
-            const lastScreenshot = messages
+            const lastScreenshot = chatMessages
               .filter((m) => m.screenshotBase64)
               .pop()?.screenshotBase64;
 
@@ -170,7 +173,7 @@ export function ShareOptions() {
 
   return (
     <>
-      {!running && messages?.length > 1 && (
+      {!running && chatMessages.length > 1 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="mr-1">
@@ -182,7 +185,7 @@ export function ShareOptions() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="mr-4">
-            {canSaveRecording && (
+            {canSaveRecording && settings.operator === 'nutjs' && (
               <DropdownMenuItem onClick={() => handleShare('video')}>
                 <Video className="mr-2 h-4 w-4" />
                 Export as Video
