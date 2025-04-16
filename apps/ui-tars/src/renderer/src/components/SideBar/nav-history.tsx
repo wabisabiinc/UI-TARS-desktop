@@ -4,11 +4,11 @@
  */
 import { useState } from 'react';
 import {
-  Forward,
   MoreHorizontal,
   Trash2,
   History,
   ChevronRight,
+  SquareArrowOutUpRight,
 } from 'lucide-react';
 
 import {
@@ -43,6 +43,7 @@ import {
   AlertDialogTitle,
 } from '@renderer/components/ui/alert-dialog';
 import { SessionItem } from '@renderer/db/session';
+import { ShareOptions } from './share';
 
 export function NavHistory({
   currentSessionId,
@@ -106,10 +107,7 @@ export function NavHistory({
                           side={'right'}
                           align={'start'}
                         >
-                          <DropdownMenuItem>
-                            <Forward className="text-muted-foreground" />
-                            <span>Share</span>
-                          </DropdownMenuItem>
+                          <ShareOptions sessionId={item.id} />
                           <DropdownMenuItem
                             className="text-red-400 focus:bg-red-50 focus:text-red-500"
                             onClick={() => handleDelte(item.id)}

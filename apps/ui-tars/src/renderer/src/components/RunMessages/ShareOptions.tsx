@@ -25,7 +25,7 @@ import { uploadReport } from '@renderer/utils/share';
 import { useStore } from '@renderer/hooks/useStore';
 import { useSetting } from '@renderer/hooks/useSetting';
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
-import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
+// import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
 import { useSession } from '@renderer/hooks/useSession';
 import dayjs from 'dayjs';
 
@@ -35,7 +35,7 @@ export function ShareOptions() {
   const { status } = useStore();
   const { currentSessionId, chatMessages, sessions } = useSession();
   const { settings } = useSetting();
-  const { canSaveRecording, saveRecording } = useScreenRecord();
+  // const { canSaveRecording, saveRecording } = useScreenRecord();
 
   const [isSharing, setIsSharing] = useState(false);
   const [isShareConfirmOpen, setIsShareConfirmOpen] = useState(false);
@@ -71,7 +71,7 @@ export function ShareOptions() {
       }, SHARE_TIMEOUT);
 
       if (type === 'video') {
-        saveRecording();
+        // saveRecording();
       } else if (type === 'report') {
         const response = await fetch(
           'https://cdn.jsdelivr.net/npm/@ui-tars/visualizer/dist/report/index.html',
@@ -186,12 +186,12 @@ export function ShareOptions() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="mr-4">
-            {canSaveRecording && settings.operator === 'nutjs' && (
+            {/* {canSaveRecording && settings.operator === 'nutjs' && (
               <DropdownMenuItem onClick={() => handleShare('video')}>
                 <Video className="mr-2 h-4 w-4" />
                 Export as Video
               </DropdownMenuItem>
-            )}
+            )} */}
             <DropdownMenuItem onClick={() => handleShare('report')}>
               <FileText className="mr-2 h-4 w-4" />
               Export as HTML
