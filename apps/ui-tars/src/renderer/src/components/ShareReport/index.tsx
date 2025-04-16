@@ -1,6 +1,7 @@
 import { FileText, Video, Loader2, SquareArrowOutUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useRef } from 'react';
+import dayjs from 'dayjs';
 
 import { Button } from '@renderer/components/ui/button';
 import {
@@ -86,7 +87,7 @@ export function ShareOptions() {
           conversations: chatMessages,
         } as ComputerUseUserData;
 
-        console.log('restUserData', userData);
+        console.log('userData', userData);
 
         const htmlContent = reportHTMLContent(html, [userData]);
 
@@ -137,7 +138,7 @@ export function ShareOptions() {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `report-${Date.now()}.html`;
+          a.download = `report-${dayjs().format('YYYYMMDDHHmmss')}.html`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);

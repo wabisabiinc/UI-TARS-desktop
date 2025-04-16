@@ -27,6 +27,7 @@ import { useSetting } from '@renderer/hooks/useSetting';
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
 import { useScreenRecord } from '@renderer/hooks/useScreenRecord';
 import { useSession } from '@renderer/hooks/useSession';
+import dayjs from 'dayjs';
 
 const SHARE_TIMEOUT = 100000;
 
@@ -137,7 +138,7 @@ export function ShareOptions() {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `report-${Date.now()}.html`;
+          a.download = `report-${dayjs().format('YYYY-MM-DD-HH-mm-ss')}.html`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
