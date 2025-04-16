@@ -31,7 +31,52 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@renderer/components/ui/collapsible';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@renderer/components/ui/alert-dialog';
 import { SessionItem } from '@renderer/db/session';
+
+function DeleteHistoryItem({ onDelete }: { onDelete: () => void }) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <DropdownMenuItem
+          className="text-red-400 focus:bg-red-50 focus:text-red-500"
+          onClick={(e) => e.preventDefault()}
+        >
+          <Trash2 className="text-red-400" />
+          <span>Delete</span>
+        </DropdownMenuItem>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete History</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this history item? This action
+            cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-red-500 hover:bg-red-600"
+            onClick={onDelete}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 export function NavHistory({
   currentSessionId,
@@ -90,12 +135,9 @@ export function NavHistory({
                           <Forward className="text-muted-foreground" />
                           <span>Share</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => onSessionDelete(item.id)}
-                        >
-                          <Trash2 className="text-muted-foreground" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
+                        <DeleteHistoryItem
+                          onDelete={() => onSessionDelete(item.id)}
+                        />
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </SidebarMenuSubItem>

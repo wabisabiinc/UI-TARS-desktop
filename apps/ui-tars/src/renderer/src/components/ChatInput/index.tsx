@@ -25,6 +25,7 @@ import { Textarea } from '@renderer/components/ui/textarea';
 import { useSession } from '@renderer/hooks/useSession';
 
 import { SelectOperator } from './SelectOperator';
+import { sleep } from '@ui-tars/shared/utils';
 
 const ChatInput = () => {
   const {
@@ -54,7 +55,7 @@ const ChatInput = () => {
   //   recordRefs,
   // } = useScreenRecord();
 
-  const { currentSessionId, updateSession } = useSession();
+  const { currentSessionId, updateSession, createSession } = useSession();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const running = status === StatusEnum.RUNNING;
@@ -67,7 +68,12 @@ const ChatInput = () => {
     // });
     const instructions = getInstantInstructions();
 
-    await updateSession(currentSessionId, { name: instructions });
+    if (!currentSessionId) {
+      await createSession(instructions);
+      await sleep(100);
+    } else {
+      await updateSession(currentSessionId, { name: instructions });
+    }
 
     run(instructions, () => {
       setLocalInstructions('');

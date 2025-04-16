@@ -26,7 +26,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   const {
     currentSessionId,
     sessions,
-    createSession,
+    setCurrentSessionId,
     deleteSession,
     setActiveSession,
   } = useSession();
@@ -36,7 +36,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   }, []);
 
   const onNewChat = useCallback(async () => {
-    await createSession(`new session`);
+    await setCurrentSessionId('');
   }, []);
 
   const onSessionDelete = useCallback(async (sessionId: string) => {

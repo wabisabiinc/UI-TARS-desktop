@@ -206,7 +206,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   deleteMessages: async (sessionId) => {
     try {
       const deleted = await chatManager.deleteSessionMessages(sessionId);
-      if (deleted) {
+      if (deleted && sessionId === get().currentSessionId) {
         set(() => ({
           chatMessages: [],
         }));

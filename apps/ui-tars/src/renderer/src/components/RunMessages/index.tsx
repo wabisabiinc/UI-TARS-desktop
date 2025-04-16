@@ -27,20 +27,22 @@ import {
   ScreenshotMessage,
   LoadingText,
 } from './Messages';
+import { WelcomePage } from './Welcome';
 
 const RunMessages = () => {
   const { messages = [], thinking, errorMsg } = useStore();
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const suggestions: string[] = [];
   const [selectImg, setSelectImg] = useState<number | undefined>(undefined);
   const { currentSessionId, chatMessages, updateMessages } = useSession();
+  const isWelcome = currentSessionId === '';
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(!isWelcome);
 
   const handleSelect = async (suggestion: string) => {
     await api.setInstructions({ instructions: suggestion });
   };
 
-  // console.log('currentSessionId', currentSessionId);
+  // console.log('currentSessionId', currentSessionId, chatMessages);
 
   // bug: 同一个对话里，新的 message 会覆盖旧的 message，需要检查 chatMessages 是否为空
   useEffect(() => {
@@ -51,10 +53,74 @@ const RunMessages = () => {
   }, [messages, currentSessionId]);
 
   useEffect(() => {
+    if (!currentSessionId.length) {
+      setIsRightPanelOpen(false);
+    }
+  }, [currentSessionId]);
+
+  useEffect(() => {
+    if (chatMessages.length) {
+      setIsRightPanelOpen(true);
+    }
+  }, [chatMessages.length]);
+
+  useEffect(() => {
     setTimeout(() => {
       containerRef.current?.scrollIntoView(false);
     }, 100);
   }, [messages, thinking, errorMsg]);
+
+  const renderChatList = () => {
+    return (
+      <div className="flex-1 w-full px-12 py-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
+        <div ref={containerRef}>
+          {!chatMessages?.length && suggestions?.length > 0 && (
+            <Prompts suggestions={suggestions} onSelect={handleSelect} />
+          )}
+
+          {chatMessages?.map((message, idx) => {
+            if (message?.from === 'human') {
+              if (message?.value === IMAGE_PLACEHOLDER) {
+                // screen shot
+                return (
+                  <ScreenshotMessage
+                    key={`message-${idx}`}
+                    onClick={() => setSelectImg(idx)}
+                  />
+                );
+              }
+
+              return (
+                <HumanTextMessage
+                  key={`message-${idx}`}
+                  text={message?.value}
+                />
+              );
+            }
+
+            const { predictionParsed, screenshotBase64WithElementMarker } =
+              message;
+
+            if (predictionParsed?.length) {
+              return (
+                <ThoughtChain
+                  key={idx}
+                  steps={predictionParsed}
+                  hasSomImage={!!screenshotBase64WithElementMarker}
+                  onClick={() => setSelectImg(idx)}
+                />
+              );
+            }
+
+            return null;
+          })}
+
+          {thinking && <LoadingText text={'Thinking...'} />}
+          {errorMsg && <ErrorMessage text={errorMsg} />}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex-1 min-h-0 flex h-full justify-center">
@@ -83,53 +149,8 @@ const RunMessages = () => {
             />
           </Button>
         </div>
-        <div className="flex-1 w-full px-12 py-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
-          <div ref={containerRef}>
-            {!chatMessages?.length && suggestions?.length > 0 && (
-              <Prompts suggestions={suggestions} onSelect={handleSelect} />
-            )}
-
-            {chatMessages?.map((message, idx) => {
-              if (message?.from === 'human') {
-                if (message?.value === IMAGE_PLACEHOLDER) {
-                  // screen shot
-                  return (
-                    <ScreenshotMessage
-                      key={`message-${idx}`}
-                      onClick={() => setSelectImg(idx)}
-                    />
-                  );
-                }
-
-                return (
-                  <HumanTextMessage
-                    key={`message-${idx}`}
-                    text={message?.value}
-                  />
-                );
-              }
-
-              const { predictionParsed, screenshotBase64WithElementMarker } =
-                message;
-
-              if (predictionParsed?.length) {
-                return (
-                  <ThoughtChain
-                    key={idx}
-                    steps={predictionParsed}
-                    hasSomImage={!!screenshotBase64WithElementMarker}
-                    onClick={() => setSelectImg(idx)}
-                  />
-                );
-              }
-
-              return null;
-            })}
-
-            {thinking && <LoadingText text={'Thinking...'} />}
-            {errorMsg && <ErrorMessage text={errorMsg} />}
-          </div>
-        </div>
+        {isWelcome && <WelcomePage />}
+        {!isWelcome && renderChatList()}
         <ChatInput />
       </div>
 
