@@ -10,7 +10,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenuButton,
 } from '@renderer/components/ui/sidebar';
 import { DragArea } from '@renderer/components/Common/drag';
 import { Button } from '@renderer/components/ui/button';

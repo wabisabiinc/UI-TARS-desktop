@@ -11,7 +11,6 @@ import './styles/globals.css';
 const Home = lazy(() => import('./pages/home'));
 const Settings2 = lazy(() => import('./pages/settings/Settings'));
 const Launcher = lazy(() => import('./pages/launcher'));
-const InProgressing = lazy(() => import('./pages/inProgressing'));
 const Widget = lazy(() => import('./pages/widget'));
 
 export default function App() {
@@ -30,7 +29,6 @@ export default function App() {
           <Route path="/settings" element={<Settings2 />} />
           <Route path="/widget" element={<Widget />} />
           <Route path="/launcher" element={<Launcher />} />
-          <Route path="/in-progressing" element={<InProgressing />} />
         </Routes>
         <Toaster
           position="top-right"
