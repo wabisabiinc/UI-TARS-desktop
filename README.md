@@ -57,7 +57,7 @@ See [Quick Start](./docs/quick-start.md).
 
 ## Deployment
 
-See [Deployment](./docs/deployment.md).
+See [Deployment](https://github.com/bytedance/UI-TARS/blob/main/README_deploy.md).
 
 ## Contributing
 
