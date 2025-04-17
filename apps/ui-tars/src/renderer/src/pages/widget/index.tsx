@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { useStore } from '@renderer/hooks/useStore';
 import { Monitor, Globe, Pause, Play, Square, Loader } from 'lucide-react';
 import { actionIconMap } from '@renderer/components/ThoughtChain';

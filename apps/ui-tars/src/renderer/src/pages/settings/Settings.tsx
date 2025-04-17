@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 // /apps/ui-tars/src/renderer/src/pages/settings/index.tsx
 import { Trash } from 'lucide-react';
 import { useRef, useEffect, useState } from 'react';

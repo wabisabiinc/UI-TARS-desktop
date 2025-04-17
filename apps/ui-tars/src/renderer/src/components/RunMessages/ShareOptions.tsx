@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { FileText, Loader2, SquareArrowOutUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useRef } from 'react';
