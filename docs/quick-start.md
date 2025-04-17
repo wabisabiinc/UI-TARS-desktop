@@ -38,5 +38,6 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 1. Click the **Settings** button on the bottom left corner of the application
   <img src="../apps/ui-tars/images/setting.png" width="500px" />
 2. Read the [Settings Configuration Guide](./setting.md) and set up VLM/Chat parameters
+
 3. Select the desired usage scenario before starting a new chat
   <img src="../apps/ui-tars/images/settings_scene.png" width="500px" />
