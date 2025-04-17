@@ -75,7 +75,7 @@ export default function Settings() {
       vlmApiKey: '',
       vlmModelName: '',
       maxLoopCount: 100,
-      loopIntervalInMs: 0,
+      loopIntervalInMs: 1000,
       reportStorageBaseUrl: '',
       utioBaseUrl: '',
       ...settings,

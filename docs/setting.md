@@ -16,7 +16,9 @@
 
 ## Configuration Options
 
-### Language
+### VLM Settings
+
+#### Language
 
 Controls localization settings for VLM.
 
@@ -32,10 +34,25 @@ Controls localization settings for VLM.
 
 <br>
 
+#### VLM Provider
+
+Select the backend VLM provider to ensure more accurate execution of GUI actions. This option can improve the performance of the model.
+
+| Property    | Details                |
+| ----------- | ---------------------- |
+| **Type**    | `string`               |
+| **Options** | - `OpenAI compatible for UI-TARS-1.0`<br /> - `OpenAI compatible for UI-TARS-1.5`<br /> - `VolcEngine Ark for Doubao-1.5-UI-TARS` |
+| **Required** | `true`         |
+
+> [!NOTE]
+> This is an interface reserved for different VLM providers.
+
+
+<br>
 
 
 
-### VLM Base URL
+#### VLM Base URL
 
 Specify the base url of the VLM that needs to be requested.
 
@@ -54,7 +71,7 @@ For UI TARS deployment, please check out [Deployment](./deployment.md).
 
 
 
-### VLM Model Name
+#### VLM Model Name
 
 Specify the requested module name.
 
@@ -67,40 +84,60 @@ Specify the requested module name.
 <br>
 
 
-### VLM Provider
+### Chat Settings
 
-Selects the backend VLM provider for make GUI action decisions.
 
-| Property    | Details                |
-| ----------- | ---------------------- |
-| **Type**    | `string`               |
-| **Options** | `Hugging Face`, `vLLM` |
-| **Default** | `Hugging Face`         |
+#### Max Loop
 
-> [!NOTE]
-> This is an interface reserved for different VLM providers.
+Maximum steps per conversation round.
+
+| Property     | Details  |
+| ------------ | -------- |
+| **Type**     | `number` |
+| **Required** | `true`   |
+| **Options**  | `[25, 200]` |
+| **Default**  | `100`    |
+
+
+<br>
+
+#### Loop Wait Time
+
+Waiting time for each loop.
+
+For interactive operations that require time to complete, this parameter adds a delay before capturing screenshots, ensuring the final state is properly recorded.
+
+
+| Property     | Details  |
+| ------------ | -------- |
+| **Type**     | `number` |
+| **Required** | `true`   |
+| **Options**  | `[0, 3000]` |
+| **Default**  | `1000`   |
 
 
 <br>
 
 
-### Report Storage Base URL
+### Report Settings
+
+#### Report Storage Base URL
 
 Defines the base URL for uploading report file. By default, when this option is not set, when the user clicks **Export as HTML** (a.k.a. <b>Share</b>), it will automatically trigger the download of the report file:
 
 <p align="center">
-  <img src="../apps/ui-tars/images/download-report.png" alt="Download report" width="320">
+  <img src="../apps/ui-tars/images/download-report.png" alt="Download report" width="400">
   <br>
 </p>
 
-Once it's set, when user click **Export as HTML**, report file will firstly be uploaded to the Report Storage Server, which returns a publicly accessible URL for the persistent file.
+Once it's set, when user click **Export as HTML**, a popup window will appear asking you. If you choose "**Yes, continue!**", the report file will be uploaded directly. After waiting for a few seconds, a tip notification will appear, informing you that the report link has been copied to your clipboard.
 
 <p align="center">
-  <img src="../apps/ui-tars/images/upload-report-success.png" alt="Download report" width="320">
+  <img src="../apps/ui-tars/images/upload-report-success.png" alt="Download report" width="400">
   <br>
 </p>
 
-#### Report Storage Server Interface
+##### Report Storage Server Interface
 
 The Report Storage Server should implement the following HTTP API endpoint:
 
@@ -109,7 +146,7 @@ The Report Storage Server should implement the following HTTP API endpoint:
 | **Endpoint** | `POST /your-storage-enpoint`                                                                                 |
 | **Headers**  | Content-Type: `multipart/form-data` <br> <!-- - Authorization: Bearer \<access_token\> (Not Supported) --> |
 
-#### Request Body
+##### Request Body
 
 The request should be sent as `multipart/form-data` with the following field:
 
@@ -117,7 +154,7 @@ The request should be sent as `multipart/form-data` with the following field:
 | ----- | ---- | -------- | ---------------- | ---------------------------------- |
 | file  | File | Yes      | HTML report file | - Format: HTML<br>- Max size: 30MB |
 
-#### Response
+##### Response
 
 **Success Response (200 OK)**
 ```json
@@ -135,7 +172,7 @@ The response should return a JSON object containing a publicly accessible URL wh
 <br>
 
 
-### UTIO Base URL
+#### UTIO Base URL
 
 **UTIO** (_UI-TARS Insights and Observation_) is a data collection mechanism for insights into **UI-TARS Desktop** (_Introduced at [#60](https://github.com/bytedance/UI-TARS-desktop/pull/60)_). The design of UTIO is also related to sharing. The overall process is as follows:
 
@@ -148,7 +185,7 @@ The response should return a JSON object containing a publicly accessible URL wh
 This option defines the base URL for the **UTIO** server that handles application events and instructions.
 
 
-#### Server Interface Specification
+##### Server Interface Specification
 
 The UTIO server accepts events through HTTP POST requests and supports three types of events:
 
