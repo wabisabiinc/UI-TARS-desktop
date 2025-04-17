@@ -100,6 +100,10 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
       }),
     );
 
+    logger.info(
+      `[GUIAgent] run:\nsystem prompt: ${this.systemPrompt},\nmodel version: ${this.uiTarsVersion},\nmodel config: ${JSON.stringify(this.model)}`,
+    );
+
     let loopCnt = 0;
     let snapshotErrCnt = 0;
 

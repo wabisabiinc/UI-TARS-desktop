@@ -106,6 +106,10 @@ export class UITarsModel extends Model {
       params;
     const { logger, signal } = useContext();
 
+    logger?.info(
+      `[UITarsModel] invoke: screenContext=${JSON.stringify(screenContext)}, scaleFactor=${scaleFactor}, uiTarsVersion=${uiTarsVersion}`,
+    );
+
     const maxPixels =
       uiTarsVersion === UITarsModelVersion.V1_5
         ? MAX_PIXELS_V1_5
