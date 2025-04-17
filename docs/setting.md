@@ -133,7 +133,7 @@ Defines the base URL for uploading report file. By default, when this option is 
 Once it's set, when user click **Export as HTML**, a popup window will appear asking you. If you choose "**Yes, continue!**", the report file will be uploaded directly. After waiting for a few seconds, a tip notification will appear, informing you that the report link has been copied to your clipboard.
 
 <p align="center">
-  <img src="../apps/ui-tars/images/upload-report-success.png" alt="Download report" width="400">
+  <img src="../apps/ui-tars/images/upload-report-success.png" alt="Download report" width="800">
   <br>
 </p>
 
