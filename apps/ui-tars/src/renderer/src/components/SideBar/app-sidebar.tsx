@@ -53,11 +53,9 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       <DragArea></DragArea>
       <SidebarHeader>
         <UITarsHeader />
-      </SidebarHeader>
-      <SidebarContent>
         <Button
           variant={'outline'}
-          className="ml-4 mr-2 mt-1 group-data-[state=collapsed]:mx-1.5"
+          className="mx-2 my-1 group-data-[state=collapsed]:mx-0"
           onClick={onNewChat}
         >
           <Plus />
@@ -65,6 +63,8 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
             New Chat
           </span>
         </Button>
+      </SidebarHeader>
+      <SidebarContent>
         <NavHistory
           currentSessionId={currentSessionId}
           history={sessions}
