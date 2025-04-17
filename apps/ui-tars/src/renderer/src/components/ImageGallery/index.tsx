@@ -138,12 +138,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 <div className="text-base font-medium leading-tight">
                   {action.action}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground max-w-full mr-4">
                   <span className="font-medium text-primary/70">
                     {action.type}
                   </span>
                   {action.input && (
-                    <span className="text-primary/70">{action.input}</span>
+                    <span className="text-primary/70 break-all max-w-full">
+                      {action.input}
+                    </span>
                   )}
                   {action.cost && (
                     <span className="ml-1 text-muted-foreground/70">

@@ -76,7 +76,7 @@ function ThoughtStepCard({ step, onClick, hasSomImage }: ThoughtStepCardProps) {
           ) : (
             <>
               Action:
-              <span className="text-gray-600">
+              <span className="text-gray-600 max-w-50 truncate">
                 {step.action_type}
                 {step.action_inputs?.start_box &&
                   ` (start_box: ${step.action_inputs.start_box})`}
