@@ -223,6 +223,8 @@ export class NutJSOperator extends Operator {
           const keyMap: Record<string, Key> = {
             return: Key.Enter,
             enter: Key.Enter,
+            backspace: Key.Backspace,
+            delete: Key.Delete,
             ctrl: platformCtrlKey,
             shift: Key.LeftShift,
             alt: Key.LeftAlt,
