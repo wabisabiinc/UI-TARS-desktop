@@ -39,14 +39,25 @@ const RunMessages = () => {
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(!isWelcome);
 
   // console.log('currentSessionId', currentSessionId);
-
-  // bug: 同一个对话里，新的 message 会覆盖旧的 message，需要检查 chatMessages 是否为空
   useEffect(() => {
     // console.log('useEffect updateMessages', currentSessionId, messages);
     if (currentSessionId && messages.length) {
-      updateMessages(currentSessionId, messages);
+      const existingMessagesSet = new Set(
+        chatMessages.map(
+          (msg) => `${msg.value}-${msg.from}-${msg.timing?.start}`,
+        ),
+      );
+      const newMessages = messages.filter(
+        (msg) =>
+          !existingMessagesSet.has(
+            `${msg.value}-${msg.from}-${msg.timing?.start}`,
+          ),
+      );
+      const allMessages = [...chatMessages, ...newMessages];
+
+      updateMessages(currentSessionId, allMessages);
     }
-  }, [messages, currentSessionId]);
+  }, [currentSessionId, chatMessages.length, messages.length]);
 
   useEffect(() => {
     if (!currentSessionId.length) {

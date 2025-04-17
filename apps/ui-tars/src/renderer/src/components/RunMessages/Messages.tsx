@@ -4,7 +4,7 @@ import { Button } from '@renderer/components/ui/button';
 export const HumanTextMessage = ({ text }: { text: string }) => {
   return (
     <div className="flex gap-2 mb-4 mt-8 items-center">
-      <div className="p-3 rounded-md bg-secondary">{text}</div>
+      <div className="ml-auto p-3 rounded-md bg-secondary">{text}</div>
     </div>
   );
 };
