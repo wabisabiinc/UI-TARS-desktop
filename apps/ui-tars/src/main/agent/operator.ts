@@ -80,7 +80,7 @@ export class NutJSElectronOperator extends NutJSOperator {
       height: physicalSize.height,
     });
 
-    const pngBuffer = resized.toPNG();
+    // const pngBuffer = resized.toPNG();
 
     // Save the screenshot to a file
     // const timestamp = new Date().getTime();
@@ -92,7 +92,7 @@ export class NutJSElectronOperator extends NutJSOperator {
     // logger.info(`[screenshot] Saved to ${filepath}`);
 
     return {
-      base64: pngBuffer.toString('base64'),
+      base64: resized.toJPEG(75).toString('base64'),
       scaleFactor,
     };
   }
