@@ -122,7 +122,7 @@ const Widget = () => {
 
   return (
     <div className="w-100 h-100 overflow-hidden p-4 bg-white/90 dark:bg-gray-800/90">
-      <div className="flex">
+      <div className="flex draggable-area">
         {/* Logo */}
         <img src={logo} alt="logo" className="-ml-2 h-6 mr-auto" />
         {/* Mode Badge */}
