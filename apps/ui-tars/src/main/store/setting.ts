@@ -8,23 +8,21 @@ import yaml from 'js-yaml';
 import * as env from '@main/env';
 import { logger } from '@main/logger';
 
-import { LocalStore, VlmProvider } from './types';
+import { LocalStore, VLMProviderV2 } from './types';
 import { validatePreset } from './validate';
 import { BrowserWindow } from 'electron';
-import { UITarsModelVersion } from '@ui-tars/shared/types';
 
 export const DEFAULT_SETTING: LocalStore = {
   language: 'en',
-  vlmProvider: (env.vlmProvider as VlmProvider) || VlmProvider.Huggingface,
+  vlmProvider: (env.vlmProvider as VLMProviderV2) || VLMProviderV2.ui_tars_1_5,
   vlmBaseUrl: env.vlmBaseUrl || '',
   vlmApiKey: env.vlmApiKey || '',
   vlmModelName: env.vlmModelName || '',
   maxLoopCount: 100,
-  loopIntervalInMs: 0,
+  loopIntervalInMs: 1000,
   operator: 'browser',
   reportStorageBaseUrl: '',
   utioBaseUrl: '',
-  uiTarsVersion: UITarsModelVersion.V1_5,
 };
 
 export class SettingStore {

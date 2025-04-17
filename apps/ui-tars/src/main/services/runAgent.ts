@@ -23,8 +23,21 @@ import {
   showScreenWaterFlow,
 } from '@main/window/ScreenMarker';
 import { SettingStore } from '@main/store/setting';
-import { AppState } from '@main/store/types';
+import { AppState, VLMProviderV2 } from '@main/store/types';
 import { GUIAgentManager } from '../ipcRoutes/agent';
+
+const getModelVersion = (provider: VLMProviderV2): UITarsModelVersion => {
+  switch (provider) {
+    case VLMProviderV2.ui_tars_1_5:
+      return UITarsModelVersion.V1_5;
+    case VLMProviderV2.ui_tars_1_0:
+      return UITarsModelVersion.V1_0;
+    case VLMProviderV2.doubao_1_5:
+      return UITarsModelVersion.DOUBAO_1_5_15B;
+    default:
+      return UITarsModelVersion.V1_0;
+  }
+};
 
 export const runAgent = async (
   setState: (state: AppState) => void,
@@ -131,7 +144,7 @@ export const runAgent = async (
       model: settings.vlmModelName,
     },
     systemPrompt:
-      settings.uiTarsVersion === UITarsModelVersion.V1_5
+      getModelVersion(settings.vlmProvider) === UITarsModelVersion.V1_5
         ? getSystemPromptV1_5(language, 'normal')
         : getSystemPrompt(language),
     logger,
@@ -154,7 +167,7 @@ export const runAgent = async (
     },
     maxLoopCount: settings.maxLoopCount,
     loopIntervalInMs: settings.loopIntervalInMs,
-    uiTarsVersion: settings.uiTarsVersion,
+    uiTarsVersion: getModelVersion(settings.vlmProvider),
   });
 
   GUIAgentManager.getInstance().setAgent(guiAgent);

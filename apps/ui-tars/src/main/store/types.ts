@@ -39,4 +39,10 @@ export enum VlmProvider {
   vLLM = 'vLLM',
 }
 
+export enum VLMProviderV2 {
+  ui_tars_1_0 = 'OpenAI compatible for UI-TARS-1.0',
+  ui_tars_1_5 = 'OpenAI compatible for UI-TARS-1.5',
+  doubao_1_5 = 'VolcEngine Ark for doubao-1.5',
+}
+
 export type { PresetSource, LocalStore };

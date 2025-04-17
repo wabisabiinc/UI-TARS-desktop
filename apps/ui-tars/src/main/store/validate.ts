@@ -4,8 +4,7 @@
  */
 import { z } from 'zod';
 
-import { VlmProvider } from './types';
-import { UITarsModelVersion } from '@ui-tars/shared/types';
+import { VLMProviderV2 } from './types';
 
 const PresetSourceSchema = z.object({
   type: z.enum(['local', 'remote']),
@@ -16,7 +15,7 @@ const PresetSourceSchema = z.object({
 
 export const PresetSchema = z.object({
   // Required fields
-  vlmProvider: z.nativeEnum(VlmProvider),
+  vlmProvider: z.nativeEnum(VLMProviderV2),
   vlmBaseUrl: z.string().url(),
   vlmApiKey: z.string().min(1),
   vlmModelName: z.string().min(1),
@@ -30,7 +29,6 @@ export const PresetSchema = z.object({
   reportStorageBaseUrl: z.string().url().optional(),
   utioBaseUrl: z.string().url().optional(),
   presetSource: PresetSourceSchema.optional(),
-  uiTarsVersion: z.nativeEnum(UITarsModelVersion).optional(),
 });
 
 export type PresetSource = z.infer<typeof PresetSourceSchema>;

@@ -18,6 +18,7 @@ import {
   UITarsModelVersion,
   MAX_PIXELS_V1_0,
   MAX_PIXELS_V1_5,
+  MAX_PIXELS_DOUBAO,
 } from '@ui-tars/shared/types';
 
 type OpenAIChatCompletionCreateParams = Omit<ClientOptions, 'maxRetries'> &
@@ -108,7 +109,10 @@ export class UITarsModel extends Model {
     const maxPixels =
       uiTarsVersion === UITarsModelVersion.V1_5
         ? MAX_PIXELS_V1_5
-        : MAX_PIXELS_V1_0;
+        : uiTarsVersion === UITarsModelVersion.DOUBAO_1_5_15B ||
+            uiTarsVersion === UITarsModelVersion.DOUBAO_1_5_20B
+          ? MAX_PIXELS_DOUBAO
+          : MAX_PIXELS_V1_0;
     const compressedImages = await Promise.all(
       images.map((image) => preprocessResizeImage(image, maxPixels)),
     );

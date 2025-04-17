@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { api } from '@renderer/api';
-import { VlmProvider } from '@main/store/types';
+import { VLMProviderV2 } from '@main/store/types';
 import { useSetting } from '@renderer/hooks/useSetting';
 import { Button } from '@renderer/components/ui/button';
 import {
@@ -36,7 +36,10 @@ import { PresetBanner } from './PresetBanner';
 // 定义表单验证 schema
 const formSchema = z.object({
   language: z.enum(['en', 'zh']),
-  vlmProvider: z.nativeEnum(VlmProvider),
+  vlmProvider: z.nativeEnum(VLMProviderV2, {
+    required_error: '请选择 VLM Provider',
+    invalid_type_error: '请选择有效的 VLM Provider',
+  }),
   vlmBaseUrl: z.string().url(),
   vlmApiKey: z.string(),
   vlmModelName: z.string(),
@@ -69,7 +72,6 @@ export default function Settings() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       language: 'en',
-      vlmProvider: VlmProvider.Huggingface,
       vlmBaseUrl: '',
       vlmApiKey: '',
       vlmModelName: '',
@@ -265,17 +267,24 @@ export default function Settings() {
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger
+                          className={
+                            form.formState.errors.vlmProvider
+                              ? 'border-red-500'
+                              : ''
+                          }
+                        >
                           <SelectValue placeholder="Select VLM provider" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.values(VlmProvider).map((provider) => (
+                          {Object.values(VLMProviderV2).map((provider) => (
                             <SelectItem key={provider} value={provider}>
                               {provider}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
