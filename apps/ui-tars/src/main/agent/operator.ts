@@ -17,6 +17,9 @@ import { logger } from '@main/logger';
 import { sleep } from '@ui-tars/shared/utils';
 import { getScreenSize } from '@main/utils/screen';
 
+// import { writeFile } from 'fs/promises';
+// import { join } from 'path';
+
 export class NutJSElectronOperator extends NutJSOperator {
   static MANUAL = {
     ACTION_SPACES: [
@@ -77,8 +80,19 @@ export class NutJSElectronOperator extends NutJSOperator {
       height: physicalSize.height,
     });
 
+    const pngBuffer = resized.toPNG();
+
+    // Save the screenshot to a file
+    // const timestamp = new Date().getTime();
+    // const filepath = join(
+    //   '/Users/bytedance/Downloads',
+    //   `cu_screenshot_${timestamp}.png`,
+    // );
+    // await writeFile(filepath, pngBuffer);
+    // logger.info(`[screenshot] Saved to ${filepath}`);
+
     return {
-      base64: resized.toJPEG(75).toString('base64'),
+      base64: pngBuffer.toString('base64'),
       scaleFactor,
     };
   }

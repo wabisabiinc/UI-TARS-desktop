@@ -5,6 +5,7 @@
  */
 import {
   GUIAgentData,
+  UITarsModelVersion,
   StatusEnum,
   ShareVersion,
   ErrorStatusEnum,
@@ -37,6 +38,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
   private readonly operator: T;
   private readonly model: InstanceType<typeof UITarsModel>;
   private readonly logger: NonNullable<GUIAgentConfig<T>['logger']>;
+  private uiTarsVersion?: UITarsModelVersion;
   private systemPrompt: string;
 
   private isPaused = false;
@@ -53,6 +55,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
         ? config.model
         : new UITarsModel(config.model);
     this.logger = config.logger || console;
+    this.uiTarsVersion = config.uiTarsVersion;
     this.systemPrompt = config.systemPrompt || this.buildSystemPrompt();
   }
 
@@ -107,6 +110,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
     try {
       // eslint-disable-next-line no-constant-condition
       while (true) {
+        logger.info('[GUIAgent] loopCnt:', loopCnt);
         // check pause status
         if (this.isPaused && this.resumePromise) {
           data.status = StatusEnum.PAUSE;
@@ -223,6 +227,7 @@ export class GUIAgent<T extends Operator> extends BaseGUIAgent<
           },
           mime,
           scaleFactor: snapshot.scaleFactor,
+          uiTarsVersion: this.uiTarsVersion,
         };
         const { prediction, parsedPredictions } = await asyncRetry(
           async (bail) => {

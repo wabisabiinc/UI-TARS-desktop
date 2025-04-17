@@ -11,6 +11,7 @@ import { logger } from '@main/logger';
 import { LocalStore, VlmProvider } from './types';
 import { validatePreset } from './validate';
 import { BrowserWindow } from 'electron';
+import { UITarsModelVersion } from '@ui-tars/shared/types';
 
 export const DEFAULT_SETTING: LocalStore = {
   language: 'en',
@@ -23,6 +24,7 @@ export const DEFAULT_SETTING: LocalStore = {
   operator: 'browser',
   reportStorageBaseUrl: '',
   utioBaseUrl: '',
+  uiTarsVersion: UITarsModelVersion.V1_5,
 };
 
 export class SettingStore {

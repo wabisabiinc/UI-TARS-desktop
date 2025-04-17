@@ -6,6 +6,7 @@ import {
   Message,
   GUIAgentData,
   PredictionParsed,
+  UITarsModelVersion,
   ScreenshotResult,
   GUIAgentError,
   StatusEnum,
@@ -44,6 +45,8 @@ export interface InvokeParams {
   };
   /** physicalSize = screenshotSize * scaleFactor */
   scaleFactor?: number;
+  /** the ui-tars's version */
+  uiTarsVersion?: UITarsModelVersion;
 }
 
 export interface InvokeOutput {
@@ -93,6 +96,7 @@ export interface GUIAgentConfig<TOperator> {
   maxLoopCount?: number;
   /** Time interval between two loop iterations (in milliseconds), @default 0 */
   loopIntervalInMs?: number;
+  uiTarsVersion?: UITarsModelVersion;
 }
 
 export interface AgentContext<T = Operator> extends GUIAgentConfig<T> {

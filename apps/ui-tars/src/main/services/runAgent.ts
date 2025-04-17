@@ -6,7 +6,7 @@ import assert from 'assert';
 
 import { logger } from '@main/logger';
 import { hideWindowBlock } from '@main/window/index';
-import { StatusEnum } from '@ui-tars/shared/types';
+import { StatusEnum, UITarsModelVersion } from '@ui-tars/shared/types';
 import { type ConversationWithSoM } from '@main/shared/types';
 import { GUIAgent, type GUIAgentConfig } from '@ui-tars/sdk';
 import { markClickPosition } from '@main/utils/image';
@@ -130,10 +130,10 @@ export const runAgent = async (
       apiKey: settings.vlmApiKey,
       model: settings.vlmModelName,
     },
-    systemPrompt: getSystemPromptV1_5(
-      language,
-      'normal', // Only support normal mode for now.
-    ),
+    systemPrompt:
+      settings.uiTarsVersion === UITarsModelVersion.V1_5
+        ? getSystemPromptV1_5(language, 'normal')
+        : getSystemPrompt(language),
     logger,
     signal: abortController?.signal,
     operator: operator,
@@ -154,6 +154,7 @@ export const runAgent = async (
     },
     maxLoopCount: settings.maxLoopCount,
     loopIntervalInMs: settings.loopIntervalInMs,
+    uiTarsVersion: settings.uiTarsVersion,
   });
 
   GUIAgentManager.getInstance().setAgent(guiAgent);
