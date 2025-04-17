@@ -45,7 +45,6 @@ import {
   TooltipTrigger,
 } from '@renderer/components/ui/tooltip';
 import { toast as sonnerToast } from 'sonner';
-import { cn } from '@renderer/utils';
 import { DragArea } from '@renderer/components/Common/drag';
 
 export default function Settings() {

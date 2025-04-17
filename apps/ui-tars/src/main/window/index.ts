@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow } from 'electron';
 
 import { logger } from '@main/logger';
 import * as env from '@main/env';

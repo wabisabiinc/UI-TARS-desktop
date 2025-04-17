@@ -3,13 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useState } from 'react';
-import {
-  MoreHorizontal,
-  Trash2,
-  History,
-  ChevronRight,
-  SquareArrowOutUpRight,
-} from 'lucide-react';
+import { MoreHorizontal, Trash2, History, ChevronRight } from 'lucide-react';
 
 import {
   DropdownMenu,

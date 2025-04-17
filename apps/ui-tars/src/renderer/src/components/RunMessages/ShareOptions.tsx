@@ -1,4 +1,4 @@
-import { FileText, Video, Loader2, SquareArrowOutUpRight } from 'lucide-react';
+import { FileText, Loader2, SquareArrowOutUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useRef } from 'react';
 

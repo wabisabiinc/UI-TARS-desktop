@@ -13,7 +13,7 @@ import { markClickPosition } from '@main/utils/image';
 import { UTIOService } from '@main/services/utio';
 import { NutJSElectronOperator } from '../agent/operator';
 import { DefaultBrowserOperator } from '@ui-tars/operator-browser';
-import { getSystemPrompt, getSystemPromptV1_5 } from '../agent/prompts';
+import { getSystemPromptV1_5 } from '../agent/prompts';
 import {
   closeScreenMarker,
   hideWidgetWindow,

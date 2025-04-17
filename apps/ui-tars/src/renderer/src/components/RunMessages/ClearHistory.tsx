@@ -1,6 +1,5 @@
 import { Button } from '@renderer/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { api } from '@renderer/api';
 import {
   AlertDialog,
   AlertDialogAction,
