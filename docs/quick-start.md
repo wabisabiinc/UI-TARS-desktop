@@ -29,5 +29,15 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 
 **Still to run** the application, you can see the following interface:
 
-<img src="../apps/ui-tars/images/windows_install.png" width="400px" />
+<img src="../apps/ui-tars/images/windows_install.png" width="400px" style="margin-left: 4em;" />
 
+## Add your model settings
+
+> Refer to [Deployment](https://github.com/bytedance/UI-TARS/blob/main/README_deploy.md) for more information about the UI-TARS-1.5's latest deployment methods.
+
+1. Click the **Settings** button on the bottom left corner of the application
+  <img src="../apps/ui-tars/images/setting.png" width="500px" />
+2. Select correct model provider to **enhance our desktop app's performance**
+  <img src="../apps/ui-tars/images/settings_provider.png" width="500px" />
+3. Select the desired usage scenario before starting a new chat
+  <img src="../apps/ui-tars/images/settings_scene.png" width="500px" />
