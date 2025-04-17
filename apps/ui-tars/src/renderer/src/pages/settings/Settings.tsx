@@ -371,7 +371,7 @@ export default function Settings() {
                   name="loopIntervalInMs"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Loop Interval (ms)</FormLabel>
+                      <FormLabel>Loop Wait Time (ms)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
