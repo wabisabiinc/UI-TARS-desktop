@@ -155,7 +155,7 @@ const RunMessages = () => {
             variant="ghost"
             size="icon"
             onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
-            className="h-8 w-8 mr-4"
+            className="mr-4"
           >
             <ChevronRight
               className={cn(
