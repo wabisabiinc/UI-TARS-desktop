@@ -15,7 +15,7 @@ const PresetSourceSchema = z.object({
 
 export const PresetSchema = z.object({
   // Required fields
-  vlmProvider: z.nativeEnum(VLMProviderV2),
+  vlmProvider: z.nativeEnum(VLMProviderV2).optional(),
   vlmBaseUrl: z.string().url(),
   vlmApiKey: z.string().min(1),
   vlmModelName: z.string().min(1),

@@ -37,8 +37,7 @@ import { PresetBanner } from './PresetBanner';
 const formSchema = z.object({
   language: z.enum(['en', 'zh']),
   vlmProvider: z.nativeEnum(VLMProviderV2, {
-    required_error: '请选择 VLM Provider',
-    invalid_type_error: '请选择有效的 VLM Provider',
+    message: 'Please select a VLM Provider to enhance resolution',
   }),
   vlmBaseUrl: z.string().url(),
   vlmApiKey: z.string(),
@@ -241,7 +240,7 @@ export default function Settings() {
                         <Select
                           disabled={isRemoteAutoUpdatedPreset}
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select language" />
@@ -259,34 +258,30 @@ export default function Settings() {
                 <FormField
                   control={form.control}
                   name="vlmProvider"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>VLM Provider</FormLabel>
-                      <Select
-                        disabled={isRemoteAutoUpdatedPreset}
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <SelectTrigger
-                          className={
-                            form.formState.errors.vlmProvider
-                              ? 'border-red-500'
-                              : ''
-                          }
+                  render={({ field }) => {
+                    return (
+                      <FormItem>
+                        <FormLabel>VLM Provider</FormLabel>
+                        <Select
+                          disabled={isRemoteAutoUpdatedPreset}
+                          onValueChange={field.onChange}
+                          value={field.value}
                         >
-                          <SelectValue placeholder="Select VLM provider" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.values(VLMProviderV2).map((provider) => (
-                            <SelectItem key={provider} value={provider}>
-                              {provider}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select VLM provider" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.values(VLMProviderV2).map((provider) => (
+                              <SelectItem key={provider} value={provider}>
+                                {provider}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
                 {/* VLM Base URL */}
                 <FormField
