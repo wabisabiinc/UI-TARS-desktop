@@ -118,6 +118,7 @@ VLM API KEY: ARK_API_KEY
 VLM Model Name: doubao-1.5-ui-tars-250328
 ```
 
+<br>
 
 ### Chat Settings
 
