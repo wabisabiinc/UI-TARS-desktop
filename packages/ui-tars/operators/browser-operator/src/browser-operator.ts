@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type { BrowserInterface, Page } from '@agent-infra/browser';
-import { Logger, defaultLogger } from '@agent-infra/logger';
+import { LocalBrowser } from '@agent-infra/browser';
+import { ConsoleLogger, Logger, defaultLogger } from '@agent-infra/logger';
 import { Operator, parseBoxToScreenCoords } from '@ui-tars/sdk/core';
 import type {
   ScreenshotOutput,
@@ -53,6 +54,8 @@ export class BrowserOperator extends Operator {
 
   private highlightClickableElements = true;
 
+  private showActionInfo = true;
+
   /**
    * Creates a new BrowserOperator instance
    * @param options Configuration options for the browser operator
@@ -66,10 +69,14 @@ export class BrowserOperator extends Operator {
     );
 
     // Initialize UIHelper with a function that gets the active page
-    this.uiHelper = new UIHelper(() => this.getActivePage());
+    this.uiHelper = new UIHelper(() => this.getActivePage(), this.logger);
 
     if (options.highlightClickableElements === false) {
       this.highlightClickableElements = false;
+    }
+
+    if (options.showActionInfo === false) {
+      this.showActionInfo = false;
     }
   }
 
@@ -89,12 +96,21 @@ export class BrowserOperator extends Operator {
     return page;
   }
 
+  public setHighlightClickableElements(enable: boolean): void {
+    this.highlightClickableElements = enable;
+    this.logger.info(
+      `Clickable elements highlighting ${enable ? 'enabled' : 'disabled'}`,
+    );
+  }
+
   /**
    * Takes a screenshot of the current browser viewport
    * @returns Promise resolving to screenshot data
    */
   public async screenshot(): Promise<ScreenshotOutput> {
     this.logger.info('Starting screenshot...');
+
+    this.uiHelper.showWaterFlow();
 
     const page = await this.getActivePage();
 
@@ -120,6 +136,7 @@ export class BrowserOperator extends Operator {
       const startTime = Date.now();
 
       // Take screenshot
+      await this.uiHelper.cleanupTemporaryVisuals();
       const buffer = await page.screenshot({
         encoding: 'base64',
         fullPage: false, // Capture only the visible area
@@ -170,7 +187,9 @@ export class BrowserOperator extends Operator {
     const { parsedPrediction, screenWidth, screenHeight } = params;
 
     // Show action info in UI
-    await this.uiHelper?.showActionInfo(parsedPrediction);
+    if (this.showActionInfo) {
+      await this.uiHelper?.showActionInfo(parsedPrediction);
+    }
 
     // Add this line to trigger plugin hook
     await this.options.onOperatorAction?.(parsedPrediction);
@@ -229,13 +248,22 @@ export class BrowserOperator extends Operator {
           break;
 
         case 'wait':
-          await this.delay(1000);
+          await this.delay(5000);
           break;
 
         case 'finished':
           if (this.options.onFinalAnswer && parsedPrediction.thought) {
             await this.options.onFinalAnswer(parsedPrediction.thought);
           }
+          this.uiHelper.cleanup();
+          break;
+
+        case 'call_user':
+          this.uiHelper.cleanup();
+          break;
+
+        case 'user_stop':
+          this.uiHelper.cleanup();
           break;
 
         default:
@@ -461,5 +489,61 @@ export class BrowserOperator extends Operator {
       this.logger.info('Page closed successfully');
     }
     this.logger.info('Cleanup completed');
+  }
+}
+
+export class DefaultBrowserOperator extends BrowserOperator {
+  private static instance: DefaultBrowserOperator | null = null;
+  private static browser: LocalBrowser | null = null;
+  private static logger: Logger | null = null;
+
+  private constructor(options: BrowserOperatorOptions) {
+    super(options);
+  }
+
+  public static async getInstance(
+    highlight = false,
+    showActionInfo = false,
+    isCallUser = false,
+  ): Promise<DefaultBrowserOperator> {
+    if (!this.instance) {
+      if (!this.logger) {
+        this.logger = new ConsoleLogger('[Default]');
+      }
+
+      if (!this.browser) {
+        this.browser = new LocalBrowser({ logger: this.logger });
+        await this.browser.launch();
+      }
+
+      this.instance = new DefaultBrowserOperator({
+        browser: this.browser,
+        logger: this.logger,
+        highlightClickableElements: highlight,
+        showActionInfo: showActionInfo,
+      });
+    }
+
+    if (!isCallUser) {
+      const openingPage = await this.browser?.createPage();
+      await openingPage?.goto('https://www.google.com/', {
+        waitUntil: 'networkidle2',
+      });
+    }
+
+    this.instance.setHighlightClickableElements(highlight);
+
+    return this.instance;
+  }
+
+  public static async destroyInstance(): Promise<void> {
+    if (this.instance) {
+      await this.instance.cleanup();
+      if (this.browser) {
+        await this.browser.close();
+        this.browser = null;
+      }
+      this.instance = null;
+    }
   }
 }

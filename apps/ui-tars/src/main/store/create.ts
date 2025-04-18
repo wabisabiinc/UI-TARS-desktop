@@ -18,7 +18,6 @@ export const store = createStore<AppState>(
       messages: [],
       errorMsg: null,
       ensurePermissions: {},
-
       abortController: null,
       thinking: false,
     }) satisfies AppState,

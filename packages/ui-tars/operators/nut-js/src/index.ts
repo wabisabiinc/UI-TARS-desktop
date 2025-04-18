@@ -120,7 +120,7 @@ export class NutJSOperator extends Operator {
     switch (action_type) {
       case 'wait':
         logger.info('[NutjsOperator] wait', action_inputs);
-        await sleep(1000);
+        await sleep(5000);
         break;
 
       case 'mouse_move':
@@ -218,10 +218,14 @@ export class NutJSOperator extends Operator {
         if (keyStr) {
           const platformCommandKey =
             process.platform === 'darwin' ? Key.LeftCmd : Key.LeftWin;
+          const platformCtrlKey =
+            process.platform === 'darwin' ? Key.LeftCmd : Key.LeftControl;
           const keyMap: Record<string, Key> = {
             return: Key.Enter,
             enter: Key.Enter,
-            ctrl: Key.LeftControl,
+            backspace: Key.Backspace,
+            delete: Key.Delete,
+            ctrl: platformCtrlKey,
             shift: Key.LeftShift,
             alt: Key.LeftAlt,
             space: Key.Space,
@@ -233,6 +237,8 @@ export class NutJSOperator extends Operator {
             win: platformCommandKey,
             command: platformCommandKey,
             cmd: platformCommandKey,
+            comma: Key.Comma,
+            ',': Key.Comma,
           };
 
           const keys = keyStr
@@ -244,7 +250,7 @@ export class NutJSOperator extends Operator {
             );
           logger.info('[NutjsOperator] hotkey: ', keys);
           await keyboard.pressKey(...keys);
-          await keyboard.releaseKey(...keys);
+          await keyboard.releaseKey(...keys.reverse());
         }
         break;
       }
@@ -274,6 +280,7 @@ export class NutJSOperator extends Operator {
       case 'error_env':
       case 'call_user':
       case 'finished':
+      case 'user_stop':
         return { status: StatusEnum.END };
 
       default:
