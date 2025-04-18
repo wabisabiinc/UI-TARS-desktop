@@ -237,6 +237,8 @@ export class NutJSOperator extends Operator {
             win: platformCommandKey,
             command: platformCommandKey,
             cmd: platformCommandKey,
+            comma: Key.Comma,
+            ',': Key.Comma,
           };
 
           const keys = keyStr
