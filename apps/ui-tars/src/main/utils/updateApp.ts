@@ -1,6 +1,6 @@
 import { UpdateInfo } from 'builder-util-runtime';
 import { app, dialog, BrowserWindow } from 'electron';
-import { logger } from '@main/utils/logger';
+import { logger } from '@main/logger';
 import {
   AppUpdater as ElectronAppUpdater,
   autoUpdater,
@@ -11,7 +11,7 @@ export class AppUpdater {
 
   checkReleaseName(releaseName: string | undefined | null): boolean {
     return Boolean(
-      releaseName && /agent[-\s]?tars/i.test(releaseName.toLowerCase()),
+      releaseName && /ui[-\s]?tars/i.test(releaseName.toLowerCase()),
     );
   }
 
@@ -26,7 +26,6 @@ export class AppUpdater {
 
     autoUpdater.on('update-available', (releaseInfo: UpdateInfo) => {
       logger.info('new version', releaseInfo);
-
       if (this.checkReleaseName(releaseInfo?.releaseName)) {
         mainWindow.webContents.send('app-update-available', releaseInfo);
         autoUpdater.downloadUpdate();
@@ -40,6 +39,7 @@ export class AppUpdater {
     if (app.isPackaged) {
       // Only check for updates in the packaged version!
       this.autoUpdater.checkForUpdatesAndNotify();
+      // }
     }
   }
 

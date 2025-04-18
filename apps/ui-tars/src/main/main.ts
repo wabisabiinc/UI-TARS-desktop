@@ -16,7 +16,6 @@ import {
 } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import ElectronStore from 'electron-store';
-import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 
 import * as env from '@main/env';
 import { logger } from '@main/logger';
@@ -48,24 +47,6 @@ if (squirrelStartup) {
 logger.debug('[env]', env);
 
 ElectronStore.initRenderer();
-
-class AppUpdater {
-  constructor() {
-    // autoUpdater.logger = logger;
-    // autoUpdater.checkForUpdatesAndNotify();
-    if (!env.isE2eTest) {
-      updateElectronApp({
-        updateSource: {
-          type: UpdateSourceType.ElectronPublicUpdateService,
-          repo: 'bytedance/UI-TARS-desktop',
-          host: 'https://update.electronjs.org',
-        },
-        updateInterval: '20 minutes',
-        logger,
-      });
-    }
-  }
-}
 
 if (isProd) {
   import('source-map-support').then(({ default: sourceMapSupport }) => {
@@ -124,10 +105,6 @@ const initializeApp = async () => {
   logger.info('createMainWindow');
   let mainWindow = createMainWindow();
   const settingsWindow = createSettingsWindow({ showInBackground: true });
-
-  // Remove this if your app does not use auto updates
-  // eslint-disable-next-line
-  new AppUpdater();
 
   session.defaultSession.setDisplayMediaRequestHandler(
     (_request, callback) => {

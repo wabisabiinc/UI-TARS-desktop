@@ -21,6 +21,7 @@ import { getExternalPkgs } from './scripts/getExternalPkgs';
 import {
   getModuleRoot,
   getExternalPkgsDependencies,
+  hooks,
 } from '@common/electron-build';
 
 const keepModules = new Set([
@@ -165,7 +166,6 @@ const config: ForgeConfig = {
         : setLanguages([...keepLanguages.values()]),
     ],
     executableName: 'UI-TARS',
-    extraResource: ['./resources/app-update.yml'],
     ...(enableOsxSign
       ? {
           osxSign: {
@@ -230,6 +230,11 @@ const config: ForgeConfig = {
           }),
         ]),
   ],
+  hooks: {
+    postMake: async (forgeConfig, makeResults) => {
+      return await hooks.postMake?.(forgeConfig, makeResults);
+    },
+  },
 };
 
 export default config;
