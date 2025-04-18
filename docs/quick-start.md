@@ -2,6 +2,8 @@
 
 We're excited to announce the support for UI-TARS-1.5! 🎉🎉🎉
 
+The previous version of UI-TARS Desktop version 0.0.8 will be upgraded to a new Desktop App 0.1.0 with support for both Computer and Browser use.
+
 ## Download
 
 You can download the [latest release](https://github.com/bytedance/UI-TARS-desktop/releases/latest) version of UI-TARS Desktop from our releases page.
