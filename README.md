@@ -31,8 +31,8 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 
 | Instruction  | Video |
 | :---:  | :---: |
-| Get the current weather in SF using the web browser      |    <video src="https://github.com/user-attachments/assets/5235418c-ac61-4895-831d-68c1c749fc87" height="300" />    |
-| Send a twitter with the content "hello world"   | <video src="https://github.com/user-attachments/assets/737ccc11-9124-4464-b4be-3514cbced85c" height="300" />        |
+| Please help me open the autosave feature of VS Code and delay AutoSave operations for 500 milliseconds in the VS Code setting.      |    <video src="https://github.com/user-attachments/assets/9b155c71-e21e-4c2f-8ca6-ea1605fda4b7" height="300" />    |
+| Could you help me check the latest open issue of the UI-TARS-Desktop project on GitHub?   | <video src="https://github.com/user-attachments/assets/fa84ef5c-25cf-4e08-80a5-717a9c5550f3" height="300" />        |
 
 
 ## News
