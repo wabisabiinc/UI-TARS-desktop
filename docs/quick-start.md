@@ -46,3 +46,7 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 
 3. Select the desired usage scenario before starting a new chat
   <img src="../apps/ui-tars/images/settings_scene.png" width="500px" />
+
+4. Input the command to start a round of GUI operation tasks!
+
+  <img src="../apps/ui-tars/images/start_task.png" width="500px" />

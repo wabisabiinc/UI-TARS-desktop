@@ -121,6 +121,9 @@ For interactive operations that require time to complete, this parameter adds a 
 
 ### Report Settings
 
+> [!TIP]
+> This configuration section is optional. These settings primarily facilitate usage analytics and telemetry collection for improving the user experience.
+
 #### Report Storage Base URL
 
 Defines the base URL for uploading report file. By default, when this option is not set, when the user clicks **Export as HTML** (a.k.a. <b>Share</b>), it will automatically trigger the download of the report file:
