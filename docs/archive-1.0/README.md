@@ -38,8 +38,8 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 ## News
 
 - **\[2025-04-17\]** - 🎉 We're excited to announce support for **UI-TARS-1.5**, featuring enhanced performance, precise control, and expanded scenario coverage (using computer and browser as operators). Now compatible with multiple models: UI-TARS-1.0, UI-TARS-1.5, and Doubao-1.5-UI-TARS!
-- **\[2025-02-20\]** - 📦 Introduced [UI TARS SDK](./docs/sdk.md), is a powerful cross-platform toolkit for building GUI automation agents.
-- **\[2025-01-23\]** - 🚀 We updated the **[Cloud Deployment](./docs/deployment.md#cloud-deployment)** section in the 中文版: [GUI模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb) with new information related to the ModelScope platform. You can now use the ModelScope platform for deployment.
+- **\[2025-02-20\]** - 📦 Introduced [UI TARS SDK](./sdk.md), is a powerful cross-platform toolkit for building GUI automation agents.
+- **\[2025-01-23\]** - 🚀 We updated the **[Cloud Deployment](./deployment.md#cloud-deployment)** section in the 中文版: [GUI模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb) with new information related to the ModelScope platform. You can now use the ModelScope platform for deployment.
 
 
 ## Features
@@ -53,11 +53,11 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 
 ## Quick Start
 
-See [Quick Start](./docs/quick-start.md).
+See [Quick Start](./quick-start.md).
 
 ## Deployment
 
-See [Deployment](./docs/deployment.md).
+See [Deployment](./deployment.md).
 
 ## Contributing
 
@@ -65,7 +65,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## SDK (Experimental)
 
-See [@ui-tars/sdk](./docs/sdk.md)
+See [@ui-tars/sdk](./sdk.md)
 
 ## License
 
