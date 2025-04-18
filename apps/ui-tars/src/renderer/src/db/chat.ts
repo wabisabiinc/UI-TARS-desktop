@@ -14,7 +14,6 @@ const DBName = 'ui_tars_db_chat';
 const chatStore = createStore(DBName, 'chats');
 
 export class ChatManager {
-  // 创建新消息
   async createSessionMessages(
     sessionId: string,
     messages: ConversationWithSoM[],

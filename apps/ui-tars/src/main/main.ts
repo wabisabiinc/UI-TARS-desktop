@@ -245,5 +245,3 @@ app
   })
 
   .catch(console.log);
-
-// ... 其他代码 ...
