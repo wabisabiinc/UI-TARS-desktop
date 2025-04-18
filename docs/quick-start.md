@@ -1,5 +1,7 @@
 # Quick Start
 
+We're excited to announce the support for UI-TARS-1.5! 🎉🎉🎉
+
 ## Download
 
 You can download the [latest release](https://github.com/bytedance/UI-TARS-desktop/releases/latest) version of UI-TARS Desktop from our releases page.
@@ -39,6 +41,8 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
   <img src="../apps/ui-tars/images/setting.png" width="500px" />
 
 2. Read the [Settings Configuration Guide](./setting.md) and set up VLM/Chat parameters
+
+> Selecting the appropriate VLM Provider can optimize desktop app performance when using model. For more details, see [vlm-provider](https://github.com/bytedance/UI-TARS-desktop/blob/main/docs/setting.md#vlm-provider)
 
 3. Select the desired usage scenario before starting a new chat
   <img src="../apps/ui-tars/images/settings_scene.png" width="500px" />
