@@ -47,7 +47,7 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 - 🤖 Natural language control powered by Vision-Language Model
 - 🖥️ Screenshot and visual recognition support
 - 🎯 Precise mouse and keyboard control
-- 💻 Cross-platform support (Windows/MacOS)
+- 💻 Cross-platform support (Windows/MacOS/Browser)
 - 🔄 Real-time feedback and status display
 - 🔐 Private and secure - fully local processing
 
