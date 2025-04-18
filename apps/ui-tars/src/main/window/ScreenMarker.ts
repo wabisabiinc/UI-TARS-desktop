@@ -14,11 +14,14 @@ import { PredictionParsed, Conversation } from '@ui-tars/shared/types';
 import * as env from '@main/env';
 import { logger } from '@main/logger';
 
+import { AppUpdater } from '@main/utils/updateApp';
 import { setOfMarksOverlays } from '@main/shared/setOfMarks';
 import { server } from '@main/ipcRoutes';
 import path from 'path';
 import MenuBuilder from '../menu';
 import { windowManager } from '../services/windowManager';
+
+let appUpdater;
 
 class ScreenMarker {
   private static instance: ScreenMarker;
@@ -182,7 +185,11 @@ class ScreenMarker {
       );
     }
 
-    const menuBuilder = new MenuBuilder(this.widgetWindow);
+    if (!appUpdater) {
+      appUpdater = new AppUpdater(this.widgetWindow);
+    }
+
+    const menuBuilder = new MenuBuilder(this.widgetWindow, appUpdater);
     menuBuilder.buildMenu();
 
     windowManager.registerWindow(this.widgetWindow);

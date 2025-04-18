@@ -26,7 +26,9 @@ import { SettingStore } from '@main/store/setting';
 import { AppState, VLMProviderV2 } from '@main/store/types';
 import { GUIAgentManager } from '../ipcRoutes/agent';
 
-const getModelVersion = (provider: VLMProviderV2): UITarsModelVersion => {
+const getModelVersion = (
+  provider: VLMProviderV2 | undefined,
+): UITarsModelVersion => {
   switch (provider) {
     case VLMProviderV2.ui_tars_1_5:
       return UITarsModelVersion.V1_5;
