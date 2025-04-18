@@ -1,3 +1,6 @@
+> [!WARNING]
+> This document has been archived.
+
 # Quick Start
 
 ## Download

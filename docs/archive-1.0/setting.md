@@ -1,3 +1,6 @@
+> [!WARNING]
+> This document has been archived.
+
 # Settings Configuration Guide
 
 ## Overview

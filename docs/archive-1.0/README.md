@@ -1,4 +1,5 @@
-
+> [!WARNING]
+> This document has been archived.
 
 > [!IMPORTANT]
 > <a href="../../apps/agent-tars/README.md">

@@ -1,3 +1,6 @@
+> [!WARNING]
+> This document has been archived.
+
 # Deployment
 
 ### ⚠️ Important Announcement: GGUF Model Performance

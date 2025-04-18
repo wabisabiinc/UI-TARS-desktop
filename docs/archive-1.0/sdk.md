@@ -1,3 +1,6 @@
+> [!WARNING]
+> This document has been archived.
+
 # @ui-tars/sdk Guide (Experimental)
 
 ## Overview
