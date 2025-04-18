@@ -69,6 +69,17 @@ For UI TARS deployment, please check out [Deployment](./deployment.md).
 
 <br>
 
+#### VLM API KEY
+
+Specify the vlm api key.
+
+| Property     | Details  |
+| ------------ | -------- |
+| **Type**     | `string` |
+| **Required** | `true`   |
+
+
+<br>
 
 
 #### VLM Model Name
@@ -82,6 +93,30 @@ Specify the requested module name.
 
 
 <br>
+
+#### 🌟 Example
+
+In the HuggingFace example in [UI-TARS/README_deploy.md](https://github.com/bytedance/UI-TARS/blob/main/README_deploy.md#python-test-code), the VLM parameters are as follows:
+
+```yaml
+Language: en
+VLM Provider: OpenAI compatible for UI-TARS-1.5
+VLM Base URL: https:xxx
+VLM API KEY: hf_xxx
+VLM Model Name: tgi
+```
+
+<br>
+
+In the VolcEngine(火山引擎) example in [Doubao-1.5-UI-TARS](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-1-5-ui-tars), the VLM parameters are as follows:
+
+```yaml
+Language: cn
+VLM Provider: VolcEngine Ark for Doubao-1.5-UI-TARS
+VLM Base URL: ttps://ark.cn-beijing.volces.com/api/v3
+VLM API KEY: ARK_API_KEY
+VLM Model Name: doubao-1.5-ui-tars-250328
+```
 
 
 ### Chat Settings
