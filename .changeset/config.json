@@ -20,6 +20,7 @@
     "@common/*",
     "@agent-infra/*",
     "!@agent-infra/logger",
-    "!@agent-infra/browser"
+    "!@agent-infra/browser",
+    "!@agent-infra/shared"
   ]
 }
