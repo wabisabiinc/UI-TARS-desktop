@@ -1,10 +1,10 @@
 ---
+'@ui-tars/operator-browser': patch
 '@agent-infra/logger': patch
 '@ui-tars/action-parser': patch
 '@ui-tars/cli': patch
 '@ui-tars/electron-ipc': patch
 '@ui-tars/operator-adb': patch
-'@ui-tars/operator-browser': patch
 '@ui-tars/operator-browserbase': patch
 '@ui-tars/operator-nut-js': patch
 '@ui-tars/sdk': patch
