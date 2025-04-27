@@ -132,44 +132,44 @@ function toolUseToMcpTool(
 (async () => {
   const client = new MCPClient(
     [
-      // {
-      //   name: 'browser',
-      //   description: 'web browser tools',
-      //   localClient: mcpBrowserClient,
-      // },
-      // {
-      //   name: 'filesystem',
-      //   description: 'filesystem tools',
-      //   localClient: mcpFilesystemClient,
-      // },
+      {
+        name: 'browser',
+        description: 'web browser tools',
+        localClient: mcpBrowserClient,
+      },
+      {
+        name: 'filesystem',
+        description: 'filesystem tools',
+        localClient: mcpFilesystemClient,
+      },
       {
         name: 'add_function',
         description: 'add function',
         type: 'sse',
-        url: 'https://6vknhcia.mcp.bytedance.net/sse',
+        url: 'http://localhost:8808/sse',
         headers: {
           Authorization: 'Bearer user@example.com:foo:bar',
         },
       },
-      // {
-      //   name: 'filesystem',
-      //   command: 'npx',
-      //   args: [
-      //     '-y',
-      //     '@agent-infra/mcp-server-filesystem',
-      //     path.join(__dirname, '../'),
-      //   ],
-      // },
-      // {
-      //   name: 'commands',
-      //   description: 'commands tools',
-      //   localClient: mcpCommandsClient,
-      // },
-      // {
-      //   name: 'browser',
-      //   command: 'npx',
-      //   args: ['-y', '@agent-infra/mcp-server-browser'],
-      // },
+      {
+        name: 'filesystem',
+        command: 'npx',
+        args: [
+          '-y',
+          '@agent-infra/mcp-server-filesystem',
+          path.join(__dirname, '../'),
+        ],
+      },
+      {
+        name: 'commands',
+        description: 'commands tools',
+        localClient: mcpCommandsClient,
+      },
+      {
+        name: 'browser',
+        command: 'npx',
+        args: ['-y', '@agent-infra/mcp-server-browser'],
+      },
     ],
     {
       isDebug: true,
