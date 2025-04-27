@@ -142,15 +142,15 @@ function toolUseToMcpTool(
         description: 'filesystem tools',
         localClient: mcpFilesystemClient,
       },
-      {
-        name: 'add_function',
-        description: 'add function',
-        type: 'sse',
-        url: 'http://localhost:8808/sse',
-        headers: {
-          Authorization: 'Bearer user@example.com:foo:bar',
-        },
-      },
+      // {
+      //   name: 'add_function',
+      //   description: 'add function',
+      //   type: 'sse',
+      //   url: 'http://localhost:8808/sse',
+      //   headers: {
+      //     Authorization: 'Bearer user@example.com:foo:bar',
+      //   },
+      // },
       {
         name: 'filesystem',
         command: 'npx',
