@@ -63,7 +63,7 @@ export const runAgent = async (
   }) => {
     const lastConv = getState().messages[getState().messages.length - 1];
     const { status, conversations, ...restUserData } = data;
-    logger.info('[status]', status, conversations.length);
+    logger.info('[onGUIAgentData] status', status, conversations.length);
 
     // add SoM to conversations
     const conversationsWithSoM: ConversationWithSoM[] = await Promise.all(
@@ -102,7 +102,7 @@ export const runAgent = async (
       ...rest
     } = conversationsWithSoM?.[conversationsWithSoM.length - 1] || {};
     logger.info(
-      '======data======\n',
+      '[onGUIAgentData] ======data======\n',
       predictionParsed,
       screenshotContext,
       rest,
@@ -165,8 +165,18 @@ export const runAgent = async (
     signal: abortController?.signal,
     operator: operator,
     onData: handleData,
-    onError: ({ error }) => {
-      logger.error('[runAgent error]', settings, error);
+    onError: (params) => {
+      const { error } = params;
+      logger.error('[onGUIAgentError]', settings, error);
+      setState({
+        ...getState(),
+        status: StatusEnum.ERROR,
+        errorMsg: JSON.stringify({
+          status: error.status,
+          message: error.message,
+          stack: error.stack,
+        }),
+      });
     },
     retry: {
       model: {
