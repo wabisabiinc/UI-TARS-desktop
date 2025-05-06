@@ -1,6 +1,6 @@
 {
   "name": "@agent-infra/mcp-shared",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "MCP shared",
   "license": "MIT",
   "homepage": "https://modelcontextprotocol.io",
