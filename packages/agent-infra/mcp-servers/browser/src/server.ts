@@ -148,6 +148,19 @@ export async function setInitialBrowser(
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
   );
 
+  try {
+    await Promise.race([
+      PuppeteerBlocker.fromPrebuiltAdsAndTracking(fetch).then((blocker) =>
+        blocker.enableBlockingInPage(globalPage as any),
+      ),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Blocking In Page timeout')), 1000),
+      ),
+    ]);
+  } catch (e) {
+    logger.error('Error enabling adblocker:', e);
+  }
+
   // set proxy authentication
   if (globalConfig.pageAuthentication) {
     await globalPage.authenticate(globalConfig.pageAuthentication);
@@ -470,22 +483,6 @@ const handleToolCall: Client['callTool'] = async ({
     },
     browser_navigate: async (args) => {
       try {
-        try {
-          await Promise.race([
-            PuppeteerBlocker.fromPrebuiltAdsAndTracking(fetch).then((blocker) =>
-              blocker.enableBlockingInPage(page as any),
-            ),
-            new Promise((_, reject) =>
-              setTimeout(
-                () => reject(new Error('Blocking In Page timeout')),
-                1000,
-              ),
-            ),
-          ]);
-        } catch (e) {
-          logger.error('Error enabling adblocker:', e);
-        }
-
         await Promise.all([
           waitForPageAndFramesLoad(page),
           page.goto(args.url),
