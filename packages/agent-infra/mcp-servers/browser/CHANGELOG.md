@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 0.0.3-beta.2
+
+### Patch Changes
+
+- feat: add page proxy authentication
+
 ## 0.0.3-beta.1
 
 ### Patch Changes

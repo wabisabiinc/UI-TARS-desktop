@@ -38,6 +38,11 @@ type ToolInput = z.infer<typeof ToolInputSchema>;
 
 interface GlobalConfig {
   launchOptions?: LaunchOptions;
+  /** proxy authentication */
+  pageAuthentication?: {
+    username: string;
+    password: string;
+  };
   logger?: Partial<Logger>;
 }
 
@@ -142,6 +147,11 @@ export async function setInitialBrowser(
   globalPage?.setUserAgent(
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
   );
+
+  // set proxy authentication
+  if (globalConfig.pageAuthentication) {
+    await globalPage.authenticate(globalConfig.pageAuthentication);
+  }
 
   return {
     browser: globalBrowser,
