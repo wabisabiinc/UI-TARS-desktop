@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 0.0.3-beta.4
+
+### Patch Changes
+
+- fix: adblock
+
 ## 0.0.3-beta.3
 
 ### Patch Changes
