@@ -17,6 +17,12 @@ export interface LaunchOptions {
    */
   args?: string[];
   /**
+   * If true, pipes the browser process stdout and stderr to `process.stdout`
+   * and `process.stderr`.
+   * @defaultValue `false`
+   */
+  dumpio?: boolean;
+  /**
    * Whether to run browser in headless mode
    * @default false
    */
