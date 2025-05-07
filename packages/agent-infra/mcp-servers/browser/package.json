@@ -1,6 +1,6 @@
 {
   "name": "@agent-infra/mcp-server-browser",
-  "version": "0.0.3-beta.2",
+  "version": "0.0.3-beta.3",
   "description": "MCP server for browser use access",
   "license": "MIT",
   "homepage": "https://modelcontextprotocol.io",
