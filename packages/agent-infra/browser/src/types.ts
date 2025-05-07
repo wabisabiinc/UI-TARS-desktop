@@ -13,6 +13,10 @@ export type BrowserType = 'chrome' | 'edge' | 'firefox';
  */
 export interface LaunchOptions {
   /**
+   * Additional command line arguments to pass to the browser instance.
+   */
+  args?: string[];
+  /**
    * Whether to run browser in headless mode
    * @default false
    */

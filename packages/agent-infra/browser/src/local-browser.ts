@@ -61,6 +61,7 @@ export class LocalBrowser extends BaseBrowser {
         options?.profilePath
           ? `--profile-directory=${options.profilePath}`
           : '',
+        ...(options.args ?? []),
       ].filter((item) => {
         if (type === 'firefox') {
           // firefox not support rules
