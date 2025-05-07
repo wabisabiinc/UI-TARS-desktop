@@ -471,10 +471,10 @@ const handleToolCall: Client['callTool'] = async ({
     browser_navigate: async (args) => {
       try {
         try {
-          const blocker =
-            await PuppeteerBlocker.fromPrebuiltAdsAndTracking(fetch);
           await Promise.race([
-            blocker.enableBlockingInPage(page as any),
+            PuppeteerBlocker.fromPrebuiltAdsAndTracking(fetch).then((blocker) =>
+              blocker.enableBlockingInPage(page as any),
+            ),
             new Promise((_, reject) =>
               setTimeout(
                 () => reject(new Error('Blocking In Page timeout')),
