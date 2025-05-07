@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 0.0.3-beta.5
+
+### Patch Changes
+
+- chore: update @ghostery/adblocker-puppeteer
+
 ## 0.0.3-beta.4
 
 ### Patch Changes

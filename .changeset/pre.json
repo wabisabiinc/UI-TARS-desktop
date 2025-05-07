@@ -10,7 +10,7 @@
     "@agent-infra/browser-use": "0.0.2-beta.0",
     "@agent-infra/logger": "0.0.1",
     "@agent-infra/mcp-client": "0.5.1",
-    "@agent-infra/mcp-server-browser": "0.0.3-beta.3",
+    "@agent-infra/mcp-server-browser": "0.0.3-beta.4",
     "@agent-infra/mcp-server-commands": "0.0.1",
     "@agent-infra/mcp-server-filesystem": "0.0.1",
     "@agent-infra/mcp-shared": "0.0.2",
@@ -37,6 +37,7 @@
     "eighty-rules-shout",
     "ninety-ravens-bow",
     "shaggy-grapes-poke",
+    "shy-pets-cover",
     "spotty-fireants-travel"
   ]
 }
