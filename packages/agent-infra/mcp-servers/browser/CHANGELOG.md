@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 0.0.3-beta.6
+
+### Patch Changes
+
+- chore: error catch
+
 ## 0.0.3-beta.5
 
 ### Patch Changes
