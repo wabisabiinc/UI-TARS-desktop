@@ -473,7 +473,15 @@ const handleToolCall: Client['callTool'] = async ({
         try {
           const blocker =
             await PuppeteerBlocker.fromPrebuiltAdsAndTracking(fetch);
-          await blocker.enableBlockingInPage(page as any);
+          await Promise.race([
+            blocker.enableBlockingInPage(page as any),
+            new Promise((_, reject) =>
+              setTimeout(
+                () => reject(new Error('Blocking In Page timeout')),
+                1000,
+              ),
+            ),
+          ]);
         } catch (e) {
           logger.error('Error enabling adblocker:', e);
         }
