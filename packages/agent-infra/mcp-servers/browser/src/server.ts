@@ -498,7 +498,7 @@ const handleToolCall: Client['callTool'] = async ({
           ],
           isError: false,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         // Check if it's a timeout error
         if (error instanceof Error && error.message.includes('timeout')) {
           logger.warn(
@@ -518,7 +518,12 @@ const handleToolCall: Client['callTool'] = async ({
         } else {
           logger.error('NavigationTo failed:', error);
           return {
-            content: [{ type: 'text', text: 'Navigation failed' }],
+            content: [
+              {
+                type: 'text',
+                text: `Navigation failed ${error instanceof Error ? error?.message : error}`,
+              },
+            ],
             isError: true,
           };
         }
