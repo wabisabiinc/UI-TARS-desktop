@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 0.0.3-beta.1
+
+### Patch Changes
+
+- chore: add dumpio
+
 ## 0.0.3-beta.0
 
 ### Patch Changes
