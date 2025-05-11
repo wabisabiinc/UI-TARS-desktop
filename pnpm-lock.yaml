@@ -1306,6 +1306,9 @@ importers:
 
   packages/multimodal/agent:
     dependencies:
+      '@agent-infra/logger':
+        specifier: workspace:*
+        version: link:../../agent-infra/logger
       '@agent-infra/mcp-client':
         specifier: workspace:*
         version: link:../../agent-infra/mcp-client
