@@ -46,7 +46,7 @@ import { parseProxyUrl } from './utils.js';
 
 const consoleLogs: string[] = [];
 
-interface GlobalConfig {
+export interface GlobalConfig {
   launchOptions?: LaunchOptions;
   remoteOptions?: RemoteBrowserOptions;
   logger?: Partial<Logger>;
@@ -94,9 +94,11 @@ const getCurrentPage = async (browser: LocalBrowser['browser']) => {
   };
 };
 
-async function setConfig(config: GlobalConfig = {}) {
-  globalConfig = merge({}, globalConfig, config);
-  logger.info('[setConfig] globalConfig', globalConfig);
+async function setConfig(config: GlobalConfig) {
+  globalConfig = {
+    ...(globalConfig || {}),
+    ...config,
+  };
 }
 
 async function setInitialBrowser(
