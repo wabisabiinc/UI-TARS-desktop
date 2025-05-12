@@ -43,9 +43,7 @@ import { parseProxyUrl } from './utils.js';
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
 
-const consoleLogs: string[] = [];
-
-interface GlobalConfig {
+export interface GlobalConfig {
   launchOptions?: LaunchOptions;
   logger?: Partial<Logger>;
 }
@@ -92,9 +90,11 @@ const getCurrentPage = async (browser: LocalBrowser['browser']) => {
   };
 };
 
-async function setConfig(config: GlobalConfig = {}) {
-  globalConfig = merge({}, globalConfig, config);
-  logger.info('[setConfig] globalConfig', globalConfig);
+export async function setConfig(config: GlobalConfig) {
+  globalConfig = {
+    ...(globalConfig || {}),
+    ...config,
+  };
 }
 
 async function setInitialBrowser(
