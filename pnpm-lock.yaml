@@ -184,8 +184,8 @@ importers:
         specifier: 1.5.1
         version: 1.5.1(zod@3.24.2)
       '@modelcontextprotocol/sdk':
-        specifier: ^1.10.2
-        version: 1.10.2
+        specifier: ^1.11.2
+        version: 1.11.2
       '@playwright/test':
         specifier: ^1.49.1
         version: 1.50.1
@@ -404,8 +404,8 @@ importers:
         specifier: workspace:*
         version: link:../../../../packages/agent-infra/search/search
       '@modelcontextprotocol/sdk':
-        specifier: ^1.10.2
-        version: 1.10.2
+        specifier: ^1.11.2
+        version: 1.11.2
       '@tailwindcss/aspect-ratio':
         specifier: 0.4.2
         version: 0.4.2(tailwindcss@4.1.3)
@@ -873,8 +873,8 @@ importers:
         specifier: workspace:*
         version: link:../mcp-shared
       '@modelcontextprotocol/sdk':
-        specifier: ^1.10.2
-        version: 1.10.2
+        specifier: ^1.11.2
+        version: 1.11.2
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
@@ -913,8 +913,8 @@ importers:
   packages/agent-infra/mcp-servers/browser:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.10.2
-        version: 1.10.2
+        specifier: ^1.11.2
+        version: 1.11.2
     devDependencies:
       '@agent-infra/browser':
         specifier: workspace:*
@@ -974,8 +974,8 @@ importers:
   packages/agent-infra/mcp-servers/commands:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.10.2
-        version: 1.10.2
+        specifier: ^1.11.2
+        version: 1.11.2
     devDependencies:
       '@rslib/core':
         specifier: 0.5.3
@@ -1002,8 +1002,8 @@ importers:
   packages/agent-infra/mcp-servers/filesystem:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.10.2
-        version: 1.10.2
+        specifier: ^1.11.2
+        version: 1.11.2
     devDependencies:
       '@rslib/core':
         specifier: 0.5.3
@@ -1048,8 +1048,8 @@ importers:
   packages/agent-infra/mcp-shared:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.10.2
-        version: 1.10.2
+        specifier: ^1.11.2
+        version: 1.11.2
       zod:
         specifier: ^3.23.8
         version: 3.24.2
@@ -3595,8 +3595,8 @@ packages:
   '@mixmark-io/domino@2.2.0':
     resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
 
-  '@modelcontextprotocol/sdk@1.10.2':
-    resolution: {integrity: sha512-rb6AMp2DR4SN+kc6L1ta2NCpApyA9WYNx3CrTSZvGxq9wH71bRur+zRqPfg0vQ9mjywR7qZdX2RGHOPq3ss+tA==}
+  '@modelcontextprotocol/sdk@1.11.2':
+    resolution: {integrity: sha512-H9vwztj5OAqHg9GockCQC06k1natgcxWQSRpQcPJf6i5+MWBzfKkRtxGbjQf0X2ihii0ffLZCRGbYV2f2bjNCQ==}
     engines: {node: '>=18'}
 
   '@module-federation/error-codes@0.8.4':
@@ -9836,6 +9836,7 @@ packages:
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
+    deprecated: Use your platform's native DOMException instead
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -15385,7 +15386,7 @@ snapshots:
 
   '@mixmark-io/domino@2.2.0': {}
 
-  '@modelcontextprotocol/sdk@1.10.2':
+  '@modelcontextprotocol/sdk@1.11.2':
     dependencies:
       content-type: 1.0.5
       cors: 2.8.5
