@@ -6,9 +6,6 @@
  * Copyright (c) 2024 Anthropic, PBC
  * https://github.com/modelcontextprotocol/servers/blob/main/LICENSE
  */
-import path from 'node:path';
-import fs from 'node:fs';
-import url from 'node:url';
 import {
   McpServer,
   ResourceTemplate,
@@ -41,6 +38,7 @@ import TurndownService from 'turndown';
 // @ts-ignore
 import { gfm } from 'turndown-plugin-gfm';
 import merge from 'lodash.merge';
+import { parseProxyUrl } from './utils.js';
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -49,11 +47,6 @@ const consoleLogs: string[] = [];
 
 interface GlobalConfig {
   launchOptions?: LaunchOptions;
-  /** proxy authentication */
-  pageAuthentication?: {
-    username: string;
-    password: string;
-  };
   logger?: Partial<Logger>;
 }
 
@@ -175,8 +168,14 @@ async function setInitialBrowser(
   }
 
   // set proxy authentication
-  if (globalConfig.pageAuthentication) {
-    await globalPage.authenticate(globalConfig.pageAuthentication);
+  if (globalConfig?.launchOptions?.proxy) {
+    const proxy = parseProxyUrl(globalConfig.launchOptions.proxy);
+    if (proxy.username || proxy.password) {
+      await globalPage.authenticate({
+        username: proxy.username,
+        password: proxy.password,
+      });
+    }
   }
 
   return {
