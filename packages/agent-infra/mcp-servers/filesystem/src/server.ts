@@ -8,7 +8,6 @@
  */
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
-import url from 'node:url';
 import path from 'node:path';
 
 import { minimatch } from 'minimatch';
@@ -31,11 +30,6 @@ import {
   getFileStats,
 } from './utils.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const { version } = JSON.parse(
-  fsSync.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'),
-);
 
 let allowedDirectories: string[] = [];
 
@@ -177,7 +171,7 @@ function createServer(args: { allowedDirectories: string[] }): McpServer {
 
   const server = new McpServer({
     name: 'secure-filesystem-server',
-    version,
+    version: process.env.VERSION || '0.0.1',
   });
 
   server.tool(

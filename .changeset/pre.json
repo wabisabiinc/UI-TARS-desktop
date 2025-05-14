@@ -1,5 +1,5 @@
 {
-  "mode": "exit",
+  "mode": "pre",
   "tag": "beta",
   "initialVersions": {
     "agent-tars-app": "1.0.0-alpha.8",
@@ -33,6 +33,7 @@
     "@ui-tars/utio": "1.2.1-beta.0"
   },
   "changesets": [
+    "angry-crews-agree",
     "breezy-laws-cover",
     "eighty-rules-shout",
     "ninety-ravens-bow",

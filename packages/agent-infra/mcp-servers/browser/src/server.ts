@@ -45,11 +45,6 @@ import merge from 'lodash.merge';
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const { version } = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'),
-);
-
 const consoleLogs: string[] = [];
 
 interface GlobalConfig {
@@ -1122,7 +1117,7 @@ function createServer(config: GlobalConfig = {}): McpServer {
 
   const server = new McpServer({
     name: 'Web Browser',
-    version,
+    version: process.env.VERSION || '0.0.1',
   });
 
   // === Tools ===

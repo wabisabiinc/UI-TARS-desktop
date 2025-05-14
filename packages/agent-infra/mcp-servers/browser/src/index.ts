@@ -5,12 +5,8 @@
  */
 import { program } from 'commander';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { createRequire } from 'module';
 import { createServer, getBrowser } from './server.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
-const require = createRequire(import.meta.url);
-const pkg = require('../package.json');
 
 declare global {
   interface Window {
@@ -22,12 +18,20 @@ declare global {
 }
 
 program
-  .name(pkg.name)
-  .description(pkg.description)
-  .version(pkg.version)
+  .name(process.env.NAME || 'mcp-server-browser')
+  .description(process.env.DESCRIPTION || 'MCP server for browser')
+  .version(process.env.VERSION || '0.0.1')
   .option('--headless', 'Browser headless mode', false)
-  .option('--executablePath <executablePath>', 'Browser executable path')
-  .option('--browserType <browserType>', 'Browser type')
+  .option('--executable-path <executablePath>', 'Browser executable path')
+  .option(
+    '--browser-type <browserType>',
+    'browser or chrome channel to use, possible values: chrome, edge, firefox',
+  )
+  .option('--display <display>', 'Display number to use')
+  .option(
+    '--proxy-server <proxy>',
+    'specify proxy server, for example "http://myproxy:3128" or "socks5://myproxy:8080"',
+  )
   .action(async (options) => {
     try {
       console.log('[mcp-server-browser] options', options);
@@ -37,6 +41,8 @@ program
           headless: options.headless,
           executablePath: options.executablePath,
           browserType: options.browserType,
+          proxy: options.proxyServer,
+          args: [options.display ? `--display=${options.display}` : ''],
         },
         logger: {
           info: (...args: any[]) => {
