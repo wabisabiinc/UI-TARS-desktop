@@ -8,6 +8,9 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import fs from 'node:fs';
+import path from 'node:path';
+import url from 'node:url';
 import os from 'node:os';
 import { exec, ExecOptions } from 'node:child_process';
 import { ObjectEncodingOptions } from 'node:fs';
@@ -24,13 +27,18 @@ import {
   always_log,
 } from './exec-utils.js';
 
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const { version } = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'),
+);
+
 // TODO use .promises? in node api
 const execAsync = promisify(exec);
 
 function createServer(): McpServer {
   const server = new McpServer({
     name: 'Run Commands',
-    version: '0.1.0',
+    version,
   });
 
   // === Tools ===
@@ -44,10 +52,7 @@ function createServer(): McpServer {
         .optional()
         .describe('Current working directory, leave empty in most cases'),
     },
-    async (args) => {
-      const result = await runCommand(args);
-      return result;
-    },
+    async (args) => await runCommand(args),
   );
 
   server.tool(
@@ -66,10 +71,7 @@ function createServer(): McpServer {
         .optional()
         .describe('Current working directory, leave empty in most cases'),
     },
-    async (args) => {
-      const result = await runScript(args);
-      return result;
-    },
+    async (args) => await runScript(args),
   );
 
   // ==== Prompts ====
