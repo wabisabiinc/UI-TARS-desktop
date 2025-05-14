@@ -1,5 +1,13 @@
 # @agent-infra/mcp-client
 
+## 1.0.1-beta.7
+
+### Patch Changes
+
+- refactor: mcp servers with high-level api
+- Updated dependencies
+  - @agent-infra/mcp-shared@1.0.1-beta.7
+
 ## 0.5.1
 
 ### Patch Changes

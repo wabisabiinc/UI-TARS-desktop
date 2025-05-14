@@ -1,6 +1,6 @@
 {
   "name": "@agent-infra/mcp-server-commands",
-  "version": "0.0.1",
+  "version": "1.0.1-beta.7",
   "description": "An MCP server to run arbitrary commands",
   "type": "module",
   "main": "./dist/server.cjs",

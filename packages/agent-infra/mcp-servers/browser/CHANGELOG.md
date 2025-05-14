@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 1.0.1-beta.7
+
+### Patch Changes
+
+- refactor: mcp servers with high-level api
+
 ## 0.0.3-beta.6
 
 ### Patch Changes
