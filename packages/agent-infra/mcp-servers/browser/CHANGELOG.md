@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 1.0.1-beta.10
+
+### Patch Changes
+
+- feat: add mcp browser proxy-bypass-list
+
 ## 1.0.1-beta.9
 
 ### Patch Changes
