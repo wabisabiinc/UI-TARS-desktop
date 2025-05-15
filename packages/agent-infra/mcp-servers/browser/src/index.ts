@@ -29,8 +29,12 @@ program
   )
   .option('--display <display>', 'Display number to use')
   .option(
-    '--proxy-server <proxy>',
+    '--proxy-server <proxyServer>',
     'specify proxy server, for example "http://myproxy:3128" or "socks5://myproxy:8080"',
+  )
+  .option(
+    '--proxy-bypass-list <proxyBypassList>',
+    'specify proxy bypass list, for example "*.example.com,*.test.com"',
   )
   .action(async (options) => {
     try {
@@ -42,6 +46,7 @@ program
           executablePath: options.executablePath,
           browserType: options.browserType,
           proxy: options.proxyServer,
+          proxyBypassList: options.proxyBypassList,
           args: [options.display ? `--display=${options.display}` : ''],
         },
         logger: {
