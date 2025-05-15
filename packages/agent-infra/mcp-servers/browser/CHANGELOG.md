@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 1.0.1-beta.11
+
+### Patch Changes
+
+- chore: typo
+
 ## 1.0.1-beta.10
 
 ### Patch Changes
