@@ -21,6 +21,14 @@ export const HumanTextMessage = ({ text }: { text: string }) => {
   );
 };
 
+export const AssistantTextMessage = ({ text }: { text: string }) => {
+  return (
+    <div className="flex gap-2 mb-4 mt-8 items-center">
+      <div className="mr-auto p-3 rounded-md bg-[#4E89E8]/20">{text}</div>
+    </div>
+  );
+};
+
 interface ScreenshotMessageProps {
   onClick?: () => void;
 }
