@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 1.0.1-beta.12
+
+### Patch Changes
+
+- chore: mcp-browser args alignment playwright-mcp
+
 ## 1.0.1-beta.11
 
 ### Patch Changes
