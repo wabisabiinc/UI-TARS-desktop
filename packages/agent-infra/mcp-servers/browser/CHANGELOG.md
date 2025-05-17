@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 1.0.1-beta.13
+
+### Patch Changes
+
+- fix: display
+
 ## 1.0.1-beta.12
 
 ### Patch Changes

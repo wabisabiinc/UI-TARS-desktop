@@ -109,7 +109,7 @@ program
           browserType: options.browser,
           proxy: options.proxyServer,
           proxyBypassList: options.proxyBypass,
-          args: [options.display ? `--display=${options.display}` : ''],
+          args: [process.env.DISPLAY ? `--display=${process.env.DISPLAY}` : ''],
           defaultViewport: {
             width: parseInt(width),
             height: parseInt(height),

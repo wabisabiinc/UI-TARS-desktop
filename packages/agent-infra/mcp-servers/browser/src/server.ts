@@ -6,6 +6,7 @@
  * Copyright (c) 2024 Anthropic, PBC
  * https://github.com/modelcontextprotocol/servers/blob/main/LICENSE
  */
+import os from 'node:os';
 import {
   McpServer,
   ResourceTemplate,
@@ -53,7 +54,7 @@ interface GlobalConfig {
 // Global state
 let globalConfig: GlobalConfig = {
   launchOptions: {
-    headless: true,
+    headless: os.platform() === 'linux' && !process.env.DISPLAY,
   },
 };
 let globalBrowser: LocalBrowser['browser'] | undefined;
