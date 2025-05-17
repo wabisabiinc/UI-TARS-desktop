@@ -44,7 +44,7 @@ program
   //   '--caps <caps>',
   //   'comma-separated list of capabilities to enable, possible values: tabs, pdf, history, wait, files, install. Default is all.',
   // )
-  // .option('--cdp-endpoint <endpoint>', 'CDP endpoint to connect to.')
+  .option('--cdp-endpoint <endpoint>', 'CDP endpoint to connect to.')
   // .option('--config <path>', 'path to the configuration file.')
   // .option('--device <device>', 'device to emulate, for example: "iPhone 15"')
   .option('--executable-path <path>', 'path to the browser executable.')
@@ -103,6 +103,11 @@ program
       ];
 
       const server: McpServer = createServer({
+        ...(options.cdpEndpoint && {
+          remoteOptions: {
+            cdpEndpoint: options.cdpEndpoint,
+          },
+        }),
         launchOptions: {
           headless: options.headless,
           executablePath: options.executablePath,
