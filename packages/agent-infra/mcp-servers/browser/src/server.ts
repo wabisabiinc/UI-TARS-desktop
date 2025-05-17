@@ -46,8 +46,6 @@ import { parseProxyUrl } from './utils.js';
 
 const consoleLogs: string[] = [];
 
-const consoleLogs: string[] = [];
-
 interface GlobalConfig {
   launchOptions?: LaunchOptions;
   remoteOptions?: RemoteBrowserOptions;
