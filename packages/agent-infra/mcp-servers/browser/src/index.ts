@@ -97,10 +97,6 @@ program
   .action(async (options) => {
     try {
       console.log('[mcp-server-browser] options', options);
-      const [width, height] = options.viewportSize?.split(',') ?? [
-        '1280',
-        '800',
-      ];
 
       const server: McpServer = createServer({
         ...(options.cdpEndpoint && {
@@ -115,10 +111,12 @@ program
           proxy: options.proxyServer,
           proxyBypassList: options.proxyBypass,
           args: [process.env.DISPLAY ? `--display=${process.env.DISPLAY}` : ''],
-          defaultViewport: {
-            width: parseInt(width),
-            height: parseInt(height),
-          },
+          ...(options.viewportSize && {
+            defaultViewport: {
+              width: parseInt(options.viewportSize?.split(',')[0]),
+              height: parseInt(options.viewportSize?.split(',')[1]),
+            },
+          }),
         },
         logger: {
           info: (...args: any[]) => {
