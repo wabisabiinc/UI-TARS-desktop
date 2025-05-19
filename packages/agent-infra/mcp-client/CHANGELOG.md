@@ -1,5 +1,19 @@
 # @agent-infra/mcp-client
 
+## 1.1.0
+
+### Minor Changes
+
+- feat(agent-tars): provider mcp servers
+
+### Patch Changes
+
+- 4860d9e: feat: new version release
+- 9089c63: refactor: mcp servers with high-level api
+- Updated dependencies
+- Updated dependencies [9089c63]
+  - @agent-infra/mcp-shared@1.1.0
+
 ## 1.0.1-beta.15
 
 ### Patch Changes

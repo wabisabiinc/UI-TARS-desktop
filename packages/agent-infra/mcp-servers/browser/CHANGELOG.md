@@ -1,5 +1,30 @@
 # @agent-infra/mcp-server-browser
 
+## 1.1.0
+
+### Minor Changes
+
+- feat(agent-tars): provider mcp servers
+
+### Patch Changes
+
+- 9089c63: fix: version
+- 9089c63: chore: add dumpio
+- 9545e06: chore: mcp-browser args alignment playwright-mcp
+- 0bdfa56: feat: support cdp
+- 9089c63: fix: navigate adblock timeout
+- 2d804f7: chore: typo
+- 030f31d: feat: add mcp browser proxy-bypass-list
+- 4860d9e: feat: new version release
+- 9089c63: feat: launchOptions add args
+- 9089c63: feat: auth parse proxy url username and password
+- 9089c63: fix: adblock
+- 9089c63: chore: update @ghostery/adblocker-puppeteer
+- 9089c63: refactor: mcp servers with high-level api
+- 9089c63: feat: add page proxy authentication
+- eaf5d3b: fix: display
+- 9089c63: chore: error catch
+
 ## 1.0.1-beta.15
 
 ### Patch Changes
