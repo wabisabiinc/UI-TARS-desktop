@@ -694,11 +694,13 @@ const handleToolCall = async ({
           }
 
           element = await locateElement(page, elementNode!);
-        } else if (args.selector) {
-          element = await page.$(args.selector);
-          // locateElement
-          await scrollIntoViewIfNeeded(element!);
-        } else {
+        }
+        // else if (args.selector) {
+        //   element = await page.$(args.selector);
+        //   // locateElement
+        //   await scrollIntoViewIfNeeded(element!);
+        // }
+        else {
           return {
             content: [
               {
@@ -722,7 +724,7 @@ const handleToolCall = async ({
             content: [
               {
                 type: 'text',
-                text: `Clicked element: ${args.selector ? args.selector : args.index}`,
+                text: `Clicked element: ${args.index}`,
               },
             ],
             isError: false,
