@@ -36,7 +36,6 @@ import {
   removeHighlights,
   waitForPageAndFramesLoad,
   locateElement,
-  scrollIntoViewIfNeeded,
 } from '@agent-infra/browser-use';
 import TurndownService from 'turndown';
 // @ts-ignore
@@ -167,7 +166,7 @@ async function setInitialBrowser(
         blocker.enableBlockingInPage(globalPage as any),
       ),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Blocking In Page timeout')), 1000),
+        setTimeout(() => reject(new Error('Blocking In Page timeout')), 800),
       ),
     ]);
   } catch (e) {
@@ -224,33 +223,44 @@ export const toolsMap = {
   browser_screenshot: {
     name: 'browser_screenshot',
     description: 'Take a screenshot of the current page or a specific element',
-    inputSchema: z.object({
-      name: z.string().optional().describe('Name for the screenshot'),
-      selector: z
-        .string()
-        .optional()
-        .describe('CSS selector for element to screenshot'),
-      width: z.number().optional().describe('Width in pixels (default: 800)'),
-      height: z.number().optional().describe('Height in pixels (default: 600)'),
-      highlight: z
-        .boolean()
-        .optional()
-        .default(false)
-        .describe('Highlight the element'),
-    }),
+    inputSchema: z
+      .object({
+        name: z.string().optional().describe('Name for the screenshot'),
+        selector: z
+          .string()
+          .optional()
+          .describe('CSS selector for element to screenshot'),
+        index: z
+          .number()
+          .optional()
+          .describe('index of the element to screenshot'),
+        width: z.number().optional().describe('Width in pixels (default: 800)'),
+        height: z
+          .number()
+          .optional()
+          .describe('Height in pixels (default: 600)'),
+        highlight: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe('Highlight the element'),
+      })
+      .refine((obj) => obj.selector === undefined || obj.index === undefined, {
+        message: 'selector or index must be provided',
+      }),
   },
   browser_click: {
     name: 'browser_click',
     description: 'Click an element on the page',
     inputSchema: z
       .object({
-        // selector: z
-        //   .string()
-        //   .optional()
-        //   .describe('CSS selector for element to click'),
+        selector: z
+          .string()
+          .optional()
+          .describe('CSS selector for element to click'),
         index: z.number().optional().describe('Index of the element to click'),
       })
-      .refine((obj) => Object.keys(obj).length > 0, {
+      .refine((obj) => obj.selector !== undefined || obj.index !== undefined, {
         message:
           'clickable element must have at least one of selector or index',
       }),
@@ -258,25 +268,49 @@ export const toolsMap = {
   browser_form_input_fill: {
     name: 'browser_form_input_fill',
     description: 'Fill out an input field',
-    inputSchema: z.object({
-      selector: z.string().describe('CSS selector for input field'),
-      value: z.string().describe('Value to fill'),
-    }),
+    inputSchema: z
+      .object({
+        selector: z
+          .string()
+          .optional()
+          .describe('CSS selector for input field'),
+        index: z.number().optional().describe('Index of the element to fill'),
+        value: z.string().describe('Value to fill'),
+      })
+      .refine((obj) => obj.selector === undefined || obj.index === undefined, {
+        message: 'selector or index must be provided',
+      }),
   },
   browser_select: {
     name: 'browser_select',
-    description: 'Select an element on the page with Select tag',
-    inputSchema: z.object({
-      selector: z.string().describe('CSS selector for element to select'),
-      value: z.string().describe('Value to select'),
-    }),
+    description: 'Select an element on the page with index',
+    inputSchema: z
+      .object({
+        index: z.number().optional().describe('Index of the element to select'),
+        selector: z
+          .string()
+          .optional()
+          .describe('CSS selector for element to select'),
+        value: z.string().describe('Value to select'),
+      })
+      .refine((obj) => obj.selector === undefined || obj.index === undefined, {
+        message: 'selector or index must be provided',
+      }),
   },
   browser_hover: {
     name: 'browser_hover',
     description: 'Hover an element on the page',
-    inputSchema: z.object({
-      selector: z.string().describe('CSS selector for element to hover'),
-    }),
+    inputSchema: z
+      .object({
+        index: z.number().optional().describe('Index of the element to hover'),
+        selector: z
+          .string()
+          .optional()
+          .describe('CSS selector for element to hover'),
+      })
+      .refine((obj) => obj.selector === undefined || obj.index === undefined, {
+        message: 'selector or index must be provided',
+      }),
   },
   browser_evaluate: {
     name: 'browser_evaluate',
@@ -363,6 +397,15 @@ type ToolInputMap = {
 
 async function buildDomTree(page: Page) {
   try {
+    // check if the buildDomTree script is already injected
+    const existBuildDomTreeScript = await page.evaluate(() => {
+      return typeof window.buildDomTree === 'function';
+    });
+    if (!existBuildDomTreeScript) {
+      const injectScriptContent = getBuildDomTreeScript();
+      await page.evaluate(injectScriptContent);
+    }
+
     const rawDomTree = await page.evaluate(() => {
       // Access buildDomTree from the window context of the target page
       return window.buildDomTree({
@@ -537,26 +580,47 @@ const handleToolCall = async ({
     },
     browser_screenshot: async (args) => {
       // if highlight is true, build the dom tree with highlights
-      if (args.highlight) {
-        await buildDomTree(page);
-      } else {
-        await removeHighlights(page);
+      try {
+        if (args.highlight) {
+          await buildDomTree(page);
+        } else {
+          await removeHighlights(page);
+        }
+      } catch (error) {
+        logger.warn('[browser_screenshot] Error building DOM tree:', error);
       }
+
       const width = args.width ?? page.viewport()?.width ?? 800;
       const height = args.height ?? page.viewport()?.height ?? 600;
       await page.setViewport({ width, height });
 
-      const screenshot = await (args.selector
-        ? (await page.$(args.selector))?.screenshot({ encoding: 'base64' })
-        : page.screenshot({ encoding: 'base64', fullPage: false }));
+      let screenshot: string | undefined;
+      if (args.selector) {
+        screenshot = await (args.selector
+          ? (await page.$(args.selector))?.screenshot({ encoding: 'base64' })
+          : undefined);
+      } else if (args.index) {
+        const elementNode = selectorMap?.get(Number(args?.index));
+        const element = await locateElement(page, elementNode!);
 
+        screenshot = await (element
+          ? element.screenshot({ encoding: 'base64' })
+          : undefined);
+      }
+
+      // if screenshot is still undefined, take a screenshot of the whole page
+      screenshot =
+        screenshot ||
+        (await page.screenshot({ encoding: 'base64', fullPage: false }));
+
+      // if screenshot is still undefined, return an error
       if (!screenshot) {
         return {
           content: [
             {
               type: 'text',
-              text: args.selector
-                ? `Element not found: ${args.selector}`
+              text: args.index
+                ? `Element not found: ${args.index}`
                 : 'Screenshot failed',
             },
           ],
@@ -652,8 +716,6 @@ const handleToolCall = async ({
           };
         }
 
-        await scrollIntoViewIfNeeded(element);
-
         try {
           // First attempt: Use Puppeteer's click method with timeout
           await Promise.race([
@@ -711,13 +773,32 @@ const handleToolCall = async ({
     },
     browser_form_input_fill: async (args) => {
       try {
-        await page.waitForSelector(args.selector);
-        await page.type(args.selector, args.value);
+        if (args.selector) {
+          await page.waitForSelector(args.selector);
+          await page.type(args.selector, args.value);
+        } else {
+          const elementNode = selectorMap?.get(Number(args?.index));
+
+          if (elementNode?.highlightIndex !== undefined) {
+            await removeHighlights(page);
+          }
+
+          const element = await locateElement(page, elementNode!);
+
+          if (!element) {
+            return {
+              content: [{ type: 'text', text: 'No form input found' }],
+              isError: true,
+            };
+          }
+          await element?.type(args.value);
+        }
+
         return {
           content: [
             {
               type: 'text',
-              text: `Filled ${args.selector} with: ${args.value}`,
+              text: `Filled ${args.index || args.selector} with: ${args.value}`,
             },
           ],
           isError: false,
@@ -727,7 +808,7 @@ const handleToolCall = async ({
           content: [
             {
               type: 'text',
-              text: `Failed to fill ${args.selector}: ${(error as Error).message}`,
+              text: `Failed to fill ${args.index || args.selector}: ${(error as Error).message}`,
             },
           ],
           isError: true,
@@ -736,13 +817,32 @@ const handleToolCall = async ({
     },
     browser_select: async (args) => {
       try {
-        await page.waitForSelector(args.selector);
-        await page.select(args.selector, args.value);
+        if (args.selector) {
+          await page.waitForSelector(args.selector);
+          await page.select(args.selector, args.value);
+        } else {
+          const elementNode = selectorMap?.get(Number(args?.index));
+
+          if (elementNode?.highlightIndex !== undefined) {
+            await removeHighlights(page);
+          }
+
+          const element = await locateElement(page, elementNode!);
+
+          if (!element) {
+            return {
+              content: [{ type: 'text', text: 'No form input found' }],
+              isError: true,
+            };
+          }
+
+          await element?.select(args.value);
+        }
         return {
           content: [
             {
               type: 'text',
-              text: `Selected ${args.selector} with: ${args.value}`,
+              text: `Selected ${args.index || args.selector} with: ${args.value}`,
             },
           ],
           isError: false,
@@ -752,7 +852,7 @@ const handleToolCall = async ({
           content: [
             {
               type: 'text',
-              text: `Failed to select ${args.selector}: ${(error as Error).message}`,
+              text: `Failed to select ${args.index || args.selector}: ${(error as Error).message}`,
             },
           ],
           isError: true,
@@ -761,13 +861,31 @@ const handleToolCall = async ({
     },
     browser_hover: async (args) => {
       try {
-        await page.waitForSelector(args.selector);
-        await page.hover(args.selector);
+        if (args.selector) {
+          await page.waitForSelector(args.selector);
+          await page.hover(args.selector);
+        } else {
+          const elementNode = selectorMap?.get(Number(args?.index));
+
+          if (elementNode?.highlightIndex !== undefined) {
+            await removeHighlights(page);
+          }
+
+          const element = await locateElement(page, elementNode!);
+
+          if (!element) {
+            return {
+              content: [{ type: 'text', text: 'No element found' }],
+              isError: true,
+            };
+          }
+          await element?.hover();
+        }
         return {
           content: [
             {
               type: 'text',
-              text: `Hovered ${args.selector}`,
+              text: `Hovered ${args.index || args.selector}`,
             },
           ],
           isError: false,
@@ -777,7 +895,7 @@ const handleToolCall = async ({
           content: [
             {
               type: 'text',
-              text: `Failed to hover ${args.selector}: ${(error as Error).message}`,
+              text: `Failed to hover ${args.index || args.selector}: ${(error as Error).message}`,
             },
           ],
           isError: true,
