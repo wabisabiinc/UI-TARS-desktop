@@ -36,12 +36,14 @@ import {
   removeHighlights,
   waitForPageAndFramesLoad,
   locateElement,
+  scrollIntoViewIfNeeded,
 } from '@agent-infra/browser-use';
 import TurndownService from 'turndown';
 // @ts-ignore
 import { gfm } from 'turndown-plugin-gfm';
 import merge from 'lodash.merge';
 import { parseProxyUrl } from './utils.js';
+import { ElementHandle } from 'puppeteer-core';
 
 const consoleLogs: string[] = [];
 
@@ -166,7 +168,7 @@ async function setInitialBrowser(
         blocker.enableBlockingInPage(globalPage as any),
       ),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Blocking In Page timeout')), 800),
+        setTimeout(() => reject(new Error('Blocking In Page timeout')), 500),
       ),
     ]);
   } catch (e) {
@@ -252,18 +254,17 @@ export const toolsMap = {
   browser_click: {
     name: 'browser_click',
     description: 'Click an element on the page',
-    inputSchema: z
-      .object({
-        selector: z
-          .string()
-          .optional()
-          .describe('CSS selector for element to click'),
-        index: z.number().optional().describe('Index of the element to click'),
-      })
-      .refine((obj) => obj.selector !== undefined || obj.index !== undefined, {
-        message:
-          'clickable element must have at least one of selector or index',
-      }),
+    inputSchema: z.object({
+      // selector: z
+      //   .string()
+      //   .optional()
+      //   .describe('CSS selector for element to click'),
+      index: z.number().optional().describe('Index of the element to click'),
+    }),
+    // .refine((obj) => obj.selector !== undefined || obj.index !== undefined, {
+    //   message:
+    //     'clickable element must have at least one of selector or index',
+    // }),
   },
   browser_form_input_fill: {
     name: 'browser_form_input_fill',
@@ -327,7 +328,8 @@ export const toolsMap = {
   },
   browser_get_clickable_elements: {
     name: 'browser_get_clickable_elements',
-    description: 'Get the clickable elements on the current page',
+    description:
+      'Get the clickable or hoverable or selectable elements on the current page',
     inputSchema: z.object({}),
   },
   browser_get_text: {
@@ -599,7 +601,7 @@ const handleToolCall = async ({
         screenshot = await (args.selector
           ? (await page.$(args.selector))?.screenshot({ encoding: 'base64' })
           : undefined);
-      } else if (args.index) {
+      } else if (args.index !== undefined) {
         const elementNode = selectorMap?.get(Number(args?.index));
         const element = await locateElement(page, elementNode!);
 
@@ -619,9 +621,7 @@ const handleToolCall = async ({
           content: [
             {
               type: 'text',
-              text: args.index
-                ? `Element not found: ${args.index}`
-                : 'Screenshot failed',
+              text: `Element not found: ${args.selector || args.index}`,
             },
           ],
           isError: true,
@@ -685,31 +685,25 @@ const handleToolCall = async ({
       }
     },
     browser_click: async (args) => {
-      if ((args.index ?? -1) < 0) {
-        return {
-          content: [{ type: 'text', text: 'No index provided' }],
-          isError: true,
-        };
-      }
-
       try {
-        const elementNode = selectorMap?.get(Number(args?.index));
+        let element: ElementHandle<Element> | null = null;
+        if (args?.index !== undefined) {
+          const elementNode = selectorMap?.get(Number(args?.index));
+          if (elementNode?.highlightIndex !== undefined) {
+            await removeHighlights(page);
+          }
 
-        if (elementNode?.highlightIndex !== undefined) {
-          await removeHighlights(page);
-          // const { selectorMap: newSelectorMap } =
-          //   (await buildDomTree(page)) || {};
-          // elementNode = newSelectorMap?.get(Number(args?.index));
-        }
-
-        const element = await locateElement(page, elementNode!);
-
-        if (!element) {
+          element = await locateElement(page, elementNode!);
+        } else if (args.selector) {
+          element = await page.$(args.selector);
+          // locateElement
+          await scrollIntoViewIfNeeded(element!);
+        } else {
           return {
             content: [
               {
                 type: 'text',
-                text: `Element ${args?.index} not found`,
+                text: `Element index ${args?.index} or selector ${args?.selector} not found`,
               },
             ],
             isError: true,
@@ -719,7 +713,7 @@ const handleToolCall = async ({
         try {
           // First attempt: Use Puppeteer's click method with timeout
           await Promise.race([
-            element.click(),
+            element?.click(),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Click timeout')), 5000),
             ),
@@ -728,16 +722,16 @@ const handleToolCall = async ({
             content: [
               {
                 type: 'text',
-                text: `Clicked element: ${args.index}`,
+                text: `Clicked element: ${args.selector ? args.selector : args.index}`,
               },
             ],
             isError: false,
           };
         } catch (error) {
           // Second attempt: Use evaluate to perform a direct click
-          logger.info('Failed to click element, trying again', error);
+          logger.error('Failed to click element, trying again', error);
           try {
-            await element.evaluate((el) => (el as HTMLElement).click());
+            await element?.evaluate((el) => (el as HTMLElement).click());
             return {
               content: [
                 {
@@ -773,10 +767,7 @@ const handleToolCall = async ({
     },
     browser_form_input_fill: async (args) => {
       try {
-        if (args.selector) {
-          await page.waitForSelector(args.selector);
-          await page.type(args.selector, args.value);
-        } else {
+        if (args.index !== undefined) {
           const elementNode = selectorMap?.get(Number(args?.index));
 
           if (elementNode?.highlightIndex !== undefined) {
@@ -792,13 +783,16 @@ const handleToolCall = async ({
             };
           }
           await element?.type(args.value);
+        } else if (args.selector) {
+          await page.waitForSelector(args.selector);
+          await page.type(args.selector, args.value);
         }
 
         return {
           content: [
             {
               type: 'text',
-              text: `Filled ${args.index || args.selector} with: ${args.value}`,
+              text: `Filled ${args.selector ? args.selector : args.index} with: ${args.value}`,
             },
           ],
           isError: false,
@@ -808,7 +802,7 @@ const handleToolCall = async ({
           content: [
             {
               type: 'text',
-              text: `Failed to fill ${args.index || args.selector}: ${(error as Error).message}`,
+              text: `Failed to fill ${args.selector ? args.selector : args.index}: ${(error as Error).message}`,
             },
           ],
           isError: true,
@@ -817,10 +811,7 @@ const handleToolCall = async ({
     },
     browser_select: async (args) => {
       try {
-        if (args.selector) {
-          await page.waitForSelector(args.selector);
-          await page.select(args.selector, args.value);
-        } else {
+        if (args.index !== undefined) {
           const elementNode = selectorMap?.get(Number(args?.index));
 
           if (elementNode?.highlightIndex !== undefined) {
@@ -837,12 +828,26 @@ const handleToolCall = async ({
           }
 
           await element?.select(args.value);
+        } else if (args.selector) {
+          await page.waitForSelector(args.selector);
+          await page.select(args.selector, args.value);
+        } else {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No selector ${args.selector} or index ${args.index} provided`,
+              },
+            ],
+            isError: true,
+          };
         }
+
         return {
           content: [
             {
               type: 'text',
-              text: `Selected ${args.index || args.selector} with: ${args.value}`,
+              text: `Selected ${args.selector ? args.selector : args.index} with: ${args.value}`,
             },
           ],
           isError: false,
@@ -852,7 +857,7 @@ const handleToolCall = async ({
           content: [
             {
               type: 'text',
-              text: `Failed to select ${args.index || args.selector}: ${(error as Error).message}`,
+              text: `Failed to select ${args.selector ? args.selector : args.index}: ${(error as Error).message}`,
             },
           ],
           isError: true,
@@ -861,10 +866,7 @@ const handleToolCall = async ({
     },
     browser_hover: async (args) => {
       try {
-        if (args.selector) {
-          await page.waitForSelector(args.selector);
-          await page.hover(args.selector);
-        } else {
+        if (args.index !== undefined) {
           const elementNode = selectorMap?.get(Number(args?.index));
 
           if (elementNode?.highlightIndex !== undefined) {
@@ -880,12 +882,26 @@ const handleToolCall = async ({
             };
           }
           await element?.hover();
+        } else if (args.selector) {
+          await page.waitForSelector(args.selector);
+          await page.hover(args.selector);
+        } else {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No selector ${args.selector} or index ${args.index} provided`,
+              },
+            ],
+            isError: true,
+          };
         }
+
         return {
           content: [
             {
               type: 'text',
-              text: `Hovered ${args.index || args.selector}`,
+              text: `Hovered ${args.selector ? args.selector : args.index}`,
             },
           ],
           isError: false,
@@ -895,7 +911,7 @@ const handleToolCall = async ({
           content: [
             {
               type: 'text',
-              text: `Failed to hover ${args.index || args.selector}: ${(error as Error).message}`,
+              text: `Failed to hover ${args.selector ? args.selector : args.index}: ${(error as Error).message}`,
             },
           ],
           isError: true,
