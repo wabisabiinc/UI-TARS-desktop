@@ -49,6 +49,9 @@ const consoleLogs: string[] = [];
 interface GlobalConfig {
   launchOptions?: LaunchOptions;
   remoteOptions?: RemoteBrowserOptions;
+  contextOptions?: {
+    userAgent?: string;
+  };
   logger?: Partial<Logger>;
 }
 
@@ -57,6 +60,7 @@ let globalConfig: GlobalConfig = {
   launchOptions: {
     headless: os.platform() === 'linux' && !process.env.DISPLAY,
   },
+  contextOptions: {},
 };
 let globalBrowser: LocalBrowser['browser'] | undefined;
 let globalPage: Page | undefined;
@@ -153,10 +157,9 @@ async function setInitialBrowser(
   const injectScriptContent = getBuildDomTreeScript();
   await globalPage.evaluateOnNewDocument(injectScriptContent);
 
-  // TODO: randomize user agent
-  globalPage?.setUserAgent(
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-  );
+  if (globalConfig.contextOptions?.userAgent) {
+    globalPage?.setUserAgent(globalConfig.contextOptions.userAgent);
+  }
 
   try {
     await Promise.race([

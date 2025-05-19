@@ -44,7 +44,14 @@ program
   //   '--caps <caps>',
   //   'comma-separated list of capabilities to enable, possible values: tabs, pdf, history, wait, files, install. Default is all.',
   // )
-  .option('--cdp-endpoint <endpoint>', 'CDP endpoint to connect to.')
+  .option(
+    '--cdp-endpoint <endpoint>',
+    'CDP endpoint to connect to, for example "http://127.0.0.1:9222/json/version"',
+  )
+  .option(
+    '--ws-endpoint <endpoint>',
+    'WebSocket endpoint to connect to, for example "ws://127.0.0.1:9222/devtools/browser/{id}"',
+  )
   // .option('--config <path>', 'path to the configuration file.')
   // .option('--device <device>', 'device to emulate, for example: "iPhone 15"')
   .option('--executable-path <path>', 'path to the browser executable.')
@@ -81,11 +88,8 @@ program
   //   '--storage-state <path>',
   //   'path to the storage state file for isolated sessions.',
   // )
-  // .option('--user-agent <ua string>', 'specify user agent string')
-  // .option(
-  //   '--user-data-dir <path>',
-  //   'path to the user data directory. If not specified, a temporary directory will be created.',
-  // )
+  .option('--user-agent <ua string>', 'specify user agent string')
+  .option('--user-data-dir <path>', 'path to the user data directory.')
   .option(
     '--viewport-size <size>',
     'specify browser viewport size in pixels, for example "1280, 720"',
@@ -99,8 +103,9 @@ program
       console.log('[mcp-server-browser] options', options);
 
       const server: McpServer = createServer({
-        ...(options.cdpEndpoint && {
+        ...((options.cdpEndpoint || options.wsEndpoint) && {
           remoteOptions: {
+            wsEndpoint: options.wsEndpoint,
             cdpEndpoint: options.cdpEndpoint,
           },
         }),
@@ -117,6 +122,12 @@ program
               height: parseInt(options.viewportSize?.split(',')[1]),
             },
           }),
+          ...(options.userDataDir && {
+            userDataDir: options.userDataDir,
+          }),
+        },
+        contextOptions: {
+          userAgent: options.userAgent,
         },
         logger: {
           info: (...args: any[]) => {

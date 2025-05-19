@@ -7,6 +7,11 @@
   "main": "./dist/server.cjs",
   "module": "./dist/server.js",
   "types": "./dist/server.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bytedance/UI-TARS-desktop",
+    "directory": "packages/agent-infra/mcp-servers/filesystem"
+  },
   "bin": {
     "mcp-server-filesystem": "dist/index.cjs"
   },

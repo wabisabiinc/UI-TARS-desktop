@@ -9,6 +9,11 @@
   "bin": {
     "mcp-server-commands": "./dist/index.cjs"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bytedance/UI-TARS-desktop",
+    "directory": "packages/agent-infra/mcp-servers/commands"
+  },
   "files": [
     "dist"
   ],
