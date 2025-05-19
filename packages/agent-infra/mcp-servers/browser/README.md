@@ -231,3 +231,11 @@ Browser MCP server supports following arguments. They can be provided in the JSO
 We have unified the deployment of VNC and MCP under a single URL endpoint, The Dockerfile and DockerHub image will be published together!
 
 <video src="https://github.com/user-attachments/assets/e04e60aa-c9f9-4732-ac33-66e41d68056b" alt="VNC with Browser MCP Server" />
+
+### Developement
+
+Access http://127.0.0.1:6274/:
+
+```bash
+npm run dev
+```
