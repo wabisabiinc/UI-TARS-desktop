@@ -1,5 +1,11 @@
 ## 0.4.0 2024-12-10 - add logging
 
+## 1.0.1-beta.15
+
+### Patch Changes
+
+- feat: new version release
+
 ## 1.0.1-beta.14
 
 ## 1.0.1-beta.13
