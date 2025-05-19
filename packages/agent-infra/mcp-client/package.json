@@ -5,6 +5,13 @@
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
+  "homepage": "https://github.com/bytedance/UI-TARS-desktop",
+  "bugs": "https://github.com/bytedance/UI-TARS-desktop/issues",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:bytedance/UI-TARS-desktop.git",
+    "directory": "packages/agent-infra/mcp-client"
+  },
   "files": [
     "dist"
   ],

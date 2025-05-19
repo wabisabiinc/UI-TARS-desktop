@@ -3,12 +3,12 @@
   "version": "1.1.0",
   "description": "MCP server for browser use access",
   "license": "MIT",
-  "homepage": "https://modelcontextprotocol.io",
-  "bugs": "https://github.com/modelcontextprotocol/servers/issues",
+  "homepage": "https://github.com/bytedance/UI-TARS-desktop",
+  "bugs": "https://github.com/bytedance/UI-TARS-desktop/issues",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bytedance/UI-TARS-desktop",
+    "url": "git@github.com:bytedance/UI-TARS-desktop.git",
     "directory": "packages/agent-infra/mcp-servers/browser"
   },
   "bin": {
