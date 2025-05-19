@@ -20,7 +20,10 @@
 ```ts
 import { MCPClient } from '@agent-infra/mcp-client';
 
-import { createServer: createFileSystemServer } from '@agent-infra/mcp-server-filesystem';
+// type: module project usage
+import { createServer as createFileSystemServer } from '@agent-infra/mcp-server-filesystem';
+// commonjs project usage
+// const { createServer as createFileSystemServer } = await import('@agent-infra/mcp-server-filesystem')
 
 const mcpClient = new MCPClient([
   // In-memory

@@ -156,7 +156,10 @@ If your MCP Client is developed based on JavaScript / TypeScript, you can direct
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 
+// type: module project usage
 import { createServer } from '@agent-infra/mcp-server-filesystem';
+// commonjs project usage
+// const { createServer } = await import('@agent-infra/mcp-server-filesystem')
 
 const client = new Client(
   {
