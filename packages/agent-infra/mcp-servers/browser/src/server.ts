@@ -705,7 +705,7 @@ const handleToolCall = async ({
             content: [
               {
                 type: 'text',
-                text: `Element index ${args?.index} or selector ${args?.selector} not found`,
+                text: `Element index ${args?.index} not found`,
               },
             ],
             isError: true,
