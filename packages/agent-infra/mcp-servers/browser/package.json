@@ -1,11 +1,16 @@
 {
   "name": "@agent-infra/mcp-server-browser",
-  "version": "1.0.1-beta.14",
+  "version": "1.1.0",
   "description": "MCP server for browser use access",
   "license": "MIT",
   "homepage": "https://modelcontextprotocol.io",
   "bugs": "https://github.com/modelcontextprotocol/servers/issues",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bytedance/UI-TARS-desktop",
+    "directory": "packages/agent-infra/mcp-servers/browser"
+  },
   "bin": {
     "mcp-server-browser": "dist/index.cjs"
   },

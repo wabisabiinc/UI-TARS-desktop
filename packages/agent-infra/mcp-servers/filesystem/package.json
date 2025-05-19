@@ -1,12 +1,17 @@
 {
   "name": "@agent-infra/mcp-server-filesystem",
-  "version": "1.0.1-beta.14",
+  "version": "1.1.0",
   "description": "MCP server for filesystem access",
   "license": "MIT",
   "type": "module",
   "main": "./dist/server.cjs",
   "module": "./dist/server.js",
   "types": "./dist/server.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bytedance/UI-TARS-desktop",
+    "directory": "packages/agent-infra/mcp-servers/filesystem"
+  },
   "bin": {
     "mcp-server-filesystem": "dist/index.cjs"
   },
