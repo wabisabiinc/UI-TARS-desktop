@@ -6,7 +6,7 @@
 import {
   Event,
   EventType,
-  EventStream,
+  IEventStream,
   AssistantMessageEvent,
   ToolResultEvent,
 } from '../types/event-stream';
@@ -23,7 +23,7 @@ import { getLogger } from '../utils/logger';
 export class MessageHistory {
   private logger = getLogger('MessageHistory');
 
-  constructor(private eventStream: EventStream) {}
+  constructor(private eventStream: IEventStream) {}
 
   /**
    * Convert events to message history format for LLM context

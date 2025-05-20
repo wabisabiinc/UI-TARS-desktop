@@ -9,7 +9,7 @@ import {
   Event,
   EventType,
   BaseEvent,
-  EventStream as IEventStream,
+  IEventStream,
   EventStreamOptions,
   AssistantMessageEvent,
   ToolResultEvent,

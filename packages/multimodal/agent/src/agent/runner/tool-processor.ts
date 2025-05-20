@@ -5,7 +5,7 @@
 
 import { Agent } from '../agent';
 import { ToolManager } from '../tool-manager';
-import { EventStream, EventType, ToolDefinition, ToolCallResult } from '../../types';
+import { IEventStream, EventType, ToolDefinition, ToolCallResult } from '../../types';
 import { JSONSchema7 } from '../../types/third-party';
 import { getLogger } from '../../utils/logger';
 import { zodToJsonSchema } from '../../utils';
@@ -22,7 +22,7 @@ export class ToolProcessor {
   constructor(
     private agent: Agent,
     private toolManager: ToolManager,
-    private eventStream: EventStream,
+    private eventStream: IEventStream,
   ) {}
 
   /**

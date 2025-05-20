@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /*
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Event, EventStream, EventType, AssistantMessageEvent } from '../../types';
+import { Event, IEventStream, EventType, AssistantMessageEvent } from '../../types';
 import { getLogger } from '../../utils/logger';
 
 /**
@@ -15,7 +16,7 @@ import { getLogger } from '../../utils/logger';
 export class StreamAdapter {
   private logger = getLogger('StreamAdapter');
 
-  constructor(private eventStream: EventStream) {}
+  constructor(private eventStream: IEventStream) {}
 
   /**
    * Create an AsyncIterable from the event stream for streaming back to the client

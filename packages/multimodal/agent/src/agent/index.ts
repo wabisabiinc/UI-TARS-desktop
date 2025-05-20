@@ -9,3 +9,4 @@ export * from './tool-manager';
 export * from './tool';
 export * from './llm-client';
 export * from './message-history';
+export * from './session-manager';

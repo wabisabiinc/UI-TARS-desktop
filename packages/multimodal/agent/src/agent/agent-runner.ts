@@ -10,10 +10,9 @@ import {
   AgentRunStreamingOptions,
   AssistantMessageEvent,
   Event,
-  EventStream,
+  IEventStream,
   ToolCallEngine,
   ToolCallEngineType,
-  ToolDefinition,
 } from '../types';
 import { ToolManager } from './tool-manager';
 import { ModelResolver, ResolvedModel } from '../utils/model-resolver';
@@ -35,7 +34,7 @@ interface AgentRunnerOptions {
   temperature: number;
   reasoningOptions: AgentReasoningOptions;
   toolCallEngine?: ToolCallEngineType;
-  eventStream: EventStream;
+  eventStream: IEventStream;
   toolManager: ToolManager;
   modelResolver: ModelResolver;
   agent: Agent;
@@ -54,7 +53,7 @@ export class AgentRunner {
   private temperature: number;
   private reasoningOptions: AgentReasoningOptions;
   private toolCallEngine: ToolCallEngine;
-  private eventStream: EventStream;
+  private eventStream: IEventStream;
   private toolManager: ToolManager;
   private modelResolver: ModelResolver;
   private agent: Agent;

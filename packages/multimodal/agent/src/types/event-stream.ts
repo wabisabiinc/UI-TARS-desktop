@@ -142,7 +142,7 @@ export interface EventStreamOptions {
 /**
  * Event stream interface
  */
-export interface EventStream {
+export interface IEventStream {
   /**
    * Create a new event
    */

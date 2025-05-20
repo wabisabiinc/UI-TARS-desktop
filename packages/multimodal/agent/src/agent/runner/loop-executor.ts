@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AssistantMessageEvent, EventStream, EventType } from '../../types';
+import { AssistantMessageEvent, IEventStream, EventType } from '../../types';
 import { ToolCallEngine } from '../../types/tool-call-engine';
 import { getLogger } from '../../utils/logger';
 import { ResolvedModel } from '../../utils/model-resolver';
@@ -20,7 +20,7 @@ export class LoopExecutor {
 
   constructor(
     private llmProcessor: LLMProcessor,
-    private eventStream: EventStream,
+    private eventStream: IEventStream,
     private instructions: string,
     private maxIterations: number,
   ) {}

@@ -10,7 +10,6 @@ import {
   AgentRunOptions,
   AgentRunStreamingOptions,
   AgentRunNonStreamingOptions,
-  EventStream,
   Event,
   EventType,
   AssistantMessageEvent,
@@ -22,11 +21,12 @@ import {
   isStreamingOptions,
 } from '../types';
 import { AgentRunner } from './agent-runner';
-import { EventStream as EventStreamImpl } from '../stream/event-stream';
+import { EventStream } from '../stream/event-stream';
 import { ToolManager } from './tool-manager';
 import { ModelResolver } from '../utils/model-resolver';
 import type { AgentTestAdapter } from './agent-test-adapter';
 import { getLogger, LogLevel, rootLogger } from '../utils/logger';
+import { SessionManager, SessionStatus } from './session-manager';
 
 /**
  * An event-stream driven agent framework for building effective multimodal Agents.
@@ -44,7 +44,7 @@ export class Agent {
   private maxTokens: number | undefined;
   protected name: string;
   protected id: string;
-  protected eventStream: EventStreamImpl;
+  protected eventStream: EventStream;
   private toolManager: ToolManager;
   private modelResolver: ModelResolver;
   private temperature: number;
@@ -52,6 +52,11 @@ export class Agent {
   private runner: AgentRunner;
   private currentRunOptions?: AgentRunOptions;
   public logger = getLogger('Core');
+
+  /**
+   * Session manager to handle concurrent executions
+   */
+  private sessionManager: SessionManager;
 
   /**
    * Agent test adapter for snapshot generation
@@ -79,13 +84,16 @@ export class Agent {
     }
 
     // Initialize event stream
-    this.eventStream = new EventStreamImpl(options.eventStreamOptions);
+    this.eventStream = new EventStream(options.eventStreamOptions);
 
     // Initialize Tool Manager
     this.toolManager = new ToolManager(this.logger);
 
     // Initialize ModelResolver
     this.modelResolver = new ModelResolver(options);
+
+    // Initialize session manager
+    this.sessionManager = new SessionManager(this.logger);
 
     // 仅在测试模式下初始化测试适配器
     if (process.env.DUMP_AGENT_SNAPSHOP || process.env.TEST_AGENT_SNAPSHOP) {
@@ -190,44 +198,118 @@ export class Agent {
   async run(
     runOptions: AgentRunOptions,
   ): Promise<string | AssistantMessageEvent | AsyncIterable<Event>> {
-    this.currentRunOptions = runOptions;
+    // Create a new session for this run
+    const session = this.sessionManager.createSession(runOptions);
+    this.sessionManager.updateSessionStatus(session.id, SessionStatus.RUNNING);
 
-    if (process.env.DUMP_AGENT_SNAPSHOP || process.env.TEST_AGENT_SNAPSHOP) {
-      this.testAdapter?.setCurrentRunOptions(runOptions);
-    }
+    try {
+      // Store current run options for testing/debugging
+      this.currentRunOptions = runOptions;
 
-    // Normalize the options
-    const normalizedOptions = isAgentRunObjectOptions(runOptions)
-      ? runOptions
-      : { input: runOptions };
-
-    // Generate sessionId if not provided
-    const sessionId =
-      normalizedOptions.sessionId ?? `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-    // Add user message to event stream
-    const userEvent = this.eventStream.createEvent(EventType.USER_MESSAGE, {
-      content: normalizedOptions.input,
-    });
-
-    this.eventStream.sendEvent(userEvent);
-
-    // Check if streaming is requested
-    if (isAgentRunObjectOptions(runOptions) && isStreamingOptions(normalizedOptions)) {
-      // Execute in streaming mode
-      return this.runner.executeStreaming(normalizedOptions, sessionId);
-    } else {
-      // Execute in non-streaming mode
-      const result = await this.runner.execute(normalizedOptions, sessionId);
-
-      // For string input, return the string content
-      if (typeof runOptions === 'string') {
-        return result.content || '';
+      if (process.env.DUMP_AGENT_SNAPSHOP || process.env.TEST_AGENT_SNAPSHOP) {
+        this.testAdapter?.setCurrentRunOptions(runOptions);
       }
 
-      // For object input without streaming, return the event
-      return result;
+      // Get session-specific options and event stream
+      const sessionOptions = session.runOptions;
+      const sessionEventStream = session.eventStream;
+      const sessionId = session.id;
+      const signal = session.abortController.signal;
+
+      // Add user message to session's event stream
+      const userEvent = sessionEventStream.createEvent(EventType.USER_MESSAGE, {
+        content: sessionOptions.input,
+      });
+      sessionEventStream.sendEvent(userEvent);
+
+      // Create a runner instance specific to this session
+      const sessionRunner = new AgentRunner({
+        instructions: this.instructions,
+        maxIterations: this.maxIterations,
+        maxTokens: this.maxTokens,
+        temperature: this.temperature,
+        reasoningOptions: this.reasoningOptions,
+        toolCallEngine: this.options.tollCallEngine || sessionOptions.tollCallEngine,
+        eventStream: sessionEventStream,
+        toolManager: this.toolManager,
+        modelResolver: this.modelResolver,
+        agent: this,
+      });
+
+      // Check if streaming is requested
+      if (isStreamingOptions(sessionOptions)) {
+        // Setup abort signal handling for streaming
+        signal.addEventListener('abort', () => {
+          this.logger.info(`[Agent] Session ${sessionId} aborted during streaming execution`);
+          // Note: The stream cleanup is handled by the consumer when the iterator is closed
+        });
+
+        // Execute in streaming mode
+        const streamResult = await sessionRunner.executeStreaming(sessionOptions, sessionId);
+        this.sessionManager.updateSessionStatus(sessionId, SessionStatus.COMPLETED);
+        return streamResult;
+      } else {
+        // Setup abort handling for non-streaming
+        if (signal.aborted) {
+          throw new Error('Session aborted before execution started');
+        }
+
+        // Adding abort signal event listener
+        const abortPromise = new Promise<never>((_, reject) => {
+          signal.addEventListener('abort', () => {
+            this.logger.info(`[Agent] Session ${sessionId} aborted during execution`);
+            reject(new Error('Session aborted during execution'));
+          });
+        });
+
+        // Execute in non-streaming mode with abort support
+        const resultPromise = sessionRunner.execute(sessionOptions, sessionId);
+        const result = await Promise.race([resultPromise, abortPromise]);
+
+        this.sessionManager.updateSessionStatus(sessionId, SessionStatus.COMPLETED);
+
+        // For string input, return the string content
+        if (typeof runOptions === 'string') {
+          return result.content || '';
+        }
+
+        // For object input without streaming, return the event
+        return result;
+      }
+    } catch (error) {
+      // Update session status to failed if execution fails
+      this.sessionManager.updateSessionStatus(session.id, SessionStatus.FAILED);
+      this.logger.error(`[Agent] Run failed for session ${session.id}: ${error}`);
+
+      // Re-throw the error to be handled by caller
+      throw error;
+    } finally {
+      // Clean up old sessions periodically
+      this.sessionManager.cleanupSessions();
     }
+  }
+
+  /**
+   * Abort a running session by its ID
+   *
+   * @param sessionId ID of the session to abort
+   * @returns true if successfully aborted, false otherwise
+   */
+  public abort(sessionId: string): boolean {
+    return this.sessionManager.abortSession(sessionId);
+  }
+
+  /**
+   * Get information about all active sessions
+   *
+   * @returns Array of active session IDs and their statuses
+   */
+  public getActiveSessions(): Array<{ id: string; status: SessionStatus; createdAt: number }> {
+    return this.sessionManager.getActiveSessions().map((session) => ({
+      id: session.id,
+      status: session.status,
+      createdAt: session.createdAt,
+    }));
   }
 
   /**

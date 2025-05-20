@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /*
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
@@ -6,7 +7,7 @@
 import { Agent } from '../agent';
 import { getLLMClient } from '../llm-client';
 import { MessageHistory } from '../message-history';
-import { EventStream, EventType, AgentReasoningOptions, PrepareRequestContext } from '../../types';
+import { IEventStream, EventType, AgentReasoningOptions, PrepareRequestContext } from '../../types';
 import { ChatCompletionChunk, ChatCompletionMessageParam } from '../../types/third-party';
 import { ToolCallEngine } from '../../types/tool-call-engine';
 import { ResolvedModel } from '../../utils/model-resolver';
@@ -26,7 +27,7 @@ export class LLMProcessor {
 
   constructor(
     private agent: Agent,
-    private eventStream: EventStream,
+    private eventStream: IEventStream,
     private toolProcessor: ToolProcessor,
     private reasoningOptions: AgentReasoningOptions,
     private maxTokens?: number,
