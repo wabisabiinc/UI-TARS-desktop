@@ -7,6 +7,7 @@
  * Copyright (c) Microsoft Corporation.
  * https://github.com/microsoft/playwright-mcp/blob/main/LICENSE
  */
+import { startSseAndStreamableHttpMcpServer } from '@agent-infra/mcp-http-server';
 import { program } from 'commander';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createServer, getBrowser } from './server.js';
@@ -166,10 +167,11 @@ program
         },
       });
       if (options.port || options.host) {
-        const { startSseAndStreamableHttpMcpServer } = await import(
-          './serving/startServer.js'
-        );
-        await startSseAndStreamableHttpMcpServer(options.port, options.host);
+        await startSseAndStreamableHttpMcpServer({
+          host: options.host,
+          port: options.port,
+          createServer: async () => server as any,
+        });
       } else {
         const transport = new StdioServerTransport();
         await server.connect(transport);

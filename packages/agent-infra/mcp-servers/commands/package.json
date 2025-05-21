@@ -31,9 +31,11 @@
     "test:integration": "vitest tests/integration"
   },
   "dependencies": {
+    "@agent-infra/mcp-http-server": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.11.2"
   },
   "devDependencies": {
+    "commander": "^13.1.0",
     "tsx": "^4.19.3",
     "@rslib/core": "0.5.3",
     "zod": "^3.23.8",

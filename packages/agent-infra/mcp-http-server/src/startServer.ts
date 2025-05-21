@@ -4,19 +4,20 @@
  */
 import express, { Request, Response } from 'express';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createServer } from '../server.js';
 
 export interface McpServerEndpoint {
   url: string;
   port: number;
 }
 
-export async function startSseAndStreamableHttpMcpServer(
-  port?: number,
-  host?: string,
-): Promise<McpServerEndpoint> {
+export async function startSseAndStreamableHttpMcpServer(params: {
+  port?: number;
+  host?: string;
+  createServer: () => Promise<McpServer>;
+}): Promise<McpServerEndpoint> {
+  const { port, host, createServer } = params;
   const transports = {
     streamable: {} as Record<string, StreamableHTTPServerTransport>,
     sse: {} as Record<string, SSEServerTransport>,
@@ -27,7 +28,7 @@ export async function startSseAndStreamableHttpMcpServer(
 
   app.get('/sse', async (req, res) => {
     console.info(`New SSE connection from ${req.ip}`);
-    const server: McpServer = createServer();
+    const server: McpServer = await createServer();
 
     const sseTransport = new SSEServerTransport('/message', res);
 
@@ -58,7 +59,7 @@ export async function startSseAndStreamableHttpMcpServer(
   });
 
   app.post('/mcp', async (req: Request, res: Response) => {
-    const server: McpServer = createServer();
+    const server: McpServer = await createServer();
     const transport: StreamableHTTPServerTransport =
       new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined, // set to undefined for stateless servers
