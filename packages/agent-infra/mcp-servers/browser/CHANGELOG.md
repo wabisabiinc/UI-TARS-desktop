@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 1.1.1-beta.0
+
+### Patch Changes
+
+- feat: native support sse and mcp serving by browser mcp
+
 ## 1.1.0
 
 ### Minor Changes
