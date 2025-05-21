@@ -324,28 +324,23 @@ export const toolsMap = {
   browser_get_html: {
     name: 'browser_get_html',
     description: 'Get the HTML content of the current page',
-    inputSchema: z.object({}),
   },
   browser_get_clickable_elements: {
     name: 'browser_get_clickable_elements',
     description:
       'Get the clickable or hoverable or selectable elements on the current page',
-    inputSchema: z.object({}),
   },
   browser_get_text: {
     name: 'browser_get_text',
     description: 'Get the text content of the current page',
-    inputSchema: z.object({}),
   },
   browser_get_markdown: {
     name: 'browser_get_markdown',
     description: 'Get the markdown content of the current page',
-    inputSchema: z.object({}),
   },
   browser_read_links: {
     name: 'browser_read_links',
     description: 'Get all links on the current page',
-    inputSchema: z.object({}),
   },
   browser_scroll: {
     name: 'browser_scroll',
@@ -359,17 +354,14 @@ export const toolsMap = {
   browser_go_back: {
     name: 'browser_go_back',
     description: 'Go back to the previous page',
-    inputSchema: z.object({}),
   },
   browser_go_forward: {
     name: 'browser_go_forward',
     description: 'Go forward to the next page',
-    inputSchema: z.object({}),
   },
   browser_tab_list: {
     name: 'browser_tab_list',
     description: 'Get the list of tabs',
-    inputSchema: z.object({}),
   },
   browser_new_tab: {
     name: 'browser_new_tab',
@@ -381,7 +373,6 @@ export const toolsMap = {
   browser_close_tab: {
     name: 'browser_close_tab',
     description: 'Close the current tab',
-    inputSchema: z.object({}),
   },
   browser_switch_tab: {
     name: 'browser_switch_tab',
@@ -1247,18 +1238,27 @@ function createServer(config: GlobalConfig = {}): McpServer {
 
   // === Tools ===
   Object.entries(toolsMap).forEach(([name, tool]) => {
-    server.tool(
-      name,
-      tool.description,
-      // @ts-ignore
-      tool.inputSchema?.innerType
-        ? // @ts-ignore
-          tool.inputSchema.innerType().shape
-        : // @ts-ignore
-          tool.inputSchema.shape,
-      // @ts-ignore
-      async (args) => await handleToolCall({ name, arguments: args }),
-    );
+    // @ts-ignore
+    if (tool?.inputSchema) {
+      server.tool(
+        name,
+        tool.description,
+        // @ts-ignore
+        tool.inputSchema?.innerType
+          ? // @ts-ignore
+            tool.inputSchema.innerType().shape
+          : // @ts-ignore
+            tool.inputSchema?.shape,
+        // @ts-ignore
+        async (args) => await handleToolCall({ name, arguments: args }),
+      );
+    } else {
+      server.tool(
+        name,
+        tool.description,
+        async (args) => await handleToolCall({ name, arguments: args }),
+      );
+    }
   });
 
   // === Resources ===
