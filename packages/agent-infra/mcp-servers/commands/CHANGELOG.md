@@ -1,5 +1,13 @@
 ## 0.4.0 2024-12-10 - add logging
 
+## 1.1.1-beta.2
+
+### Patch Changes
+
+- feat: add mcp http server
+- Updated dependencies
+  - @agent-infra/mcp-http-server@1.1.1-beta.2
+
 ## 1.1.1-beta.1
 
 ## 1.1.1-beta.0

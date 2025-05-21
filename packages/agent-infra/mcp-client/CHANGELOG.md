@@ -1,5 +1,13 @@
 # @agent-infra/mcp-client
 
+## 1.1.1-beta.2
+
+### Patch Changes
+
+- feat: add mcp http server
+- Updated dependencies
+  - @agent-infra/mcp-shared@1.1.1-beta.2
+
 ## 1.1.1-beta.1
 
 ### Patch Changes
