@@ -27,9 +27,11 @@
     "watch": "rslib build --watch"
   },
   "dependencies": {
+    "express": "^5.1.0",
     "@modelcontextprotocol/sdk": "^1.11.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
     "commander": "^13.1.0",
     "@types/lodash.merge": "4.6.9",
     "lodash.merge": "4.6.2",

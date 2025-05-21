@@ -56,10 +56,10 @@ program
   // .option('--device <device>', 'device to emulate, for example: "iPhone 15"')
   .option('--executable-path <path>', 'path to the browser executable.')
   .option('--headless', 'run browser in headless mode, headed by default')
-  // .option(
-  //   '--host <host>',
-  //   'host to bind server to. Default is localhost. Use 0.0.0.0 to bind to all interfaces.',
-  // )
+  .option(
+    '--host <host>',
+    'host to bind server to. Default is localhost. Use 0.0.0.0 to bind to all interfaces.',
+  )
   // .option('--ignore-https-errors', 'ignore https errors')
   // .option(
   //   '--isolated',
@@ -71,7 +71,7 @@ program
   //   'disable the sandbox for all process types that are normally sandboxed.',
   // )
   // .option('--output-dir <path>', 'path to the directory for output files.')
-  // .option('--port <port>', 'port to listen on for SSE transport.')
+  .option('--port <port>', 'port to listen on for SSE and HTTP transport.')
   .option(
     '--proxy-bypass <bypass>',
     'comma-separated domains to bypass proxy, for example ".com,chromium.org,.domain.com"',
@@ -165,8 +165,15 @@ program
           },
         },
       });
-      const transport = new StdioServerTransport();
-      await server.connect(transport);
+      if (options.port || options.host) {
+        const { startSseAndStreamableHttpMcpServer } = await import(
+          './serving/startServer.js'
+        );
+        await startSseAndStreamableHttpMcpServer(options.port, options.host);
+      } else {
+        const transport = new StdioServerTransport();
+        await server.connect(transport);
+      }
     } catch (error) {
       console.error('Error: ', error);
       process.exit(1);
