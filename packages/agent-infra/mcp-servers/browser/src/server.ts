@@ -385,7 +385,11 @@ export const toolsMap = {
 
 type ToolNames = keyof typeof toolsMap;
 type ToolInputMap = {
-  [K in ToolNames]: z.infer<(typeof toolsMap)[K]['inputSchema']>;
+  [K in ToolNames]: (typeof toolsMap)[K] extends { inputSchema: infer S }
+    ? S extends z.ZodType<any, any, any>
+      ? z.infer<S>
+      : unknown
+    : unknown;
 };
 
 async function buildDomTree(page: Page) {

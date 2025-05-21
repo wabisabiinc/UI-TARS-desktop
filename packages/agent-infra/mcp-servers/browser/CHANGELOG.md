@@ -1,5 +1,11 @@
 # @agent-infra/mcp-server-browser
 
+## 1.1.1-beta.1
+
+### Patch Changes
+
+- fix: schema empty not right
+
 ## 1.1.1-beta.0
 
 ### Patch Changes
