@@ -1,5 +1,13 @@
 # @agent-infra/mcp-client
 
+## 1.1.1
+
+### Patch Changes
+
+- a40b3c1: feat: add mcp http server
+- Updated dependencies [a40b3c1]
+  - @agent-infra/mcp-shared@1.1.1
+
 ## 1.1.1-beta.3
 
 ### Patch Changes

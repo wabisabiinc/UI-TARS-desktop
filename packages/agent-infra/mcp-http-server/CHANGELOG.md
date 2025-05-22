@@ -1,5 +1,13 @@
 # @agent-infra/mcp-shared
 
+## 1.1.1
+
+### Patch Changes
+
+- a40b3c1: feat: add mcp http server
+- 82fe970: fix: hang up
+- feat: support high performance sse and http server
+
 ## 1.1.1-beta.3
 
 ### Patch Changes
