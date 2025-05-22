@@ -1,5 +1,37 @@
 # @agent-infra/mcp-server-filesystem
 
+## 1.1.1
+
+### Patch Changes
+
+- a40b3c1: feat: add mcp http server
+- 82fe970: fix: hang up
+- feat: support high performance sse and http server
+- Updated dependencies [a40b3c1]
+- Updated dependencies [82fe970]
+- Updated dependencies
+  - mcp-http-server@1.1.1
+
+## 1.1.1-beta.3
+
+### Patch Changes
+
+- fix: hang up
+- Updated dependencies
+  - mcp-http-server@1.1.1-beta.3
+
+## 1.1.1-beta.2
+
+### Patch Changes
+
+- feat: add mcp http server
+- Updated dependencies
+  - @agent-infra/mcp-http-server@1.1.1-beta.2
+
+## 1.1.1-beta.1
+
+## 1.1.1-beta.0
+
 ## 1.1.0
 
 ### Minor Changes

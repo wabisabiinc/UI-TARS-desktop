@@ -106,17 +106,12 @@ Follow the MCP install [guide](https://modelcontextprotocol.io/quickstart/user),
 
 #### Remote (SSE / Streamable HTTP)
 
-At the same time, by combining with [uv](https://docs.astral.sh/uv/getting-started/installation/) and [mcp-proxy](https://github.com/sparfenyuk/mcp-proxy), the commands mcp can be converted into SSE and Streamable HTTP.
+At the same time, use `--port $your_port` arg to start the browser mcp can be converted into SSE and Streamable HTTP Server.
 
 ```bash
-# install mcp-proxy with uv
-uv tool install mcp-proxy
-
 # normal run remote mcp server
-mcp-proxy --sse-port=8089 -- npx @agent-infra/mcp-server-commands
+npx @agent-infra/mcp-server-commands --port 8089
 ```
-
-> For more detailed parameters, see [mcp-proxy arguments](https://github.com/sparfenyuk/mcp-proxy?tab=readme-ov-file#command-line-arguments).
 
 You can use one of the two MCP Server remote endpoint:
 - Streamable HTTP(Recommended): `http://127.0.0.1::8089/mcp`
