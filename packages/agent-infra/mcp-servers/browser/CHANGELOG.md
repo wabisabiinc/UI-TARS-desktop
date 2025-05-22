@@ -1,5 +1,13 @@
 # @agent-infra/mcp-server-browser
 
+## 1.1.1-beta.3
+
+### Patch Changes
+
+- fix: hang up
+- Updated dependencies
+  - mcp-http-server@1.1.1-beta.3
+
 ## 1.1.1-beta.2
 
 ### Patch Changes

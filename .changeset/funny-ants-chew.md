@@ -3,8 +3,6 @@
 '@agent-infra/mcp-server-commands': patch
 '@agent-infra/mcp-server-browser': patch
 'mcp-http-server': patch
-'@agent-infra/mcp-client': patch
-'@agent-infra/mcp-shared': patch
 ---
 
-feat: add mcp http server
+fix: hang up

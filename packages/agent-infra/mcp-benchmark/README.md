@@ -22,7 +22,7 @@ InMemoryTransport is the fastest communication.
 - [mcp-proxy Python](https://github.com/sparfenyuk/mcp-proxy)
 - [mcp-proxy TypeScript](https://github.com/punkpeye/mcp-proxy)
 - [Supergateway](https://github.com/supercorp-ai/supergateway)
-- [mcp-http-server](https://www.npmjs.com/package/@agent-infra/mcp-http-server)
+- [mcp-http-server](https://www.npmjs.com/package/mcp-http-server)
 
 mcp-http-server >= mcp-proxy TypeScript > Supergateway > mcp-proxy Python
 
