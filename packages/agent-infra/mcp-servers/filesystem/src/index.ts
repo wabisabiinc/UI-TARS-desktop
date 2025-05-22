@@ -37,9 +37,12 @@ program
         process.exit(1);
       }
 
-      const server: McpServer = createServer({
-        allowedDirectories: options.allowedDirectories,
-      });
+      const createMcpServer = async () => {
+        const server: McpServer = createServer({
+          allowedDirectories: options.allowedDirectories,
+        });
+        return server;
+      };
       const allowedDirectories = getAllowedDirectories();
 
       console.error('Secure MCP Filesystem Server running on stdio');
@@ -49,9 +52,10 @@ program
         await startSseAndStreamableHttpMcpServer({
           host: options.host,
           port: options.port,
-          createMcpServer: async () => server as any,
+          createMcpServer: async () => createMcpServer() as any,
         });
       } else {
+        const server = await createMcpServer();
         const transport = new StdioServerTransport();
         await server.connect(transport);
         console.debug('Secure MCP Filesystem Server running on stdio');

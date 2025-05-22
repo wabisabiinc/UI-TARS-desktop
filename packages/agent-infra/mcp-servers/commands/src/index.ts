@@ -24,14 +24,18 @@ program
   .option('--port <port>', 'port to listen on for SSE and HTTP transport.')
   .action(async (options) => {
     try {
-      const server: McpServer = createServer();
+      const createMcpServer = async () => {
+        const server: McpServer = createServer();
+        return server;
+      };
       if (options.port || options.host) {
         await startSseAndStreamableHttpMcpServer({
           host: options.host,
           port: options.port,
-          createMcpServer: async () => server as any,
+          createMcpServer: async () => createMcpServer() as any,
         });
       } else {
+        const server = await createMcpServer();
         const transport = new StdioServerTransport();
         await server.connect(transport);
         console.debug('Commands MCP Server running on stdio');
