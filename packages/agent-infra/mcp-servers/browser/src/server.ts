@@ -323,7 +323,8 @@ export const toolsMap = {
   // new tools
   browser_get_html: {
     name: 'browser_get_html',
-    description: 'Get the HTML content of the current page',
+    description:
+      'Get the HTML content of the current page, return long text is not friendly to models with limited token, recommended for use browser_get_markdown instead',
   },
   browser_get_clickable_elements: {
     name: 'browser_get_clickable_elements',
