@@ -11,7 +11,7 @@ import { program } from 'commander';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createServer, getAllowedDirectories } from './server.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { startSseAndStreamableHttpMcpServer } from '@agent-infra/mcp-http-server';
+import { startSseAndStreamableHttpMcpServer } from 'mcp-http-server';
 
 program
   .name(process.env.NAME || 'mcp-server-filesystem')

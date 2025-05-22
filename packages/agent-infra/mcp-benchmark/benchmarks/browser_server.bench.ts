@@ -72,7 +72,7 @@ const handleMcpProxyStdout = (data) => {
 mcpProxyProcess.stdout?.on('data', handleMcpProxyStdout);
 mcpProxyProcess.stderr?.on('data', handleMcpProxyStdout);
 
-// @agent-infra/mcp-http-server
+// mcp-http-server
 let mcpHttpServerReady = false;
 const mcpHttpServerPort = await getPort();
 const mcpHttpServerProcess: ReturnType<typeof spawn> = spawn(

@@ -7,7 +7,7 @@
  * Copyright (c) Microsoft Corporation.
  * https://github.com/microsoft/playwright-mcp/blob/main/LICENSE
  */
-import { startSseAndStreamableHttpMcpServer } from '@agent-infra/mcp-http-server';
+import { startSseAndStreamableHttpMcpServer } from 'mcp-http-server';
 import { program } from 'commander';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createServer, getBrowser } from './server.js';

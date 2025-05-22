@@ -7,7 +7,7 @@
  * Copyright (c) 2025 g0t4
  * https://github.com/g0t4/mcp-server-commands/blob/master/LICENSE
  */
-import { startSseAndStreamableHttpMcpServer } from '@agent-infra/mcp-http-server';
+import { startSseAndStreamableHttpMcpServer } from 'mcp-http-server';
 import { program } from 'commander';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
