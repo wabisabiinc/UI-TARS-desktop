@@ -126,7 +126,7 @@ beforeAll(async () => {
   });
 
   console.log('beforeAll');
-});
+}, 30 * 1000);
 
 afterAll(() => {
   console.log('afterAll');
