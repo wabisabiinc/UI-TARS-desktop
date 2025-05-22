@@ -9,9 +9,10 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
-export interface McpServerEndpoint {
+interface McpServerEndpoint {
   url: string;
   port: number;
+  close: () => void;
 }
 
 interface StartSseAndStreamableHttpMcpServerParams {
@@ -27,8 +28,8 @@ export async function startSseAndStreamableHttpMcpServer(
 ): Promise<McpServerEndpoint> {
   const { port, host, createMcpServer, stateless = true } = params;
   const transports = {
-    streamable: {} as Record<string, StreamableHTTPServerTransport>,
-    sse: {} as Record<string, SSEServerTransport>,
+    streamable: new Map<string, StreamableHTTPServerTransport>(),
+    sse: new Map<string, SSEServerTransport>(),
   };
 
   const app = express();
@@ -40,10 +41,10 @@ export async function startSseAndStreamableHttpMcpServer(
 
     const sseTransport = new SSEServerTransport('/message', res);
 
-    transports.sse[sseTransport.sessionId] = sseTransport;
+    transports.sse.set(sseTransport.sessionId, sseTransport);
 
     res.on('close', () => {
-      delete transports.sse[sseTransport.sessionId];
+      transports.sse.delete(sseTransport.sessionId);
     });
 
     await mcpServer.connect(sseTransport);
@@ -57,7 +58,7 @@ export async function startSseAndStreamableHttpMcpServer(
       return;
     }
 
-    const transport = transports.sse[sessionId];
+    const transport = transports.sse.get(sessionId);
 
     if (transport) {
       await transport.handlePostMessage(req, res, req.body);
@@ -77,23 +78,23 @@ export async function startSseAndStreamableHttpMcpServer(
         sessionIdGenerator: undefined, // set to undefined for stateless servers
       });
     } else {
-      if (sessionId && transports.streamable[sessionId]) {
+      if (sessionId && transports.streamable.has(sessionId)) {
         // Reuse existing transport
-        transport = transports.streamable[sessionId];
+        transport = transports.streamable.get(sessionId)!;
       } else if (!sessionId && isInitializeRequest(req.body)) {
         // New initialization request
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (sessionId) => {
             // Store the transport by session ID
-            transports.streamable[sessionId] = transport!;
+            transports.streamable.set(sessionId, transport!);
           },
         });
 
         // Clean up transport when closed
         transport.onclose = () => {
           if (transport?.sessionId) {
-            delete transports.streamable[transport.sessionId];
+            transports.streamable.delete(transport.sessionId);
           }
         };
       } else {
@@ -171,6 +172,7 @@ export async function startSseAndStreamableHttpMcpServer(
       const endpoint: McpServerEndpoint = {
         url: `http://${HOST}:${PORT}/mcp`,
         port: PORT,
+        close: () => appServer.close(),
       };
       console.log(
         `Browser Streamable HTTP MCP Server listening at ${endpoint.url}`,
