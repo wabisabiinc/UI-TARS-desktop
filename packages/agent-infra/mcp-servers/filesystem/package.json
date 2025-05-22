@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.2",
-    "@agent-infra/mcp-http-server": "workspace:*"
+    "mcp-http-server": "workspace:*"
   },
   "devDependencies": {
     "commander": "^13.1.0",

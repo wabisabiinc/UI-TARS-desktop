@@ -261,7 +261,6 @@ describe('HTTP Proxy Benchmark', async () => {
     const tools = await client.listTools();
     if (!tools.tools.length) throw new Error('No tools found');
     await client.close();
-    console.log('supergateway sse');
   });
 
   bench('mcp-proxy(Python) sse', async () => {

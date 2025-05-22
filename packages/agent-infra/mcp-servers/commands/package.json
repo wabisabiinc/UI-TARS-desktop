@@ -31,7 +31,7 @@
     "test:integration": "vitest tests/integration"
   },
   "dependencies": {
-    "@agent-infra/mcp-http-server": "workspace:*",
+    "mcp-http-server": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.11.2"
   },
   "devDependencies": {

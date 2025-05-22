@@ -37,3 +37,14 @@ mcp-http-server >= mcp-proxy TypeScript > Supergateway > mcp-proxy Python
    · mcp-http-server mcp        826.70  0.8496   2.9232  1.2096  1.2452   2.5352   2.6592   2.9232   ±2.64%      414
    · mcp-http-server sse        941.06  0.7817   2.4350  1.0626  1.0510   2.0172   2.0609   2.4350   ±2.34%      471   fastest
 ```
+
+## Development
+
+```
+git clone git@github.com:bytedance/UI-TARS-desktop.git
+cd UI-TARS-desktop/packages/agent-infra/mcp-benchmark
+pnpm i
+pnpm run dev
+```
+
+![](https://github.com/user-attachments/assets/8fe4c41c-ea2a-45f3-930a-5abd7f058b67)

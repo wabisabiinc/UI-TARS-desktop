@@ -872,9 +872,6 @@ importers:
       '@agent-infra/browser-use':
         specifier: workspace:*
         version: link:../browser-use
-      '@agent-infra/mcp-http-server':
-        specifier: workspace:*
-        version: link:../mcp-http-server
       '@agent-infra/mcp-server-browser':
         specifier: workspace:*
         version: link:../mcp-servers/browser
@@ -893,6 +890,9 @@ importers:
       get-port:
         specifier: ^7.1.0
         version: 7.1.0
+      mcp-http-server:
+        specifier: workspace:*
+        version: link:../mcp-http-server
       mcp-proxy:
         specifier: ^3.0.3
         version: 3.0.3
@@ -991,12 +991,12 @@ importers:
 
   packages/agent-infra/mcp-servers/browser:
     dependencies:
-      '@agent-infra/mcp-http-server':
-        specifier: workspace:*
-        version: link:../../mcp-http-server
       '@modelcontextprotocol/sdk':
         specifier: ^1.11.2
         version: 1.11.2
+      mcp-http-server:
+        specifier: workspace:*
+        version: link:../../mcp-http-server
     devDependencies:
       '@agent-infra/browser':
         specifier: workspace:*
@@ -1070,12 +1070,12 @@ importers:
 
   packages/agent-infra/mcp-servers/commands:
     dependencies:
-      '@agent-infra/mcp-http-server':
-        specifier: workspace:*
-        version: link:../../mcp-http-server
       '@modelcontextprotocol/sdk':
         specifier: ^1.11.2
         version: 1.11.2
+      mcp-http-server:
+        specifier: workspace:*
+        version: link:../../mcp-http-server
     devDependencies:
       '@rslib/core':
         specifier: 0.5.3
@@ -1104,12 +1104,12 @@ importers:
 
   packages/agent-infra/mcp-servers/filesystem:
     dependencies:
-      '@agent-infra/mcp-http-server':
-        specifier: workspace:*
-        version: link:../../mcp-http-server
       '@modelcontextprotocol/sdk':
         specifier: ^1.11.2
         version: 1.11.2
+      mcp-http-server:
+        specifier: workspace:*
+        version: link:../../mcp-http-server
     devDependencies:
       '@rslib/core':
         specifier: 0.5.3

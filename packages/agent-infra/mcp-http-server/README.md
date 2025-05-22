@@ -1,15 +1,17 @@
 # MCP HTTP Server
 
+
+## Install
+
+```
+npm i mcp-http-server -S
+```
+
+## Usage
+
 ```ts
-/**
- * The following code is modified based on
- * https://github.com/g0t4/mcp-server-commands/blob/master/src/index.ts
- *
- * MIT License
- * Copyright (c) 2025 g0t4
- * https://github.com/g0t4/mcp-server-commands/blob/master/LICENSE
- */
-import { startSseAndStreamableHttpMcpServer } from '@agent-infra/mcp-http-server';
+import { startSseAndStreamableHttpMcpServer } from 'mcp-http-server';
+
 import { program } from 'commander';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -36,7 +38,7 @@ program
       } else {
         const transport = new StdioServerTransport();
         await server.connect(transport);
-        console.debug('Commands MCP Server running on stdio');
+        console.debug('MCP Server running on stdio');
       }
     } catch (error) {
       console.error('Error: ', error);

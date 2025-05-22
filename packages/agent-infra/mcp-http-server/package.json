@@ -1,5 +1,5 @@
 {
-  "name": "@agent-infra/mcp-http-server",
+  "name": "mcp-http-server",
   "version": "1.1.1-beta.2",
   "description": "High performance HTTP Server for MCP",
   "license": "MIT",

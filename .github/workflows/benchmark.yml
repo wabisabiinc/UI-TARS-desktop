@@ -52,4 +52,4 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Run MCP benchmark
-        run: cd packages/agent-infra/mcp-benchmark && pnpm run benchmark
+        run: cd packages/agent-infra/mcp-benchmark && pnpm run dev
