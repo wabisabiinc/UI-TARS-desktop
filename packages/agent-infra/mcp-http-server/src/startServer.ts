@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import express, { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -12,12 +14,18 @@ export interface McpServerEndpoint {
   port: number;
 }
 
-export async function startSseAndStreamableHttpMcpServer(params: {
+interface StartSseAndStreamableHttpMcpServerParams {
   port?: number;
   host?: string;
-  createServer: () => Promise<McpServer>;
-}): Promise<McpServerEndpoint> {
-  const { port, host, createServer } = params;
+  /** Enable stateless mode for streamable http transports. Default is True */
+  stateless?: boolean;
+  createMcpServer: () => Promise<McpServer>;
+}
+
+export async function startSseAndStreamableHttpMcpServer(
+  params: StartSseAndStreamableHttpMcpServerParams,
+): Promise<McpServerEndpoint> {
+  const { port, host, createMcpServer, stateless = true } = params;
   const transports = {
     streamable: {} as Record<string, StreamableHTTPServerTransport>,
     sse: {} as Record<string, SSEServerTransport>,
@@ -27,8 +35,8 @@ export async function startSseAndStreamableHttpMcpServer(params: {
   app.use(express.json());
 
   app.get('/sse', async (req, res) => {
+    const mcpServer: McpServer = await createMcpServer();
     console.info(`New SSE connection from ${req.ip}`);
-    const server: McpServer = await createServer();
 
     const sseTransport = new SSEServerTransport('/message', res);
 
@@ -38,15 +46,15 @@ export async function startSseAndStreamableHttpMcpServer(params: {
       delete transports.sse[sseTransport.sessionId];
     });
 
-    await server.connect(sseTransport);
+    await mcpServer.connect(sseTransport);
   });
 
-  // @ts-ignore
   app.post('/message', async (req, res) => {
     const sessionId = req.query.sessionId as string;
 
     if (!sessionId) {
-      return res.status(400).send('Missing sessionId parameter');
+      res.status(400).send('Missing sessionId parameter');
+      return;
     }
 
     const transport = transports.sse[sessionId];
@@ -59,14 +67,50 @@ export async function startSseAndStreamableHttpMcpServer(params: {
   });
 
   app.post('/mcp', async (req: Request, res: Response) => {
-    const server: McpServer = await createServer();
-    const transport: StreamableHTTPServerTransport =
-      new StreamableHTTPServerTransport({
+    const mcpServer: McpServer = await createMcpServer();
+
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    let transport: StreamableHTTPServerTransport;
+
+    if (stateless) {
+      transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined, // set to undefined for stateless servers
       });
+    } else {
+      if (sessionId && transports.streamable[sessionId]) {
+        // Reuse existing transport
+        transport = transports.streamable[sessionId];
+      } else if (!sessionId && isInitializeRequest(req.body)) {
+        // New initialization request
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (sessionId) => {
+            // Store the transport by session ID
+            transports.streamable[sessionId] = transport!;
+          },
+        });
+
+        // Clean up transport when closed
+        transport.onclose = () => {
+          if (transport?.sessionId) {
+            delete transports.streamable[transport.sessionId];
+          }
+        };
+      } else {
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32000,
+            message: 'Bad Request: No valid session ID provided',
+          },
+          id: null,
+        });
+        return;
+      }
+    }
 
     // Setup routes for the server
-    await server.connect(transport);
+    await mcpServer.connect(transport);
 
     console.log('Received MCP request:', req.body);
     try {

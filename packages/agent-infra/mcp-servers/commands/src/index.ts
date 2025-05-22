@@ -29,7 +29,7 @@ program
         await startSseAndStreamableHttpMcpServer({
           host: options.host,
           port: options.port,
-          createServer: async () => server as any,
+          createMcpServer: async () => server as any,
         });
       } else {
         const transport = new StdioServerTransport();

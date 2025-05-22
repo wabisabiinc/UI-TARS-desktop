@@ -31,6 +31,8 @@
     "@modelcontextprotocol/sdk": "^1.11.2"
   },
   "devDependencies": {
+    "mcp-proxy": "^3.0.3",
+    "get-port": "^7.1.0",
     "commander": "^13.1.0",
     "@types/lodash.merge": "4.6.9",
     "lodash.merge": "4.6.2",
