@@ -1,5 +1,11 @@
 # @agent-infra/mcp-shared
 
+## 1.1.2
+
+### Patch Changes
+
+- chore: performance and browser_get_html desc
+
 ## 1.1.1
 
 ### Patch Changes

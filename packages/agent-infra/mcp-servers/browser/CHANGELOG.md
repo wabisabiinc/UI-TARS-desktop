@@ -1,5 +1,13 @@
 # @agent-infra/mcp-server-browser
 
+## 1.1.2
+
+### Patch Changes
+
+- chore: performance and browser_get_html desc
+- Updated dependencies
+  - mcp-http-server@1.1.2
+
 ## 1.1.1
 
 ### Patch Changes
