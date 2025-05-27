@@ -12,7 +12,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --pretty --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --pretty --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "start": "electron-vite preview",
+    "start": "electron .",
     "dev": "electron-vite dev",
     "debug": "electron-vite dev --sourcemap --remote-debugging-port=9222",
     "debug:w": "electron-vite dev -w --sourcemap --remote-debugging-port=9222",
@@ -35,6 +35,7 @@
     "publish:win32-arm64": "npm run build && electron-forge publish --arch=arm64 --platform=win32",
     "publish": "npm run build && electron-forge publish"
   },
+
   "build": {
     "publish": [
       {

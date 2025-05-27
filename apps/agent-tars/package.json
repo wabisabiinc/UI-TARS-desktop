@@ -12,11 +12,18 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "asar:analyze": "asar extract out/Agent\\ TARS-darwin-arm64/Agent\\ TARS.app/Contents/Resources/app.asar ./dist/asar",
-    "start": "electron-vite preview",
-    "dev": "electron-vite dev",
     "prepare": "npm run build:reporter",
     "package": "electron-forge package",
-    "build": "rimraf dist out && npm run typecheck && npm run build:reporter && electron-vite build && electron-forge make",
+    "dev:electron": "electron-vite dev",
+    "start:electron": "electron .",
+    "build:electron": "rimraf dist out && npm run typecheck && npm run build:reporter && electron-vite build && electron-forge make",
+    "make":"electron-forge make --platform=linux",
+
+    "dev:web": "vite --config vite.config.web.ts",
+    "build:web": "vite build --config vite.config.web.ts",
+    "serve:web": "vite preview --config vite.config.web.ts",
+    
+    "start:web": "serve -s dist/web",
     "test": "vitest run",
     "build:dist": "cross-env NODE_ENV=production electron-vite build",
     "build:e2e": "npm run build:dist && cross-env CI=e2e npm run package",
@@ -115,5 +122,30 @@
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"
     }
+  },
+  "forge": {
+    "makers": [
+      {
+        "name": "@electron-forge/maker-deb",
+        "config": {}
+      },
+      {
+        "name": "electron-forge-maker-appimage",
+        "config": {}
+      },
+      {
+        "name": "@electron-forge/maker-zip",
+        "platforms": ["linux"]
+      }
+    ],
+    "plugins": [
+      ["@electron-forge/plugin-vite", { "configFile": "vite.config.ts" }]
+    ],
+    "renderer": [
+      {
+        "name": "main_window",
+        "entry": "src/renderer/main.tsx"
+      }
+    ]
   }
 }
