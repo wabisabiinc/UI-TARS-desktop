@@ -25,6 +25,7 @@ export default defineConfig(
       },
       build: {
         outDir: resolve(__dirname, './dist/reporter'),
+        emptyOutdir: true,
         rollupOptions: {
           input: {
             main: resolve('./src/renderer/index.html'),
