@@ -1,3 +1,4 @@
+
 {
   "name": "agent-tars-app",
   "private": true,
@@ -12,23 +13,20 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "asar:analyze": "asar extract out/Agent\\ TARS-darwin-arm64/Agent\\ TARS.app/Contents/Resources/app.asar ./dist/asar",
-    "package": "electron-forge package",
-    "dev:electron": "electron-vite dev",
+
+    "dev:electron":   "electron-vite dev",
     "start:electron": "electron .",
     "build:electron": "rimraf dist out && npm run typecheck && npm run build:reporter && electron-vite build && electron-forge make",
-    "make":"electron-forge make --platform=linux",
+    "make":           "electron-forge make --platform=linux",
 
-    "dev:web": "vite --config vite.config.web.ts",
-    "build:web": "vite build --config vite.config.web.ts",
-    "serve:web": "vite preview --config vite.config.web.ts",
-    
-    "start:web": "serve -s dist/web -1 tcp://0.0.0.0:$PORT",
-    "test": "vitest run",
-    "build:dist": "cross-env NODE_ENV=production electron-vite build",
-    "build:e2e": "npm run build:dist && cross-env CI=e2e npm run package",
-    "test:e2e": "playwright test",
-    "publish:mac": "npm run build:reporter && electron-vite build && electron-forge publish --arch=universal --platform=darwin",
-    "dev:reporter": "vite dev",
+    "dev:web":      "vite --config vite.config.web.ts",
+    "build:web":    "vite build --config vite.config.web.ts",
+    "preview:web":  "vite preview --config vite.config.web.ts --host 0.0.0.0 --port $PORT",
+    "start:web":    "serve -s dist/web -l tcp://0.0.0.0:$PORT",
+
+    "test":         "vitest run",
+    "test:e2e":     "playwright test",
+
     "build:reporter": "vite build"
   },
   "peerDependencies": {
@@ -37,15 +35,9 @@
     "tsx": "*"
   },
   "peerDependenciesMeta": {
-    "esbuild-register": {
-      "optional": true
-    },
-    "ts-node": {
-      "optional": true
-    },
-    "tsx": {
-      "optional": true
-    }
+    "esbuild-register": { "optional": true },
+    "ts-node": { "optional": true },
+    "tsx": { "optional": true }
   },
   "dependencies": {
     "@tavily/core": "0.3.1",
@@ -55,6 +47,7 @@
     "@agent-infra/mcp-server-browser": "workspace:*"
   },
   "devDependencies": {
+    "serve": "^14.2.0",
     "jsonrepair": "3.12.0",
     "serialize-javascript": "6.0.2",
     "@modelcontextprotocol/sdk": "^1.11.2",
@@ -112,39 +105,17 @@
   },
   "build": {
     "publish": [
-      {
-        "provider": "github",
-        "owner": "bytedance",
-        "repo": "UI-TARS-desktop"
-      }
+      { "provider": "github", "owner": "bytedance", "repo": "UI-TARS-desktop" }
     ],
-    "electronDownload": {
-      "mirror": "https://npmmirror.com/mirrors/electron/"
-    }
+    "electronDownload": { "mirror": "https://npmmirror.com/mirrors/electron/" }
   },
   "forge": {
     "makers": [
-      {
-        "name": "@electron-forge/maker-deb",
-        "config": {}
-      },
-      {
-        "name": "electron-forge-maker-appimage",
-        "config": {}
-      },
-      {
-        "name": "@electron-forge/maker-zip",
-        "platforms": ["linux"]
-      }
+      { "name": "@electron-forge/maker-deb", "config": {} },
+      { "name": "electron-forge-maker-appimage", "config": {} },
+      { "name": "@electron-forge/maker-zip", "platforms": ["linux"] }
     ],
-    "plugins": [
-      ["@electron-forge/plugin-vite", { "configFile": "vite.config.ts" }]
-    ],
-    "renderer": [
-      {
-        "name": "main_window",
-        "entry": "src/renderer/main.tsx"
-      }
-    ]
+    "plugins": [["@electron-forge/plugin-vite", { "configFile": "vite.config.ts" }]],
+    "renderer": [{ "name": "main_window", "entry": "src/renderer/main.tsx" }]
   }
 }
