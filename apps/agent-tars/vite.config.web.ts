@@ -36,5 +36,13 @@ export default defineConfig(async () => {
       react(),
       tsconfigPaths(),
     ],
+    // Vite プレビューサーバーで許可するホストを指定
+    preview: {
+      host: '0.0.0.0',
+      port: Number(process.env.PORT) || 10000,
+      strictPort: true,
+      // 外部ドメインすべてを許可する場合は 'all'
+      allowedHosts: 'all',
+    },
   }
 })
