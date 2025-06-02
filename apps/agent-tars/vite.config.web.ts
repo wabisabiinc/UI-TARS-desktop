@@ -41,7 +41,6 @@ export default defineConfig(async () => {
       host: '0.0.0.0',
       port: Number(process.env.PORT) || 10000,
       strictPort: true,
-
       allowedHosts: 'all',
     },
   }
