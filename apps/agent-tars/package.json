@@ -24,7 +24,7 @@
     "dev:web":            "vite --config vite.config.web.ts",
     "build:web":          "vite build --config vite.config.web.ts",
     
-    "preview:web":        "vite preview --config vite.config.web.ts --host 0.0.0.0",
+    "preview:web":        "PORT=$PORT vite preview --config vite.config.web.ts --host 0.0.0.0",
     
     "start:web":          "npm run preview:web",
 

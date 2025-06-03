@@ -38,7 +38,7 @@ export default defineConfig(async () => {
     
     preview: {
       host: '0.0.0.0',
-      port: Number(process.env.PORT) || 10000,
+      //port: Number(process.env.PORT) || 10000,
       strictPort: true,
       
       allowedHosts: ['ui-tars-desktop-my6k.onrender.com'],
