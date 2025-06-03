@@ -21,7 +21,7 @@
 
     "dev:web":            "vite --config vite.config.web.ts",
     
-    "build:web":          "node --max-old-space-size=4096 ./node_modules/vite/bin/vite.js build --config vite.config.web.ts",
+    "build:web":          "NODE_OPTIONS=--max-old-space-size=4096 vite build --config vite.config.web.ts",
 
     "start:web":          "serve -s dist/web -l $PORT",
 
