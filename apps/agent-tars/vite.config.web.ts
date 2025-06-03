@@ -1,10 +1,9 @@
-// apps/agent-tars/vite.config.web.ts
 import path from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig(async () => {
-  // ESM-only な vite-tsconfig-paths を動的 import() で読み込む
+
   const { default: tsconfigPaths } = await import('vite-tsconfig-paths')
 
   return {
