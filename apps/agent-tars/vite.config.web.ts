@@ -14,7 +14,7 @@ export default defineConfig(async () => {
       strictPort: true,
     },
     build: {
-      outDir: path.resolve(__dirname, 'dist/web'),
+      outDir: path.resolve(__dirname, 'dist'),
       emptyOutDir: true,
       rollupOptions: {
         input: path.resolve(__dirname, 'src/renderer/index.html'),
@@ -36,12 +36,5 @@ export default defineConfig(async () => {
       tsconfigPaths(),
     ],
     
-    preview: {
-      host: '0.0.0.0',
-      //port: Number(process.env.PORT) || 10000,
-      strictPort: true,
-      
-      allowedHosts: ['ui-tars-desktop-my6k.onrender.com'],
-    },
   }
 })

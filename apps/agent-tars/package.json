@@ -23,11 +23,9 @@
     
     "dev:web":            "vite --config vite.config.web.ts",
     "build:web":          "vite build --config vite.config.web.ts",
-
-    "preview:web":  "PORT=$PORT vite preview --config vite.config.web.ts --host 0.0.0.0",
     
     
-    "start:web":          "npm run preview:web",
+    "start:web":          "serve -s dist -l $PORT",
 
     
     "test":               "vitest run",
@@ -117,7 +115,9 @@
     "jsdom":                          "^26.0.0",
     "typescript":                     "^5.7.3",
     "vitest":                         "^3.0.8",
-    "vite-plugin-singlefile":         "2.2.0"
+    "vite-plugin-singlefile":         "2.2.0",
+
+    "serve" : "^14.1.2"
   },
 
   "build": {
