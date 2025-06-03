@@ -14,7 +14,7 @@ export default defineConfig(async () => {
       strictPort: true,
     },
     build: {
-      outDir: path.resolve(__dirname, 'dist'),
+      outDir: path.resolve(__dirname, 'dist/web'),
       emptyOutDir: true,
       rollupOptions: {
         input: path.resolve(__dirname, 'src/renderer/index.html'),
