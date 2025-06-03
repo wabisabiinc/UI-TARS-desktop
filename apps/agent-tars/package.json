@@ -48,7 +48,7 @@
     "@tavily/core":                   "0.3.1",
     "@computer-use/node-mac-permissions": "2.2.2",
 
-    "monaco-editor":                  "^0.38.1"
+    "monaco-editor":                  "^0.52.2"
   },
 
   "devDependencies": {
