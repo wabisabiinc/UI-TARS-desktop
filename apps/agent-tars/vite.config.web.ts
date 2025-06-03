@@ -1,9 +1,4 @@
-// apps/agent-tars/vite.config.web.ts
-import path from 'node:path'
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import monacoEditorPlugin from 'vite-plugin-monaco-editor'  
-import react from '@vitejs/plugin-react'
+
 
 // ↓ defineConfig の中身を変更します
 export default defineConfig(async () => {
@@ -34,7 +29,6 @@ export default defineConfig(async () => {
     plugins: [
       react(),
       tsconfigPaths(),
-      monacoEditorPlugin()
     ],
 
     // server / preview は Web Service では不要なので省略
