@@ -26,7 +26,7 @@
     
     "preview:web":        "PORT=$PORT vite preview --config vite.config.web.ts --host 0.0.0.0",
     
-    "start:web":          "npm run preview:web",
+    "start:web":          "node server.js",
 
     
     "test":               "vitest run",
