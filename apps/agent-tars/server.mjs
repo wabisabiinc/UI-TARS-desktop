@@ -9,10 +9,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 
-app.use(express.static(path.resolve(__dirname, 'dist/web')));
+app.use(express.static(path.join(__dirname, 'dist/web')));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'dist/web/index.html'));
+  res.sendFile(path.join(__dirname, 'dist/web/index.html'));
 });
 
 const port = process.env.PORT || 4173;
