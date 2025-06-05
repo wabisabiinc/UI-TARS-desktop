@@ -54,7 +54,8 @@
     "classnames" : "^2.3.2",
     "serve" : "^14.0.1",
     "react-markdown" : "^10.1.0",
-    "remark-gfm" : "^3.0.1"
+    "remark-gfm" : "^3.0.1",
+    "remark-math" : "^4.0.0"
     },
 
   "devDependencies": {
