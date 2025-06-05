@@ -24,7 +24,7 @@ export default defineConfig(async () => {
       host: '0.0.0.0',
       strictPort: true,
       // たとえば Render からのアクセスを許可したいドメインがあればここに書く
-      // allowedHosts: ['ui-tars-desktop-my6k.onrender.com'],
+      allowedHosts: ['ui-tars-desktop-my6k.onrender.com'],
     },
 
     // 本番ビルドの設定
