@@ -13,7 +13,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'dist/web/index.html'));
 });
 
-const PORT = process.env.PORT || 4173;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const port = process.env.PORT || 4173;
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
 });
+
