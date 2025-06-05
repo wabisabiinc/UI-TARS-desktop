@@ -59,7 +59,8 @@
     "rehype-katex" : "^6.0.2",
     "react-syntax-highlighter" : "^15.4.5",
     "path-browserify": "^1.0.1",
-    "use-dark-mode" : "^2.3.1"
+    "use-dark-mode" : "^2.3.1",
+    "date-fns" : "^2.30.0"
     },
 
   "devDependencies": {
