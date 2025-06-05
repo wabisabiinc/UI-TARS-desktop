@@ -51,7 +51,8 @@
     "jotai" : "^2.0.5",
     "localforage" : "^1.10.0",
     "@nextui-org/react": "^2.6.11",
-    "classnames" : "^2.3.2"
+    "classnames" : "^2.3.2",
+    "react-markdown" : "^8.0.8"
     },
 
   "devDependencies": {
