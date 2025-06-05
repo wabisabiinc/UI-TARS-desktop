@@ -52,7 +52,7 @@
     "localforage" : "^1.10.0",
     "@nextui-org/react": "^2.6.11",
     "classnames" : "^2.3.2",
-    "react-markdown" : "^10.1.0"
+    "serve" : "^14.0.1"
     },
 
   "devDependencies": {
@@ -64,8 +64,6 @@
     "@vitejs/plugin-react":           "^4.3.4",
     "vite-tsconfig-paths":            "^5.1.4",
     "vite-plugin-monaco-editor":      "^1.1.0",
-
-    "serve":                          "^14.1.2",
 
     "@electron-forge/cli":            "^7.7.0",
     "@electron-forge/maker-deb":      "^7.7.0",
