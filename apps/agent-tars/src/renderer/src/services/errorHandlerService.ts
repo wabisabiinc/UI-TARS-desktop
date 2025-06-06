@@ -1,35 +1,38 @@
+// apps/agent-tars/src/renderer/services/errorHandlerService.ts
+
 import type { IpcRendererListener } from '@electron-toolkit/preload';
 import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 import type { ErrorReporterMessage } from '@main/utils/errorReporter';
 
-// Using closure to implement singleton pattern
+/**
+ * Singleton パターンでエラーハンドリング用のリスナーを登録／解除するオブジェクト
+ */
 const errorHandlerSingleton = (() => {
   let isSetup = false;
   let cleanupFunction: (() => void) | null = null;
 
   const setup = () => {
-    // If already set up, return the existing cleanup function
+    // すでにセットアップ済みなら、既存のクリーンアップ関数を返す
     if (isSetup) {
       return cleanupFunction;
     }
 
+    // メインプロセス側から送られてくるエラーを受け取るリスナー
     const handleMainProcessError: IpcRendererListener = (
       _event,
       errorData: ErrorReporterMessage,
     ) => {
-      // Create a formatted message
       const formattedMessage = `${errorData.source}: ${errorData.message}`;
 
-      // Show toast notification with enhanced styling
       toast.error(formattedMessage, {
         duration: 5000,
         position: 'top-right',
         style: {
           maxWidth: '500px',
           wordBreak: 'break-word',
-          backgroundColor: '#FEE2E2', // Light red background
-          color: '#B91C1C', // Deep red text
+          backgroundColor: '#FEE2E2', // Light red
+          color: '#B91C1C',           // Deep red
           padding: '12px 16px',
           fontWeight: '500',
           borderRadius: '6px',
@@ -38,60 +41,72 @@ const errorHandlerSingleton = (() => {
         },
       });
 
-      // Also log to console for debugging
       console.error('[Main Process Error]', errorData);
     };
 
     console.log('setupMainProcessErrorHandler - registering event listener');
 
-    // Add event listener
-    window.electron.ipcRenderer.on('main:error', handleMainProcessError);
+    // ─── Electron 環境かどうかをチェック ───
+    if (typeof window !== 'undefined' && window.electron?.ipcRenderer?.on) {
+      // IPC イベントを購読
+      window.electron.ipcRenderer.on('main:error', handleMainProcessError);
+    } else {
+      console.warn(
+        'setupMainProcessErrorHandler: window.electron.ipcRenderer is not available; running in browser or preload not loaded.'
+      );
+    }
 
-    // Set up cleanup function
+    // クリーンアップ関数の定義
     cleanupFunction = () => {
       if (isSetup) {
         console.log('setupMainProcessErrorHandler - removing event listener');
-        window.electron.ipcRenderer.removeListener(
-          'main:error',
-          handleMainProcessError,
-        );
+
+        if (typeof window !== 'undefined' && window.electron?.ipcRenderer) {
+          // できれば off() を使い、なければ removeListener() を使う
+          if (typeof window.electron.ipcRenderer.off === 'function') {
+            window.electron.ipcRenderer.off('main:error', handleMainProcessError);
+          } else if (typeof window.electron.ipcRenderer.removeListener === 'function') {
+            window.electron.ipcRenderer.removeListener('main:error', handleMainProcessError);
+          }
+        }
+
         isSetup = false;
         cleanupFunction = null;
       }
     };
 
-    // Mark as set up
     isSetup = true;
-
     return cleanupFunction;
   };
 
   return {
     setup,
+    // 外部からもクリーンアップしたいときに呼び出すためのメソッド
     cleanup: () => cleanupFunction?.(),
     isSetup: () => isSetup,
   };
 })();
 
 /**
- * Sets up listeners for main process errors
- * This is now a singleton implementation
+ * メインプロセスのエラー通知を購読したいときに呼び出す関数
+ * 戻り値として「解除関数」が返るので、必要に応じて後で解除できる
  */
 export function setupMainProcessErrorHandler() {
   return errorHandlerSingleton.setup();
 }
 
 /**
- * React hook to use in components
- * Uses the singleton pattern to ensure only one listener exists
+ * React hook として使う場合はこちらを利用
+ * コンポーネントマウント時にセットアップし、アンマウント時に解除する（必要なら）
  */
 export function useMainProcessErrorHandler() {
   useEffect(() => {
-    // Use singleton pattern to set up event listener
-    setupMainProcessErrorHandler();
+    // コンポーネントがマウントされたタイミングで購読開始
+    const cleanup = setupMainProcessErrorHandler();
 
-    // Return cleanup function - but may not be needed in actual application
-    // since this error handler should typically exist throughout the application lifecycle
-    return () => {};
+    // アンマウント時は解除。ただし「アプリ全体ずっと動かしたい」なら空関数のままでもよい
+    return () => {
+      cleanup?.();
+    };
   }, []);
 }
