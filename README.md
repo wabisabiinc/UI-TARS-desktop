@@ -34,7 +34,8 @@ if (
  * ブラウザ実行時にはエラーになりません。
  */
 
- 
+
 export const client = createClient<AppRouter>({
   ipcInvoke: ipcInvokeFunction,
 });
+

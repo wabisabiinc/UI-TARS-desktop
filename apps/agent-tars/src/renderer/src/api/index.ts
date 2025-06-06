@@ -22,14 +22,13 @@ if (
   // ブラウザ実行時または Preload 未ロード時：ダミー関数を渡す
   ipcInvokeFunction = async (..._args: any[]) => {
     console.warn('ipcInvoke called in non-Electron environment:', _args);
-    // 必要に応じてモックの戻り値を返すことも可能
     return Promise.resolve(undefined);
   };
 }
 
 /**
  * createClient の呼び出し時に ipcInvokeFunction を渡す。
- * 「ブラウザ環境ではそもそも createClient を呼ばない」設計でも、このまま問題ありません。
+ * ブラウザ環境でもエラーになりません。
  */
 export const ipcClient = createClient<Router>({
   ipcInvoke: ipcInvokeFunction,

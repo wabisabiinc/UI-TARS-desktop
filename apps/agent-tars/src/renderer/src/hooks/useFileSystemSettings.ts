@@ -5,75 +5,59 @@ import { ipcClient } from '@renderer/api';
 import { isReportHtmlMode } from '@renderer/constants';
 
 /**
- * このフックは、Electron 環境では main プロセスから
- * ファイルシステム設定を取得・更新し、初期化フラグを立てる。
- *
- * Report HTML モード、またはブラウザ環境では何もしない。
+ * ファイルシステム設定を初期化するフック
+ * - Report HTML モード、または Electron IPC が使えない場合はスキップ
  */
 export function useFileSystemSettings() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // ── 1) Report HTML モードならスキップ
-    // ── 2) Electron IPC が使えない環境（ブラウザ等）もスキップ
     const isElectron =
       typeof window !== 'undefined' &&
       typeof window.electron?.ipcRenderer?.invoke === 'function';
 
     if (isReportHtmlMode || !isElectron) {
       console.info(
-        'useFileSystemSettings: Report HTML モードまたは Electron IPC 非対応のためスキップ'
+        'useFileSystemSettings: skipping because Report HTML mode or no IPC available'
       );
       return;
     }
 
     async function initFileSystemSettings() {
       try {
-        // メインプロセスから「許可済みディレクトリ一覧」を取得
-        const allowedDirectories = await ipcClient.getAllowedDirectories();
-
-        // ストアから既存の設定を取得
+        const allowedDirs = await ipcClient.getAllowedDirectories();
         const appSettings = await ipcClient.getSettings();
         const settings = appSettings?.fileSystem;
 
         if (!settings) {
-          // 設定がまだ存在しない → allowedDirectories で新規作成
           await ipcClient.updateFileSystemSettings({
-            availableDirectories: allowedDirectories,
+            availableDirectories: allowedDirs,
           });
         } else {
-          // 既存設定がある場合、allowedDirectories と重複なくマージ
-          const mergedDirectories = Array.from(
+          const mergedDirs = Array.from(
             new Set([
               ...settings.availableDirectories,
-              ...allowedDirectories,
+              ...allowedDirs,
             ])
           );
-
           const updatedSettings = {
             ...settings,
-            availableDirectories: mergedDirectories,
+            availableDirectories: mergedDirs,
           };
-
-          // ストアに保存（設定が変更されていない場合でも上書きして OK）
           await ipcClient.updateFileSystemSettings(updatedSettings);
 
-          // メインプロセス側の内部設定も合わせて更新するかどうか判定
-          // 「メインの allowedDirectories」と「mergedDirectories」が異なっていれば更新
           if (
-            JSON.stringify(mergedDirectories) !==
-            JSON.stringify(allowedDirectories)
+            JSON.stringify(mergedDirs) !==
+            JSON.stringify(allowedDirs)
           ) {
-            // mergedDirectories に差分があった場合のみ、追加の設定更新を通知
             await ipcClient.updateFileSystemConfig(updatedSettings);
           }
         }
 
-        // 正常に初期化が終わったのでフラグを立てる
         setInitialized(true);
       } catch (error) {
         console.error(
-          'useFileSystemSettings: Failed to initialize file system settings:',
+          'useFileSystemSettings: Failed to initialize',
           error
         );
       }
