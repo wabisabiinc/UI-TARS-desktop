@@ -1,3 +1,5 @@
+// apps/agent-tars/src/renderer/services/fileSystemPermissions.ts
+
 import { atom, getDefaultStore } from 'jotai';
 import { isPathAllowed, getDefaultDirectory } from './fileSystemSettings';
 import path from 'path-browserify';
@@ -9,22 +11,33 @@ interface PermissionRequest {
   reject: (reason: any) => void;
 }
 
+// Atom: 現在保留中のパーミッションリクエストを保持
 export const pendingPermissionRequestAtom = atom<PermissionRequest | null>(
-  null,
+  null
 );
 
 /**
- * Normalize a file path based on permissions
- * @param filePath The file path to normalize
- * @returns Normalized path (absolute)
+ * ファイルパスを正規化する
+ * - Electron 環境では getDefaultDirectory() を使って絶対パスに変換
+ * - ブラウザ環境ではそのまま返す
  */
 export async function normalizePath(filePath: string): Promise<string> {
-  // If it's already an absolute path, return it
+  // 絶対パスならそのまま返す
   if (filePath.startsWith('/')) {
     return filePath;
   }
 
-  // Otherwise, make it relative to the default directory
+  // Electron の IPC が利用可能かチェック
+  const isElectron =
+    typeof window !== 'undefined' &&
+    typeof window.electron?.ipcRenderer?.invoke === 'function';
+
+  if (!isElectron) {
+    // ブラウザ環境ではそのまま返す
+    return filePath;
+  }
+
+  // Electron 環境ではデフォルトディレクトリを取得して相対結合
   const defaultDir = await getDefaultDirectory();
   if (!defaultDir) {
     throw new Error('No default directory configured');
@@ -34,29 +47,39 @@ export async function normalizePath(filePath: string): Promise<string> {
 }
 
 /**
- * Check if a file operation is allowed and request permission if needed
- * @param filePath The file path to check
- * @returns Promise that resolves to true if allowed, false if denied
+ * ファイル操作が許可されているかチェックし、
+ * 必要ならユーザーに許可を求める
+ * - Electron 環境でのみ動作し、ブラウザでは常に true を返す
  */
-export async function checkPathPermission(filePath: string): Promise<boolean> {
-  // Normalize path first
+export async function checkPathPermission(
+  filePath: string
+): Promise<boolean> {
+  // Electron IPC が使えない（ブラウザ実行など）場合は常に許可として扱う
+  const isElectron =
+    typeof window !== 'undefined' &&
+    typeof window.electron?.ipcRenderer?.invoke === 'function';
+  if (!isElectron) {
+    return true;
+  }
+
+  // ① パスを正規化
   const normalizedPath = await normalizePath(filePath);
 
-  // If path is allowed, return immediately
+  // ② パスが既に許可されていれば true を返す
   if (await isPathAllowed(normalizedPath)) {
     return true;
   }
 
-  // Get current atom value using getDefaultStore
+  // ③ Jotai のストアから現在のペンディングリクエストを取得
   const store = getDefaultStore();
   const currentRequest = store.get(pendingPermissionRequestAtom);
 
-  // If there's already a pending request for this path, return its promise
+  // 同じパスで既に保留中のリクエストがあれば、その Promise を返す
   if (currentRequest && currentRequest.path === normalizedPath) {
     return currentRequest.promise;
   }
 
-  // Otherwise, create a new permission request
+  // ④ 新しいリクエストを作成
   let resolvePromise: (value: boolean) => void = () => {};
   let rejectPromise: (reason: any) => void = () => {};
 
@@ -65,7 +88,7 @@ export async function checkPathPermission(filePath: string): Promise<boolean> {
     rejectPromise = reject;
   });
 
-  // Update the atom with the new request using getDefaultStore
+  // ⑤ Atom に新しいリクエストを格納
   store.set(pendingPermissionRequestAtom, {
     path: normalizedPath,
     promise,
@@ -73,13 +96,13 @@ export async function checkPathPermission(filePath: string): Promise<boolean> {
     reject: rejectPromise,
   });
 
-  // Return the promise that will be resolved when user makes a decision
+  // ⑥ ユーザーが許可/拒否を選ぶまで待機
   return promise;
 }
 
 /**
- * Resolve a pending permission request
- * @param allowed Whether the permission was granted
+ * 保留中のパーミッションリクエストを解決する
+ * @param allowed ユーザーが許可した場合は true、拒否した場合は false
  */
 export function resolvePermission(allowed: boolean): void {
   const store = getDefaultStore();
@@ -87,6 +110,7 @@ export function resolvePermission(allowed: boolean): void {
 
   if (currentRequest) {
     currentRequest.resolve(allowed);
+    // リクエストをクリア
     store.set(pendingPermissionRequestAtom, null);
   }
 }

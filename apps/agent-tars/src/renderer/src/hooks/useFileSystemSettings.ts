@@ -8,17 +8,22 @@ import { isReportHtmlMode } from '@renderer/constants';
  * このフックは、Electron 環境では main プロセスから
  * ファイルシステム設定を取得・更新し、初期化フラグを立てる。
  *
- * Report HTML モード（または ipcClient が未定義のとき）は、何もしない。
+ * Report HTML モード、またはブラウザ環境では何もしない。
  */
 export function useFileSystemSettings() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // 1) Report HTML モードならスキップ
-    // 2) ipcClient が存在しなければ（ブラウザ実行等）スキップ
-    if (isReportHtmlMode || typeof ipcClient === 'undefined') {
-      // Report HTML モードではファイルシステムは初期化しない
-      console.info('useFileSystemSettings: Report HTML モードまたは ipcClient 未定義のためスキップ');
+    // ── 1) Report HTML モードならスキップ
+    // ── 2) Electron IPC が使えない環境（ブラウザ等）もスキップ
+    const isElectron =
+      typeof window !== 'undefined' &&
+      typeof window.electron?.ipcRenderer?.invoke === 'function';
+
+    if (isReportHtmlMode || !isElectron) {
+      console.info(
+        'useFileSystemSettings: Report HTML モードまたは Electron IPC 非対応のためスキップ'
+      );
       return;
     }
 
@@ -67,16 +72,15 @@ export function useFileSystemSettings() {
         // 正常に初期化が終わったのでフラグを立てる
         setInitialized(true);
       } catch (error) {
-        console.error('useFileSystemSettings: Failed to initialize file system settings:', error);
+        console.error(
+          'useFileSystemSettings: Failed to initialize file system settings:',
+          error
+        );
       }
     }
 
     initFileSystemSettings();
-  }, [
-    // isReportHtmlMode は定数（変わらない）なので依存配列に入れていません
-    // ipcClient も基本的に同じインスタンスのはずなので入れていませんが、
-    // 万一 lazy import などで変化する可能性があるならここに含めてください。
-  ]);
+  }, []);
 
   return { initialized };
 }

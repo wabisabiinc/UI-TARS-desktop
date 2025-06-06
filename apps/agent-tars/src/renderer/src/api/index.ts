@@ -1,42 +1,35 @@
-// src/api/index.ts
+// apps/agent-tars/src/api/index.ts
 
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
 
 /**
- * ipcInvoke: Electron 環境では window.electron.ipcRenderer.invoke を渡し、
- * ブラウザ環境では「ダミー関数」を渡すようにする。
- *
- * もし「ブラウザ環境では createClient 自体を呼ばない」設計であれば、
- * ここで createClient を呼ぶかどうかの分岐を行っても構いません。
+ * ipcInvokeFunction：Electron 環境では本物の ipcRenderer.invoke を使い、
+ * ブラウザ環境ではダミーの Promise を返す関数を渡す。
  */
 let ipcInvokeFunction: typeof window.electron.ipcRenderer.invoke;
 
-// ① window.electron が存在し、ipcRenderer.invoke が関数として使えるかチェック
+// Electron IPC が利用可能かどうかをチェック
 if (
   typeof window !== 'undefined' &&
-  window.electron?.ipcRenderer?.invoke
+  typeof window.electron?.ipcRenderer?.invoke === 'function'
 ) {
-  // Electron 実行時：本物の invoke を渡す
-  // bind をかけることで、内部で this が正しく ipcRenderer を参照するようにする
+  // Electron 実行時：ipcRenderer.invoke を bind して渡す
   ipcInvokeFunction = window.electron.ipcRenderer.invoke.bind(
     window.electron.ipcRenderer
   );
 } else {
-  // ブラウザ実行時（あるいは Preload が読み込まれていない時）はダミー関数を渡す
-  // createClient 内で呼ばれた場合にエラーになるのを防ぎつつ、必要であればここに
-  // モック実装を入れることもできます。
+  // ブラウザ実行時または Preload 未ロード時：ダミー関数を渡す
   ipcInvokeFunction = async (..._args: any[]) => {
     console.warn('ipcInvoke called in non-Electron environment:', _args);
-    // 必要に応じて返り値をモックする／空の Promise を返す
+    // 必要に応じてモックの戻り値を返すことも可能
     return Promise.resolve(undefined);
   };
 }
 
 /**
- * createClient を呼び出すタイミングで ipcInvokeOption を渡す
- * ここでは常に createClient を呼んでいますが、
- * 「ブラウザ環境ではそもそも呼ばない」のであれば if 文でスキップしても OK です。
+ * createClient の呼び出し時に ipcInvokeFunction を渡す。
+ * 「ブラウザ環境ではそもそも createClient を呼ばない」設計でも、このまま問題ありません。
  */
 export const ipcClient = createClient<Router>({
   ipcInvoke: ipcInvokeFunction,
@@ -44,8 +37,8 @@ export const ipcClient = createClient<Router>({
 
 /**
  * onMainStreamEvent:
- * - window.api が存在しない場合は何もしないようにガードを入れる
- * - 存在する場合のみ、.on/.off を呼ぶ
+ * - window.api が存在しない場合は何もしない
+ * - 存在する場合のみ .on/.off を呼ぶ
  */
 export const onMainStreamEvent = (
   streamId: string,
@@ -55,10 +48,10 @@ export const onMainStreamEvent = (
     onEnd: () => void;
   }
 ) => {
-  // ② window.api が未定義なら、購読／解除を行わない
+  // window.api が未定義なら購読をスキップし、no-op の解除関数を返す
   if (typeof window === 'undefined' || !window.api) {
     console.warn(
-      'onMainStreamEvent: window.api 不在のためイベント購読をスキップ',
+      'onMainStreamEvent: window.api is not available; skipping subscription',
       streamId
     );
     return () => {
@@ -66,7 +59,7 @@ export const onMainStreamEvent = (
     };
   }
 
-  // ③ 各イベントに対応するリスナーを登録
+  // イベントリスナーを登録
   const dataListener = (data: string) => handlers.onData(data);
   const errorListener = (error: Error) => handlers.onError(error);
   const endListener = () => handlers.onEnd();
@@ -75,7 +68,7 @@ export const onMainStreamEvent = (
   window.api.on(`llm:stream:${streamId}:error`, errorListener);
   window.api.on(`llm:stream:${streamId}:end`, endListener);
 
-  // ④ cleanup 関数を返す（解除時にも同様に存在チェックを行う）
+  // 解除関数を返す。解除時にも存在チェックを行う
   return () => {
     if (window.api) {
       window.api.off(`llm:stream:${streamId}:data`, dataListener);
