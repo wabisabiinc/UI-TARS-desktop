@@ -12,6 +12,7 @@ export function useFileSystemSettings() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    // Electron IPC が利用可能かどうかをチェック
     const isElectron =
       typeof window !== 'undefined' &&
       typeof window.electron?.ipcRenderer?.invoke === 'function';
@@ -25,27 +26,39 @@ export function useFileSystemSettings() {
 
     async function initFileSystemSettings() {
       try {
-        const allowedDirs = await ipcClient.getAllowedDirectories();
-        const appSettings = await ipcClient.getSettings();
-        const settings = appSettings?.fileSystem;
+        // ① 許可済みディレクトリ一覧を取得（戻り値が undefined なら空配列にフォールバック）
+        const rawAllowedDirs = await ipcClient.getAllowedDirectories();
+        const allowedDirs: string[] = Array.isArray(rawAllowedDirs)
+          ? rawAllowedDirs
+          : [];
+
+        // ② 現在の設定を取得（appSettings が undefined の場合は空オブジェクト扱い）
+        const appSettings = (await ipcClient.getSettings()) || {};
+        const settings = appSettings.fileSystem;
 
         if (!settings) {
+          // 設定が存在しない → 新規作成
           await ipcClient.updateFileSystemSettings({
             availableDirectories: allowedDirs,
           });
         } else {
+          // 既存設定と allowedDirs をマージ
+          const existing = Array.isArray(settings.availableDirectories)
+            ? settings.availableDirectories
+            : [];
           const mergedDirs = Array.from(
-            new Set([
-              ...settings.availableDirectories,
-              ...allowedDirs,
-            ])
+            new Set([...existing, ...allowedDirs])
           );
+
           const updatedSettings = {
             ...settings,
             availableDirectories: mergedDirs,
           };
+
+          // ストアに保存（無条件で上書きしてOK）
           await ipcClient.updateFileSystemSettings(updatedSettings);
 
+          // メインプロセス側の構成も更新が必要か判断
           if (
             JSON.stringify(mergedDirs) !==
             JSON.stringify(allowedDirs)
@@ -57,7 +70,7 @@ export function useFileSystemSettings() {
         setInitialized(true);
       } catch (error) {
         console.error(
-          'useFileSystemSettings: Failed to initialize',
+          'useFileSystemSettings: Failed to initialize file system settings:',
           error
         );
       }
