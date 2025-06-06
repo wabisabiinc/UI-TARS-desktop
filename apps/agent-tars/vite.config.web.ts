@@ -20,11 +20,11 @@ export default defineConfig(async () => {
     preview: {
       host: '0.0.0.0',
       strictPort: true,
-      allowedHosts: ['ui-tars-desktop-my6k.onrender.com'],
+      allowedHosts: ['localhost','ui-tars-desktop-my6k.onrender.com'],
     },
 
     build: {
-      outDir: path.resolve(__dirname, '../../dist/web'),
+      outDir: path.resolve(__dirname, 'dist/web'),
       emptyOutDir: true,
       rollupOptions: {
         input: path.resolve(__dirname, 'src/renderer/index.html'),
