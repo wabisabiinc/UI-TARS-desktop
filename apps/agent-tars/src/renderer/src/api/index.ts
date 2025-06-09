@@ -2,43 +2,72 @@
 
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
+import { openai } from './llmConfig';
 
 /**
- * ipcInvokeFunction：Electron 環境では本物の ipcRenderer.invoke を使い、
- * ブラウザ環境ではダミーの Promise を返す関数を渡す。
+ * ipcInvokeFunction:
+ * - Electron 環境では本物の ipcRenderer.invoke を使用
+ * - ブラウザ環境では OpenAI/Gemini クライアントを直接呼び出す
  */
 let ipcInvokeFunction: typeof window.electron.ipcRenderer.invoke;
 
-// Electron IPC が利用可能かどうかをチェック
 if (
   typeof window !== 'undefined' &&
   typeof window.electron?.ipcRenderer?.invoke === 'function'
 ) {
-  // Electron 実行時：ipcRenderer.invoke を bind して渡す
   ipcInvokeFunction = window.electron.ipcRenderer.invoke.bind(
     window.electron.ipcRenderer
   );
 } else {
-  // ブラウザ実行時または Preload 未ロード時：ダミー関数を渡す
-  ipcInvokeFunction = async (..._args: any[]) => {
-    console.warn('ipcInvoke called in non-Electron environment:', _args);
-    return Promise.resolve(undefined);
+  ipcInvokeFunction = async (channel: keyof Router, ...args: any[]) => {
+    switch (channel) {
+      case 'askLLMTool': {
+        // args[0] は { requestId, model, messages, tools }
+        const opts = args[0] as {
+          requestId: string;
+          model: string;
+          messages: any[];
+          tools?: any[];
+        };
+        const response = await openai.chat.completions.create({
+          model: opts.model,
+          messages: opts.messages,
+          functions: opts.tools,
+          function_call: 'auto',
+        });
+        const message = response.choices?.[0]?.message;
+        return {
+          tool_calls: message?.function_call
+            ? [{ function: message.function_call }]
+            : [],
+          content: message?.content,
+        };
+      }
+      case 'listTools':
+      case 'listMcpTools':
+      case 'listCustomTools':
+        // ツール一覧は空配列でフォールバック
+        return [];
+      case 'saveBrowserSnapshot':
+        return { filepath: '' };
+      case 'getFileContent':
+        // ファイル読み取りは空文字でフォールバック
+        return '';
+      default:
+        console.warn(
+          'ipcInvoke called in browser (no-op):',
+          channel,
+          args
+        );
+        return undefined;
+    }
   };
 }
 
-/**
- * createClient の呼び出し時に ipcInvokeFunction を渡す。
- * ブラウザ環境でもエラーになりません。
- */
 export const ipcClient = createClient<Router>({
   ipcInvoke: ipcInvokeFunction,
 });
 
-/**
- * onMainStreamEvent:
- * - window.api が存在しない場合は何もしない
- * - 存在する場合のみ .on/.off を呼ぶ
- */
 export const onMainStreamEvent = (
   streamId: string,
   handlers: {
@@ -47,27 +76,15 @@ export const onMainStreamEvent = (
     onEnd: () => void;
   }
 ) => {
-  // window.api が未定義なら購読をスキップし、no-op の解除関数を返す
   if (typeof window === 'undefined' || !window.api) {
-    console.warn(
-      'onMainStreamEvent: window.api is not available; skipping subscription',
-      streamId
-    );
-    return () => {
-      /* no-op */
-    };
+    return () => {};
   }
-
-  // イベントリスナーを登録
   const dataListener = (data: string) => handlers.onData(data);
   const errorListener = (error: Error) => handlers.onError(error);
   const endListener = () => handlers.onEnd();
-
   window.api.on(`llm:stream:${streamId}:data`, dataListener);
   window.api.on(`llm:stream:${streamId}:error`, errorListener);
   window.api.on(`llm:stream:${streamId}:end`, endListener);
-
-  // 解除関数を返す。解除時にも存在チェックを行う
   return () => {
     if (window.api) {
       window.api.off(`llm:stream:${streamId}:data`, dataListener);
