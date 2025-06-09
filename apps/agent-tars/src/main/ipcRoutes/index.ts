@@ -26,3 +26,4 @@ export type Router = typeof ipcRoutes;
 
 // メインプロセスのサーバ起動
 export const server = createServer(ipcRoutes);
+

@@ -1,6 +1,13 @@
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
-import { openai, gemini } from './llmConfig';
+import { openai } from './llmConfig';
+import { Client as GeminiClient } from '@google/genai';
+
+// ブラウザフォールバック用に gemini のクライアントを再初期化
+const gemini = new GeminiClient({
+  apiKey: import.meta.env.VITE_GEMINI_API_KEY as string,
+});
+
 
 /**
  * ipcInvokeFunction:
