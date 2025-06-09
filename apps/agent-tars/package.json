@@ -53,9 +53,7 @@
     "@computer-use/node-mac-permissions":"2.2.2",
     "@agent-infra/mcp-server-commands":"workspace:*",
     "@agent-infra/mcp-server-filesystem":"workspace:*",
-    "@agent-infra/mcp-server-browser": "workspace:*",
-    "openai" : "^4.86.2",
-    "@google/genai": "^0.10.0"
+    "@agent-infra/mcp-server-browser": "workspace:*"
   },
 
   "devDependencies": {
