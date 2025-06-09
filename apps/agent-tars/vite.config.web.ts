@@ -1,14 +1,14 @@
 import path from 'node:path';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
-export default defineConfig(async () => {
-  const { default: tsconfigPaths } = await import('vite-tsconfig-paths');
+export default defineConfig(({ mode }) => {
+  // Load environment variables from .env based on mode
+  process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
 
   return {
-    // ✅ base追加：HTMLからの相対パス参照を正しく
     base: './',
-
     root: 'src/renderer',
 
     server: {
@@ -20,19 +20,24 @@ export default defineConfig(async () => {
     preview: {
       host: '0.0.0.0',
       strictPort: true,
-      allowedHosts: ['localhost','ui-tars-desktop-my6k.onrender.com'],
+      allowedHosts: ['localhost', 'ui-tars-desktop-my6k.onrender.com'],
     },
 
     build: {
       outDir: path.resolve(__dirname, 'dist/web'),
       emptyOutDir: true,
-      sourcemap : true,
+      sourcemap: true,
+
+      commonjsOptions: {
+        include: [
+          /node_modules/,
+          /workspace:.*/
+        ],
+      },
+
       rollupOptions: {
         input: path.resolve(__dirname, 'src/renderer/index.html'),
-
-        // ✅ electron系をバンドルから除外（重要）
         external: ['electron', 'fs', 'path'],
-
         output: {
           manualChunks: undefined,
           inlineDynamicImports: true,
@@ -42,6 +47,7 @@ export default defineConfig(async () => {
           assetFileNames: '[name][extname]',
         },
       },
+
       cssCodeSplit: false,
       assetsInlineLimit: 100_000_000,
       minify: true,
@@ -56,6 +62,14 @@ export default defineConfig(async () => {
       alias: {
         '@': path.resolve(__dirname, 'src/renderer'),
       },
+    },
+
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-hot-toast',
+      ],
     },
   };
 });
