@@ -2,7 +2,8 @@
 
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
-import { openai } from './llmConfig';
+import { openai, gemini } from './llmConfig';
+
 
 /**
  * ipcInvokeFunction:
