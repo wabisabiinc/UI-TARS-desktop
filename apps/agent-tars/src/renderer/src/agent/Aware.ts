@@ -33,12 +33,12 @@ export class Aware {
           required: ['id', 'title'],
           properties: {
             id: { type: 'string' },
-            title: { type: 'string' }
-          }
-        }
-      }
+            title: { type: 'string' },
+          },
+        },
+      },
     },
-    required: ['reflection', 'step', 'status']
+    required: ['reflection', 'step', 'status'],
   } as const;
 
   constructor(
@@ -68,12 +68,14 @@ export class Aware {
       reflection: 'No plan',
       step: this.agentContext.currentStep,
       status: 'No plan',
-      plan: []
+      plan: [],
     };
   }
 
   /** Main execution: request LLM analysis and parse the tool call */
   public async run(): Promise<AwareResult> {
+    console.log('[Aware] ▶︎ run() start, aborted=', this.abortSignal.aborted);
+
     // Abort early if signal is already aborted
     if (this.abortSignal.aborted) {
       return this.getDefaultResult();
@@ -84,6 +86,7 @@ export class Aware {
       this.appContext,
       this.agentContext
     );
+    console.log('[Aware] envInfo=', envInfo);
 
     // Unique request ID for abort handling
     const requestId = `aware_${Date.now()}`;
@@ -96,26 +99,39 @@ export class Aware {
 
       // Fetch available tools
       const available = await ipcClient.listTools();
-      const toolList = available?.map(t => `${t.name}: ${t.description}`).join(', ');
+      const toolList = available
+        ?.map((t) => `${t.name}: ${t.description}`)
+        .join(', ');
 
-      // Invoke LLM with function-calling
-      const result = await ipcClient.askLLMTool({
+      // Prepare options for LLM call
+      const opts = {
         requestId,
+        model: process.env.LLM_USE_GEMINI
+          ? process.env.LLM_MODEL_GEMINI!
+          : process.env.LLM_MODEL_GPT!,
         messages: [
           Message.systemMessage(this.systemPrompt),
           Message.systemMessage(`Available tools: ${toolList}`),
           Message.userMessage(envInfo),
-          Message.userMessage('Please call aware_analysis to decide the next step.')
+          Message.userMessage(
+            'Please call aware_analysis to decide the next step.'
+          ),
         ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'aware_analysis',
-            description: 'Analyze environment and propose next task',
-            parameters: this.awareSchema
-          }
-        }]
-      });
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'aware_analysis',
+              description: 'Analyze environment and propose next task',
+              parameters: this.awareSchema,
+            },
+          },
+        ],
+      } as const;
+
+      console.log('[Aware] → askLLMTool opts=', opts);
+      const result = await ipcClient.askLLMTool(opts);
+      console.log('[Aware] ← askLLMTool result=', result);
 
       // Guard: no response
       if (!result) {
@@ -132,7 +148,9 @@ export class Aware {
         try {
           const repaired = jsonrepair(raw);
           const fallback = Aware.safeParse<AwareResult>(repaired);
-          if (fallback) return fallback;
+          if (fallback) {
+            return fallback;
+          }
           console.error('Fallback parse failed:', raw);
         } catch (e) {
           console.error('jsonrepair or parse error:', e, raw);
@@ -141,7 +159,7 @@ export class Aware {
       }
 
       // Find first valid call
-      const firstCall = calls.find(c => c?.function?.arguments);
+      const firstCall = calls.find((c) => c?.function?.arguments);
       if (!firstCall) {
         console.error('Tool call with arguments not found', calls);
         return this.getDefaultResult();
@@ -165,7 +183,9 @@ export class Aware {
       return this.getDefaultResult();
     } finally {
       // Clean up listener
-      if (abortHandler) this.abortSignal.removeEventListener('abort', abortHandler);
+      if (abortHandler) {
+        this.abortSignal.removeEventListener('abort', abortHandler);
+      }
     }
   }
 }
