@@ -1,6 +1,6 @@
 import { ipcClient } from './index';
-import OPENAI from "openai";
-import { Client as GeminiClient} from '@google/genai';
+//import OPENAI from "openai";
+//import { Client as GeminiClient} from '@google/genai';
 
 /**
  * Get available LLM providers from the main process
