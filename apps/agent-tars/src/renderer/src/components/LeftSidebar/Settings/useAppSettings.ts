@@ -37,9 +37,9 @@ export function useAppSettings() {
         console.log(`[Setting] initial value`, settings);
         setSettings({
           model: settings?.model ?? DEFAULT_MODEL_SETTINGS,
-          fileSystem: settings.fileSystem || DEFAULT_FILESYSTEM_SETTINGS,
-          search: settings.search || DEFAULT_SEARCH_SETTINGS,
-          mcp: settings.mcp || DEFAULT_MCP_SETTINGS,
+          fileSystem: settings?.fileSystem ?? DEFAULT_FILESYSTEM_SETTINGS,
+          search: settings?.search ?? DEFAULT_SEARCH_SETTINGS,
+          mcp: settings?.mcp ?? DEFAULT_MCP_SETTINGS,
         });
       };
 
