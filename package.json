@@ -19,6 +19,12 @@
     "publish-beta:packages": "bash scripts/release-beta-pkgs.sh",
     "prepare": "husky"
   },
+
+  "dependencies" : {
+    "openai" : "^4.86.2",
+    "@google/genai" : "^0.10.0"
+  },
+  
   "pnpm": {
     "patchedDependencies": {}
   },
