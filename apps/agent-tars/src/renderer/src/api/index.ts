@@ -1,9 +1,6 @@
-// apps/agent-tars/src/api/index.ts
-
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
 import { openai, gemini } from './llmConfig';
-
 
 /**
  * ipcInvokeFunction:
@@ -16,59 +13,88 @@ if (
   typeof window !== 'undefined' &&
   typeof window.electron?.ipcRenderer?.invoke === 'function'
 ) {
+  // Electron: IPC renderer 経由
   ipcInvokeFunction = window.electron.ipcRenderer.invoke.bind(
     window.electron.ipcRenderer
   );
 } else {
+  // Browser: フォールバック実装
   ipcInvokeFunction = async (channel: keyof Router, ...args: any[]) => {
     switch (channel) {
       case 'askLLMTool': {
-        // args[0] は { requestId, model, messages, tools }
         const opts = args[0] as {
           requestId: string;
           model: string;
           messages: any[];
           tools?: any[];
         };
-        const response = await openai.chat.completions.create({
+        // GPT 系モデルは OpenAI
+        if (opts.model.startsWith('gpt')) {
+          const response = await openai.chat.completions.create({
+            model: opts.model,
+            messages: opts.messages,
+            functions: opts.tools,
+            function_call: 'auto',
+          });
+          const message = response.choices?.[0]?.message;
+          return {
+            tool_calls: message?.function_call
+              ? [{ function: message.function_call }]
+              : [],
+            content: message?.content,
+          };
+        }
+        // Gemini 系モデルは Gemini クライアント
+        if (opts.model.startsWith('gemini')) {
+          const prompt = opts.messages.map(m => m.content || '').join('\n');
+          const res = await gemini.generateText({
+            model: opts.model,
+            prompt,
+          });
+          return {
+            tool_calls: [],
+            content: res.text ?? '',
+          };
+        }
+        // デフォルト: OpenAI
+        const fallback = await openai.chat.completions.create({
           model: opts.model,
           messages: opts.messages,
           functions: opts.tools,
           function_call: 'auto',
         });
-        const message = response.choices?.[0]?.message;
+        const msg = fallback.choices?.[0]?.message;
         return {
-          tool_calls: message?.function_call
-            ? [{ function: message.function_call }]
+          tool_calls: msg?.function_call
+            ? [{ function: msg.function_call }]
             : [],
-          content: message?.content,
+          content: msg?.content,
         };
       }
       case 'listTools':
       case 'listMcpTools':
       case 'listCustomTools':
-        // ツール一覧は空配列でフォールバック
         return [];
       case 'saveBrowserSnapshot':
         return { filepath: '' };
       case 'getFileContent':
-        // ファイル読み取りは空文字でフォールバック
         return '';
+      case 'writeFile':
+      case 'editFile':
+        return { success: true };
       default:
-        console.warn(
-          'ipcInvoke called in browser (no-op):',
-          channel,
-          args
-        );
+        console.warn('ipcInvoke called in browser (no-op):', channel, args);
         return undefined;
     }
   };
 }
 
-export const ipcClient = createClient<Router>({
-  ipcInvoke: ipcInvokeFunction,
-});
+// createClient でクライアント生成
+export const ipcClient = createClient<Router>({ ipcInvoke: ipcInvokeFunction });
 
+/**
+ * llm:stream イベント購読用ユーティリティ
+ */
 export const onMainStreamEvent = (
   streamId: string,
   handlers: {
