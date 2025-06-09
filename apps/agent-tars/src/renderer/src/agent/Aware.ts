@@ -196,7 +196,8 @@ You should use the same language as the user input by default.
           messages: [
             Message.systemMessage(this.systemPrompt),
             Message.systemMessage(
-              `You are working with executor agent, here is the executor tools: ${executorTools
+              `You are working with executor agent, here is the executor tools: ${
+                (executorTools ?? [])
                 .map((tool) => `${tool.name}: ${tool.description}`)
                 .join(', ')}`,
             ),
