@@ -220,7 +220,7 @@ You should use the same language as the user input by default.
           requestId: streamId,
         });
 
-        if (!( (result.tool_calls ?? []).length > 0)) {
+        if (!((result?.tool_calls ?? []).length > 0)) {
           console.warn('No tool calls returned');
 
           // retry
