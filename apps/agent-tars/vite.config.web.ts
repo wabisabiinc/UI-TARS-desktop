@@ -1,11 +1,13 @@
 import path from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
-export default defineConfig(({ mode }) => {
-  // Load environment variables from .env based on mode
+export default defineConfig(async ({ mode }) => {
+  // Load .env files
   process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
+
+  // Dynamically import ESM-only plugin
+  const { default: tsconfigPaths } = await import('vite-tsconfig-paths');
 
   return {
     base: './',
@@ -28,11 +30,9 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: true,
 
+      // Include commonjs and workspace modules
       commonjsOptions: {
-        include: [
-          /node_modules/,
-          /workspace:.*/
-        ],
+        include: [/node_modules/, /workspace:.*/],
       },
 
       rollupOptions: {
@@ -53,10 +53,7 @@ export default defineConfig(({ mode }) => {
       minify: true,
     },
 
-    plugins: [
-      react(),
-      tsconfigPaths(),
-    ],
+    plugins: [react(), tsconfigPaths()],
 
     resolve: {
       alias: {
@@ -65,11 +62,7 @@ export default defineConfig(({ mode }) => {
     },
 
     optimizeDeps: {
-      include: [
-        'react',
-        'react-dom',
-        'react-hot-toast',
-      ],
+      include: ['react', 'react-dom', 'react-hot-toast'],
     },
   };
 });
