@@ -3,100 +3,47 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-import OpenAI from 'openai';
-import { Client as GeminiClient } from '@google/genai';
-
-// 1) .env ファイルをロード（ローカル開発用）
-//    Render ではダッシュボードの Environment Variables が使われます
-dotenv.config();
+// [削除] dotenv, OpenAI, Geminiのimportは不要になります
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
-// 2) JSON ボディをパース
 app.use(express.json());
 
-// 3) 環境変数チェック＆ログ
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('[Warning] OPENAI_API_KEY is not set');
-}
-if (!process.env.GEMINI_API_KEY) {
-  console.warn('[Warning] GEMINI_API_KEY is not set');
-}
-
-// 4) デフォルトモデルを環境変数から取得
-const defaultOpenAIModel = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
-const defaultGeminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-
-// 5) LLM クライアント初期化
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const gemini = new GeminiClient({ apiKey: process.env.GEMINI_API_KEY });
-
-// 6) /api/askLLMTool エンドポイント（プロキシ）
+// [修正] /api/askLLMToolエンドポイントを、サーバーレス関数への中継役に変更
 app.post('/api/askLLMTool', async (req, res) => {
-  const { model: requestedModel, messages, tools } = req.body;
-
-  // リクエストボディのバリデーション
-  if (typeof messages !== 'object' || !Array.isArray(messages)) {
-    return res.status(400).json({ error: 'Invalid request: messages must be an array' });
-  }
-
-  // モデル選択: リクエスト指定、なければ環境変数 or デフォルト
-  let model = typeof requestedModel === 'string'
-    ? requestedModel
-    : defaultOpenAIModel;
-
   try {
-    // OpenAI GPT 系モデル
-    if (model.startsWith('gpt')) {
-      const response = await openai.chat.completions.create({
-        model,
-        messages,
-        functions: tools,
-        function_call: 'auto',
-      });
-      const msg = response.choices?.[0]?.message;
-      return res.json({
-        tool_calls: msg?.function_call
-          ? [{ function: msg.function_call }]
-          : [],
-        content: msg?.content ?? '',
-      });
-    }
+    // Renderの内部ネットワークを通じてサーバーレス関数を呼び出します
+    // Renderが自動的にルーティングしてくれるため、パスを指定するだけでOK
+    const functionUrl = `${req.protocol}://${req.get('host')}/askAI`;
+    
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(req.body),
+    });
 
-    // Google Gemini 系モデル
-    if (model.startsWith('gemini')) {
-      const prompt = messages.map((m) => m.content || '').join('\n');
-      const response = await gemini.models.generateContent({
-        model,
-        contents: [{ parts: [{ text: prompt }] }],
-      });
-      return res.json({
-        tool_calls: [],
-        content: response.text ?? '',
-      });
-    }
+    // サーバーレス関数からの応答を、そのままクライアントに返す
+    const data = await response.json();
+    res.status(response.status).json(data);
 
-    // 未対応モデル
-    return res.status(400).json({ error: `Unsupported model: ${model}` });
   } catch (error) {
-    console.error('[LLM proxy error]', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    console.error('[Proxy Error]', error);
+    res.status(500).json({ error: 'Failed to proxy request to AI function.' });
   }
 });
 
-// 7) 静的ファイル配信
-app.use(express.static(path.join(__dirname, 'dist/web')));
-
-// 8) SPA フォールバック
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'dist/web/index.html'));
+// 静的ファイル配信とSPAフォールバック (ここは変更なし)
+const webDistPath = path.resolve(__dirname, 'dist/web');
+app.use(express.static(webDistPath));
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve(webDistPath, 'index.html'));
 });
 
-// 9) サーバ起動
+// サーバー起動 (ここは変更なし)
 const port = parseInt(process.env.PORT, 10) || 4173;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${port}`);
