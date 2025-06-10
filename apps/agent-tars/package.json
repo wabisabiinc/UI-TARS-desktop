@@ -50,6 +50,7 @@
 
   "dependencies": {
     "@tavily/core":                   "0.3.1",
+    "dotenv":                         "16.4.7",
     "@google/generative-ai": "^0.15.0",
     "openai": "^4.52.7", 
     "@agent-infra/mcp-server-commands":"workspace:*",
@@ -65,7 +66,6 @@
     "@electron-toolkit/utils":        "^4.0.0",
     "@electron/asar":                 "^3.2.18",
     "electron-updater":               "^6.3.9",
-    "dotenv":                         "16.4.7",
     "@agent-infra/mcp-shared":        "workspace:*",
     "@agent-infra/shared":            "workspace:*",
     "@agent-infra/logger":            "workspace:*",
