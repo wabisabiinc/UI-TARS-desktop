@@ -3,7 +3,6 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-// [削除] dotenv, OpenAI, Geminiのimportは不要になります
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

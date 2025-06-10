@@ -2,7 +2,6 @@
 
 import express from 'express';
 import OpenAI from 'openai';
-// [修正] 正しいクラス名をインポート
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const app = express();
