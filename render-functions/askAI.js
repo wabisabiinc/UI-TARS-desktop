@@ -19,8 +19,8 @@ if (!OPENAI_API_KEY || !GEMINI_API_KEY) {
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-const defaultOpenAIModel = OPENAI_MODEL || 'gpt-4o';
-const defaultGeminiModel = GEMINI_MODEL || 'gemini-1.5-flash';
+const defaultOpenAIModel = OPENAI_MODEL || 'gpt-3.5-turbo';
+const defaultGeminiModel = GEMINI_MODEL || 'gemini-2.0-flash';
 
 // Renderはファイル名を元に /askAI というパスでこの関数を公開します
 app.post('/askAI', async (req, res) => {
