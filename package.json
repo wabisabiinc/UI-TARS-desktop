@@ -22,7 +22,7 @@
 
   "dependencies" : {
     "openai" : "^4.86.2",
-    "@google/genai" : "^0.10.0"
+    "@google/generative-ai" : "^0.15.0"
   },
   
   "pnpm": {
