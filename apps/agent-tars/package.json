@@ -49,10 +49,6 @@
 
 
   "dependencies": {
-    "react-hot-toast": "^2.5.2",
-    "jotai" : "^2.12.5",
-    "localforage" : "^1.10.0",
-    "@nextui-org/react" : "^2.6.11",
     "@tavily/core":                   "0.3.1",
     "dotenv":                         "16.4.7",
     "@agent-infra/mcp-server-commands":"workspace:*",
