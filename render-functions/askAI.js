@@ -7,7 +7,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const app = express();
 app.use(express.json());
 
-// 環境変数はRenderのダッシュボードから自動で読み込まれます
 const { OPENAI_API_KEY, GEMINI_API_KEY, OPENAI_MODEL, GEMINI_MODEL } = process.env;
 
 // APIキーがない場合はエラーを出すようにして、問題を分かりやすくします
