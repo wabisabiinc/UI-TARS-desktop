@@ -51,7 +51,7 @@
   "dependencies": {
     "react-hot-toast": "^2.5.2",
     "jotai" : "^2.12.5",
-    "localforge" : "^1.10.0",
+    "localforage" : "^1.10.0",
     "@tavily/core":                   "0.3.1",
     "dotenv":                         "16.4.7",
     "@agent-infra/mcp-server-commands":"workspace:*",
