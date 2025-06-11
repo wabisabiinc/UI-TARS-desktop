@@ -29,7 +29,6 @@
     
     "start:web":          "node server.mjs",
 
-    
     "test":               "vitest run",
     "test:e2e":           "playwright test",
 
