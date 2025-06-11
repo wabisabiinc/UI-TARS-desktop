@@ -3,8 +3,10 @@
 import express from 'express';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const { OPENAI_API_KEY, GEMINI_API_KEY, OPENAI_MODEL, GEMINI_MODEL } = process.env;

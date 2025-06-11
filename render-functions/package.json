@@ -2,8 +2,10 @@
     "name": "render-ai-functions",
     "version": "1.0.0",
     "private": true,
+    "type": "module",
     "main": "askAI.js",
     "dependencies": {
+        "cors": "^2.8.5",
       "@google/generative-ai": "^0.15.0",
       "express": "^4.19.2",
       "openai": "^4.52.7"
