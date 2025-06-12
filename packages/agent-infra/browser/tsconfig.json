@@ -3,15 +3,22 @@
     "target": "esnext",
     "module": "commonjs",
     "moduleResolution": "node",
+    
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+
+    "rootdir" : "src",
+    "typeRoots": ["node_modules/@types"],
+
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
+
+    //"isolatedModules": true,
+
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
