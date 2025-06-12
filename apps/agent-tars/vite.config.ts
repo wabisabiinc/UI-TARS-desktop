@@ -11,9 +11,12 @@ export default defineConfig(
     const { default: tsconfigPaths } = await import('vite-tsconfig-paths');
     return {
       worker: false,
-      root: 'src/renderer',
+      root: path.resolve(__dirname,'src/renderer'),
       resolve: {
         alias: {
+
+          '@renderer': path.resolve(__dirname,'src/renderer'),
+
           '@ui-tars/electron-ipc/renderer': path.resolve(
             __dirname,
             './src/renderer/mock/ipc.ts',
