@@ -20,22 +20,14 @@ export default defineConfig({
       format: 'esm',
       syntax: 'es2021',
       bundle: false,
-      dts: {
-        distPath: './dist/types',
-        abprtOnError: false,
-        tsconfigPath: './tsconfig.json',
-      },
+      dts:false,
       banner: { js: BANNER },
     },
     {
       format: 'cjs',
       syntax: 'es2021',
       bundle: false,
-      dts: {
-        distPath:'./dist/types',
-        abprtOnError:false,
-        tsconfigPath:'./tsconfig.json'
-      },
+      dts: false,
       banner: { js: BANNER },
     },
   ],
