@@ -22,6 +22,8 @@ export default defineConfig({
       bundle: false,
       dts: {
         distPath: './dist/types',
+        abprtOnError: false,
+        tsconfigPath: './tsconfig.json',
       },
       banner: { js: BANNER },
     },
@@ -31,6 +33,8 @@ export default defineConfig({
       bundle: false,
       dts: {
         distPath:'./dist/types',
+        abprtOnError:false,
+        tsconfigPath:'./tsconfig.json'
       },
       banner: { js: BANNER },
     },
