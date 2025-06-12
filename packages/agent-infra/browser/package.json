@@ -17,10 +17,8 @@
   ],
   "scripts": {
     "dev": "rslib build --watch",
-    "build:code": "rslib build",
-    "build:dts": "tsc --project tsconfig.json --emitDeclarationOnly",
-    "build":"pnpm run build:code && pnpm run build:dts",
-    "prepare": "pnpm run build",
+    "build": "rslib build",
+    "prepare": "npm run build",
     "prepublishOnly": "pnpm run build",
     "test": "vitest run",
     "test:watch": "vitest",

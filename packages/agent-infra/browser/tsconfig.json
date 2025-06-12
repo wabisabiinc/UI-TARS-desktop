@@ -1,25 +1,17 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "ESNext",
+    "module": "commonjs",
     "moduleResolution": "node",
-    
     "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly" : true,
     "sourceMap": true,
-
-    "rootDir" : "src",
-    "typeRoots": ["node_modules/@types"],
-
-    "declarationDir": "./dist/types",
+    "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-
-    //"isolatedModules": true,
-
+    "isolatedModules": true,
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
