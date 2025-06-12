@@ -20,14 +20,18 @@ export default defineConfig({
       format: 'esm',
       syntax: 'es2021',
       bundle: false,
-      dts: true,
+      dts: {
+        distPath: './dist/types',
+      },
       banner: { js: BANNER },
     },
     {
       format: 'cjs',
       syntax: 'es2021',
       bundle: false,
-      dts: true,
+      dts: {
+        distPath:'./dist/types',
+      },
       banner: { js: BANNER },
     },
   ],
