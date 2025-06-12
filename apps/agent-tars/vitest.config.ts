@@ -1,19 +1,15 @@
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
+import path from 'path';
 
-export default defineConfig(({ mode }) => {
-  // .env も取り込む場合
-  process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
-
-  return {
-    plugins: [react()],
-    server: {
-      proxy: {
-        '/api': {
-          target: 'http://localhost:4173',
-          changeOrigin: true,
-        },
-      },
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'jsdom',
+  },
+  resolve: {
+    alias: {
+      '@renderer': path.resolve(__dirname, 'src/renderer/src'),
+      '@vendor': path.resolve(__dirname, 'src/renderer/vendor'),
     },
-  };
+  },
 });

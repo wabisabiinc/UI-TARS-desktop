@@ -1,4 +1,4 @@
-// apps/agent-tars/src/renderer/src/api/index.ts
+// apps/agent-tars/src/api/index.ts
 
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
@@ -6,56 +6,56 @@ import type { Router } from '../../../main/ipcRoutes';
 /**
  * ipcInvokeFunction:
  * - Electron 環境では本物の ipcRenderer.invoke を使用
- * - Web 環境では Express 中継 API へ fetch で実装
+ * - ブラウザ環境では全ての IPC 呼び出しをスタブ（何もしない）実装に置き換え
  */
 let ipcInvokeFunction: typeof window.electron.ipcRenderer.invoke;
 
-if (typeof window !== 'undefined' && typeof window.electron?.ipcRenderer?.invoke === 'function') {
-  // Electron 実行時: ネイティブ IPC を利用
-  ipcInvokeFunction = window.electron.ipcRenderer.invoke.bind(window.electron.ipcRenderer);
+if (
+  typeof window !== 'undefined' &&
+  typeof window.electron?.ipcRenderer?.invoke === 'function'
+) {
+  // Electron 実行時: 本物の IPC をそのまま利用
+  ipcInvokeFunction = window.electron.ipcRenderer.invoke.bind(
+    window.electron.ipcRenderer,
+  );
 } else {
-  // Web 実行時: /api/askLLMTool エンドポイントへ fetch
+  // ブラウザ実行時: 全チャンネルをダミー実装
   ipcInvokeFunction = async (channel: keyof Router, ...args: any[]) => {
-    if (channel === 'askLLMTool') {
-      const opts = args[0] as {
-        requestId: string;
-        model: string;
-        messages: any[];
-        tools?: any[];
-      };
-      const res = await fetch('/api/askLLMTool', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(opts),
-      });
-      if (!res.ok) throw new Error(`Proxy error ${res.status}`);
-      return res.json();
-    }
-    // その他 IPC チャンネルはダミー実装
     switch (channel) {
+      case 'askLLMTool':
+        // LLM 呼び出しも何もしない
+        return { tool_calls: [], content: '' };
+
       case 'listTools':
       case 'listMcpTools':
       case 'listCustomTools':
+        // ツール一覧は空配列で返す
         return [];
+
       case 'saveBrowserSnapshot':
         return { filepath: '' };
+
       case 'getFileContent':
         return '';
+
       case 'writeFile':
       case 'editFile':
         return { success: true };
+
       default:
-        console.warn('ipcInvoke (browser stub):', channel, args);
+        console.warn('ipcInvoke called in browser (no-op):', channel, args);
         return undefined;
     }
   };
 }
 
-// IPC クライアント生成
-export const ipcClient = createClient<Router>({ ipcInvoke: ipcInvokeFunction });
+// createClient でクライアントを生成
+export const ipcClient = createClient<Router>({
+  ipcInvoke: ipcInvokeFunction,
+});
 
 /**
- * llm:stream 用イベント購読
+ * llm:stream イベント購読用ユーティリティ
  */
 export const onMainStreamEvent = (
   streamId: string,
@@ -63,19 +63,24 @@ export const onMainStreamEvent = (
     onData: (chunk: string) => void;
     onError: (error: Error) => void;
     onEnd: () => void;
-  }
+  },
 ) => {
-  if (typeof window === 'undefined' || !window.api) return () => {};
+  if (typeof window === 'undefined' || !window.api) {
+    return () => {};
+  }
   const dataListener = (data: string) => handlers.onData(data);
-  const errorListener = (err: Error) => handlers.onError(err);
+  const errorListener = (error: Error) => handlers.onError(error);
   const endListener = () => handlers.onEnd();
+
   window.api.on(`llm:stream:${streamId}:data`, dataListener);
   window.api.on(`llm:stream:${streamId}:error`, errorListener);
   window.api.on(`llm:stream:${streamId}:end`, endListener);
+
   return () => {
-    if (!window.api) return;
-    window.api.off(`llm:stream:${streamId}:data`, dataListener);
-    window.api.off(`llm:stream:${streamId}:error`, errorListener);
-    window.api.off(`llm:stream:${streamId}:end`, endListener);
+    if (window.api) {
+      window.api.off(`llm:stream:${streamId}:data`, dataListener);
+      window.api.off(`llm:stream:${streamId}:error`, errorListener);
+      window.api.off(`llm:stream:${streamId}:end`, endListener);
+    }
   };
 };
