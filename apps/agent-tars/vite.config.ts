@@ -14,7 +14,6 @@ export default defineConfig(
       root: path.resolve(__dirname,'src/renderer'),
       resolve: {
         alias: {
-
           '@renderer': path.resolve(__dirname,'src/renderer/src'),
 
           '@ui-tars/electron-ipc/renderer': path.resolve(
