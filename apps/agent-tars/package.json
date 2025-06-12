@@ -107,7 +107,9 @@
     "jsdom":                          "^26.0.0",
     "typescript":                     "^5.7.3",
     "vitest":                         "^3.0.8",
-    "vite-plugin-singlefile":         "2.2.0"
+    "vite-plugin-singlefile":         "2.2.0",
+    "openai" :                        "4.87.3",
+    "google/generative-ai" :          "0.24.0"
   },
 
   "build": {
