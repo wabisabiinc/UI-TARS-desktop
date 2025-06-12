@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "dev": "rslib build --watch",
-    "build": "rslib build",
+    "build": "rslib build --config tsconfig.build.json",
     "prepare": "npm run build",
     "prepublishOnly": "pnpm run build",
     "test": "vitest run",
