@@ -21,8 +21,8 @@
   },
 
   "dependencies" : {
-    "openai" : "^4.86.2",
-    "@google/generative-ai" : "^0.15.0"
+    "openai" : "^4.87.3",
+    "@google/generative-ai" : "^0.24.0"
   },
   
   "pnpm": {
