@@ -55,6 +55,8 @@ export default defineConfig(async () => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src/renderer'),
+        '@vendor/chat-ui': path.resolve(__dirname,'src/vendor/chat-ui'),
+        '@vendor/chat-ui/': path.resolve(__dirname, 'src/vendor/chat-ui') + '/',
       },
     },
   };
