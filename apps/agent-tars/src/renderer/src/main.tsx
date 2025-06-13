@@ -3,6 +3,8 @@
 // ① これを先頭に持ってくることで、以降のコードで window.electron や window.api が必ず存在する状態になる
 import '@/globals';
 
+import './src/api';
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
