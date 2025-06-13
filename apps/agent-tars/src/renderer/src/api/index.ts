@@ -156,5 +156,3 @@ export async function getAvailableProviders(): Promise<string[]> {
 }
 
 
-// apps/agent-tars/src/renderer/src/api/llmConfig.ts
-export { getAvailableProviders } from './index';
