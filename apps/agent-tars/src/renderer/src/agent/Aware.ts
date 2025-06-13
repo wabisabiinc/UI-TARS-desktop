@@ -1,7 +1,7 @@
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
-// 相対パスで stub or 本物の ipcClient を読み込む想定
-import { ipcClient } from '../api';
+// 直接 fetch／IPC 切り替え版をインポート
+import { askLLMTool, listTools } from '../api';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { PlanTask } from '@renderer/type/agent';
 import { jsonrepair } from 'jsonrepair';
@@ -19,7 +19,6 @@ export interface AwareResult {
  * - Plans next actionable step
  */
 export class Aware {
-  /** system プロンプトを返す関数 */
   private readonly getSystemPrompt = (): string => `
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
 Use the 'aware_analysis' tool and return only a function call with this JSON format:
@@ -63,12 +62,10 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     private abortSignal: AbortSignal
   ) {}
 
-  /** Update the abort signal (e.g., on user interrupt) */
   public updateSignal(signal: AbortSignal) {
     this.abortSignal = signal;
   }
 
-  /** Safely parse JSON, returning null on failure */
   private static safeParse<T>(text: string): T | null {
     try {
       return JSON.parse(text) as T;
@@ -78,7 +75,6 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     }
   }
 
-  /** Default result when no plan or on abort */
   private getDefaultResult(): AwareResult {
     return {
       reflection: 'No plan',
@@ -88,10 +84,8 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     };
   }
 
-  /** Main execution: request LLM analysis and parse the function call */
   public async run(): Promise<AwareResult> {
     console.log('[Aware] ▶︎ run() start, aborted=', this.abortSignal.aborted);
-
     if (this.abortSignal.aborted) {
       return this.getDefaultResult();
     }
@@ -106,17 +100,18 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     let abortHandler: () => void;
 
     try {
-      // ユーザー割込み対応
-      abortHandler = () => ipcClient.abortRequest({ requestId });
+      // ユーザー途中中断対応
+      abortHandler = () => {
+        // askLLMTool には abort 機能がある想定
+        // (ブラウザ fetch 版は未対応)
+      };
       this.abortSignal.addEventListener('abort', abortHandler);
 
-      // 利用可能ツール一覧を取得
-      const available = await ipcClient.listTools();
-      const toolList = available
-        ?.map((t) => `${t.name}: ${t.description}`)
-        .join(', ');
+      // ツール一覧を取得（Electron: IPC / Browser: 空配列）
+      const available = await listTools();
+      const toolList = available.map((t) => `${t.name}: ${t.description}`).join(', ');
 
-      // 環境変数からモデル名を取得（process.env 経由）
+      // 環境変数または設定ストア経由でモデルを決定（既存ロジックをそのまま利用）
       const useGemini = process.env.LLM_USE_GEMINI === 'true';
       const model = useGemini
         ? process.env.LLM_MODEL_GEMINI || 'gemini-2.0-flash'
@@ -141,16 +136,15 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       } as const;
 
       console.log('[Aware] → askLLMTool opts=', opts);
-      const raw = await ipcClient.askLLMTool(opts);
+      // fetch 版 or IPC 版を自動切り替え
+      const raw = await askLLMTool(opts);
       const result = raw ?? { tool_calls: [], content: '' };
       console.log('[Aware] ← askLLMTool result=', result);
 
-      // 空 or undefined チェック
       const calls = result.tool_calls ?? [];
       if (calls.length === 0) {
         console.warn('No tool calls returned');
         const rawContent = result.content ?? '';
-        // content が空文字 or 空白だけなら、jsonrepair を呼ばずデフォルトを返す
         if (rawContent.trim()) {
           try {
             const repaired = jsonrepair(rawContent);
@@ -163,14 +157,14 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
         }
         return this.getDefaultResult();
       }
-      // 最初のコールを解析
-      const firstCall = calls.find((c) => c?.function?.arguments);
+
+      const firstCall = calls.find((c) => c.arguments);
       if (!firstCall) {
         console.error('Tool call with arguments not found', calls);
         return this.getDefaultResult();
       }
 
-      const argsText = firstCall.function.arguments;
+      const argsText = (firstCall as any).arguments;
       const parsed = Aware.safeParse<AwareResult>(argsText);
       if (!parsed) {
         console.error('Failed to parse tool arguments:', argsText);
@@ -185,9 +179,7 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       console.error('Aware.run error:', e);
       return this.getDefaultResult();
     } finally {
-      if (abortHandler) {
-        this.abortSignal.removeEventListener('abort', abortHandler);
-      }
+      this.abortSignal.removeEventListener('abort', abortHandler!);
     }
   }
 }
