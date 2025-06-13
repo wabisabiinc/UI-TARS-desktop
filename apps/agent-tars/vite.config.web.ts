@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
+
 
 export default defineConfig(async () => {
   const { default: tsconfigPaths } = await import('vite-tsconfig-paths');
@@ -49,7 +51,7 @@ export default defineConfig(async () => {
 
     plugins: [
       react(),
-      tsconfigPaths(),
+      tsconfigPaths({ rootMode: 'upward' }),
     ],
 
     resolve: {
@@ -65,7 +67,6 @@ export default defineConfig(async () => {
         '@resources/': path.resolve(__dirname, 'src/resources') + '/',
         '@renderer/api': path.resolve(__dirname,'src/renderer/src/api'),
         '@renderer/api/': path.resolve(__dirname,'src/renderer/src/api') + '/',
-        '@renderer/api/*': path.resolve(__dirname,'src/renderer/src/api/*)',
       },
     },
   };
