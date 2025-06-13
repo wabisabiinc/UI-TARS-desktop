@@ -150,17 +150,19 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       if (calls.length === 0) {
         console.warn('No tool calls returned');
         const rawContent = result.content ?? '';
-        try {
-          const repaired = jsonrepair(rawContent);
-          const fallback = Aware.safeParse<AwareResult>(repaired);
-          if (fallback) return fallback;
-          console.error('Fallback parse failed:', rawContent);
-        } catch (e) {
-          console.error('jsonrepair or parse error:', e, rawContent);
+        // content が空文字 or 空白だけなら、jsonrepair を呼ばずデフォルトを返す
+        if (rawContent.trim()) {
+          try {
+            const repaired = jsonrepair(rawContent);
+            const fallback = Aware.safeParse<AwareResult>(repaired);
+            if (fallback) return fallback;
+            console.error('Fallback parse failed:', rawContent);
+          } catch (e) {
+            console.error('jsonrepair or parse error:', e, rawContent);
+          }
         }
         return this.getDefaultResult();
       }
-
       // 最初のコールを解析
       const firstCall = calls.find((c) => c?.function?.arguments);
       if (!firstCall) {
