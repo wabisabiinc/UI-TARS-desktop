@@ -78,7 +78,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
 const { ipcRenderer } = window.electron!;
-const ipcClient = createClient<Router>({
+export const ipcClient = createClient<Router>({
   ipcInvoke: ipcRenderer.invoke.bind(ipcRenderer),
 });
 
