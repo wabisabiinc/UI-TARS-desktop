@@ -63,6 +63,8 @@ export default defineConfig(async () => {
         '@main/': path.resolve(__dirname, 'src/main') + '/',
         '@resources': path.resolve(__dirname, 'src/resources'),
         '@resources/': path.resolve(__dirname, 'src/resources') + '/',
+        '@renderer/api': path.resolve(__dirname,'src/rendrer/src/api'),
+        '@renderer/api/': path.resolve(__dirname,'src/renderer/src/api') + '/',
       },
     },
   };
