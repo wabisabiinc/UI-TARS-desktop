@@ -1,15 +1,8 @@
-import { ipcClient } from './index';
-//import OPENAI from "openai";
-//import { Client as GeminiClient} from '@google/genai';
+// apps/agent-tars/src/renderer/src/api/llmConfig.ts
 
 /**
- * Get available LLM providers from the main process
+ * LLM プロバイダー一覧取得ユーティリティ
+ * - Electron: メインプロセス経由でリアルな一覧を取得
+ * - ブラウザ（Render URL など）: 固定リストを返す
  */
-export async function getAvailableProviders(): Promise<string[]> {
-  try {
-    return await ipcClient.getAvailableProviders();
-  } catch (error) {
-    console.error('Failed to get available providers:', error);
-    return [];
-  }
-}
+export { getAvailableProviders } from './index';
