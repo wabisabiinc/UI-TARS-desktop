@@ -1,8 +1,7 @@
-// apps/agent-tars/src/renderer/src/agent/Aware.ts
-
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
-import { ipcClient } from '../api';             // ← 相対パスに修正
+// 相対パスで stub or 本物の ipcClient を読み込む想定
+import { ipcClient } from '../api';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { PlanTask } from '@renderer/type/agent';
 import { jsonrepair } from 'jsonrepair';
@@ -20,7 +19,7 @@ export interface AwareResult {
  * - Plans next actionable step
  */
 export class Aware {
-  /** system プロンプトを返す関数に変更 */
+  /** system プロンプトを返す関数 */
   private readonly getSystemPrompt = (): string => `
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
 Use the 'aware_analysis' tool and return only a function call with this JSON format:
@@ -107,18 +106,25 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     let abortHandler: () => void;
 
     try {
+      // ユーザー割込み対応
       abortHandler = () => ipcClient.abortRequest({ requestId });
       this.abortSignal.addEventListener('abort', abortHandler);
 
+      // 利用可能ツール一覧を取得
       const available = await ipcClient.listTools();
-      const toolList = available?.map((t) => `${t.name}: ${t.description}`).join(', ');
+      const toolList = available
+        ?.map((t) => `${t.name}: ${t.description}`)
+        .join(', ');
+
+      // 環境変数からモデル名を取得（process.env 経由）
+      const useGemini = process.env.LLM_USE_GEMINI === 'true';
+      const model = useGemini
+        ? process.env.LLM_MODEL_GEMINI || 'gemini-2.0-flash'
+        : process.env.LLM_MODEL_GPT    || 'gpt-3.5-turbo';
 
       const opts = {
         requestId,
-        model:
-          import.meta.env.VITE_LLM_USE_GEMINI === 'true'
-            ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
-            : import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-3.5-turbo',
+        model,
         messages: [
           Message.systemMessage(this.getSystemPrompt()),
           Message.systemMessage(`Available tools: ${toolList}`),
@@ -139,6 +145,7 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       const result = raw ?? { tool_calls: [], content: '' };
       console.log('[Aware] ← askLLMTool result=', result);
 
+      // 空 or undefined チェック
       const calls = result.tool_calls ?? [];
       if (calls.length === 0) {
         console.warn('No tool calls returned');
@@ -154,6 +161,7 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
         return this.getDefaultResult();
       }
 
+      // 最初のコールを解析
       const firstCall = calls.find((c) => c?.function?.arguments);
       if (!firstCall) {
         console.error('Tool call with arguments not found', calls);
