@@ -20,6 +20,7 @@ if (
   );
 } else {
   // ブラウザ実行時: 全チャンネルをダミー実装
+  console.log('[ipcStub] loaded at @renderer/api');
   ipcInvokeFunction = async (channel: keyof Router, ...args: any[]) => {
     console.log('[ipcStub] invoked channel:', channel, 'args:', args);
     switch (channel) {
