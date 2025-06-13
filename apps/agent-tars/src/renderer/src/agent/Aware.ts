@@ -18,7 +18,22 @@ export interface AwareResult {
  * - Plans next actionable step
  */
 export class Aware {
-  private readonly systemPrompt = `You are an AI agent responsible for analyzing the current environment and planning the next actionable step. Use the 'aware_analysis' tool and return only a function call with this JSON format:\n````json\n{\n  "reflection": "[Your reflection on the environment]",\n  "step": [nextStepNumber],\n  "status": "[Next action description]",\n  "plan": [\n    {"id": "step_001", "title": "First actionable task"},\n    ...\n  ]\n}`````;
+  /** system プロンプトを返す関数に変更 */
+  private readonly getSystemPrompt = (): string => `
+You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
+Use the 'aware_analysis' tool and return only a function call with this JSON format:
+\`\`\`json
+{
+  "reflection": "[Your reflection on the environment]",
+  "step": [nextStepNumber],
+  "status": "[Next action description]",
+  "plan": [
+    {"id": "step_001", "title": "First actionable task"},
+    ...
+  ]
+}
+\`\`\`
+`;
 
   private readonly awareSchema = {
     type: 'object',
@@ -110,7 +125,8 @@ export class Aware {
           ? process.env.LLM_MODEL_GEMINI!
           : process.env.LLM_MODEL_GPT!,
         messages: [
-          Message.systemMessage(this.systemPrompt),
+          // 文字列ではなく関数呼び出しでプロンプトを取得
+          Message.systemMessage(this.getSystemPrompt()),
           Message.systemMessage(`Available tools: ${toolList}`),
           Message.userMessage(envInfo),
           Message.userMessage(
@@ -124,6 +140,11 @@ export class Aware {
               name: 'aware_analysis',
               description: 'Analyze environment and propose next task',
               parameters: this.awareSchema,
+            },
+            // ツール実行時のハンドラ（必須）
+            func: async (args: AwareResult) => {
+              // LLM から返ってきた args をそのまま返却
+              return args;
             },
           },
         ],
