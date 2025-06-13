@@ -1,6 +1,8 @@
+// apps/agent-tars/src/renderer/src/agent/Aware.ts
+
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
-import { ipcClient } from '@renderer/api';
+import { ipcClient } from '../api';             // ← 相対パスに修正
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { PlanTask } from '@renderer/type/agent';
 import { jsonrepair } from 'jsonrepair';
@@ -87,99 +89,77 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     };
   }
 
-  /** Main execution: request LLM analysis and parse the tool call */
+  /** Main execution: request LLM analysis and parse the function call */
   public async run(): Promise<AwareResult> {
     console.log('[Aware] ▶︎ run() start, aborted=', this.abortSignal.aborted);
 
-    // Abort early if signal is already aborted
     if (this.abortSignal.aborted) {
       return this.getDefaultResult();
     }
 
-    // Gather environment context
     const envInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext
     );
     console.log('[Aware] envInfo=', envInfo);
 
-    // Unique request ID for abort handling
     const requestId = `aware_${Date.now()}`;
     let abortHandler: () => void;
 
     try {
-      // Register abort event listener
       abortHandler = () => ipcClient.abortRequest({ requestId });
       this.abortSignal.addEventListener('abort', abortHandler);
 
-      // Fetch available tools
       const available = await ipcClient.listTools();
-      const toolList = available
-        ?.map((t) => `${t.name}: ${t.description}`)
-        .join(', ');
+      const toolList = available?.map((t) => `${t.name}: ${t.description}`).join(', ');
 
-      // Prepare options for LLM call
       const opts = {
         requestId,
-        model: 
-          process.env.LLM_USE_GEMINI == 'true'
-          ? process.env.LLM_MODEL_GEMINI || 'gemini-2.0-flash'
-          : process.env.LLM_MODEL_GPT || 'gpt-3.5-turbo',
+        model:
+          import.meta.env.VITE_LLM_USE_GEMINI === 'true'
+            ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
+            : import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-3.5-turbo',
         messages: [
-          // 文字列ではなく関数呼び出しでプロンプトを取得
           Message.systemMessage(this.getSystemPrompt()),
           Message.systemMessage(`Available tools: ${toolList}`),
           Message.userMessage(envInfo),
-          Message.userMessage(
-            'Please call aware_analysis to decide the next step.'
-          ),
+          Message.userMessage('Please call aware_analysis to decide the next step.'),
         ],
         functions: [
           {
-              name: 'aware_analysis',
-              description: 'Analyze environment and propose next task',
-              parameters: this.awareSchema,
-            },
+            name: 'aware_analysis',
+            description: 'Analyze environment and propose next task',
+            parameters: this.awareSchema,
+          },
         ],
       } as const;
 
       console.log('[Aware] → askLLMTool opts=', opts);
-      const result = await ipcClient.askLLMTool(opts);
+      const raw = await ipcClient.askLLMTool(opts);
+      const result = raw ?? { tool_calls: [], content: '' };
       console.log('[Aware] ← askLLMTool result=', result);
 
-      // Guard: no response
-      if (!result) {
-        console.warn('askLLMTool returned undefined');
-        return this.getDefaultResult();
-      }
-
       const calls = result.tool_calls ?? [];
-
-      // Guard: empty tool_calls -> try fallback on result.content
       if (calls.length === 0) {
         console.warn('No tool calls returned');
-        const raw = result.content ?? '';
+        const rawContent = result.content ?? '';
         try {
-          const repaired = jsonrepair(raw);
+          const repaired = jsonrepair(rawContent);
           const fallback = Aware.safeParse<AwareResult>(repaired);
-          if (fallback) {
-            return fallback;
-          }
-          console.error('Fallback parse failed:', raw);
+          if (fallback) return fallback;
+          console.error('Fallback parse failed:', rawContent);
         } catch (e) {
-          console.error('jsonrepair or parse error:', e, raw);
+          console.error('jsonrepair or parse error:', e, rawContent);
         }
         return this.getDefaultResult();
       }
 
-      // Find first valid call
       const firstCall = calls.find((c) => c?.function?.arguments);
       if (!firstCall) {
         console.error('Tool call with arguments not found', calls);
         return this.getDefaultResult();
       }
 
-      // Parse and return the tool call arguments
       const argsText = firstCall.function.arguments;
       const parsed = Aware.safeParse<AwareResult>(argsText);
       if (!parsed) {
@@ -189,14 +169,12 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
 
       return parsed;
     } catch (e: any) {
-      // Handle abort vs other errors
       if (e.name === 'AbortError') {
         return this.getDefaultResult();
       }
       console.error('Aware.run error:', e);
       return this.getDefaultResult();
     } finally {
-      // Clean up listener
       if (abortHandler) {
         this.abortSignal.removeEventListener('abort', abortHandler);
       }
