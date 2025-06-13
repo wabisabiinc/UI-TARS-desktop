@@ -3,7 +3,6 @@
 /**
  * クライアント側 LLM 呼び出しインターフェース
  */
-
 export interface AskLLMOpts {
   model: string;
   messages: {
@@ -27,14 +26,15 @@ const isElectron =
   typeof window !== 'undefined' &&
   typeof window.electron?.ipcRenderer?.invoke === 'function';
 
+// ブラウザ実行時には API キーの存在を警告
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn(
-    '[api] VITE_OPENAI_API_KEY が設定されていません。環境変数を確認してください。',
+    '[api] VITE_OPENAI_API_KEY が設定されていません。環境変数を確認してください。'
   );
 }
 
 /**
- * ブラウザ実行時（非-Electron）には OpenAI の REST エンドポイントを直接呼ぶ
+ * ブラウザ実行時（非-Electron）には OpenAI REST エンドポイントを直接呼び出す
  */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -45,19 +45,18 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
     },
     body: JSON.stringify({
       model: opts.model,
-      messages: opts.messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages: opts.messages,
       functions: opts.functions,
     }),
   });
+
   if (!response.ok) {
     const text = await response.text();
     throw new Error(
-      `[api] OpenAI API error ${response.status}: ${response.statusText}\n${text}`,
+      `[api] OpenAI API error ${response.status}: ${response.statusText}\n${text}`
     );
   }
+
   const data = await response.json();
   const choice = data.choices?.[0]?.message;
   const toolCall = choice?.function_call
@@ -68,6 +67,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
         },
       ]
     : [];
+
   return {
     tool_calls: toolCall,
     content: choice?.content ?? '',
@@ -77,6 +77,8 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 // Electron 実行時は従来の IPC クライアントを使う
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
+
+// Preload や globals.ts で定義された window.electron を利用
 const { ipcRenderer } = window.electron!;
 const ipcClient = createClient<Router>({
   ipcInvoke: ipcRenderer.invoke.bind(ipcRenderer),
@@ -84,38 +86,37 @@ const ipcClient = createClient<Router>({
 
 /**
  * askLLMTool:
- * - Electron: ipcRenderer.invoke('askLLMTool')
- * - ブラウザ: fetch で直接 API
+ * - Electron: ipcRenderer.invoke('askLLMTool', opts)
+ * - ブラウザ: fetchLLM(opts)
  */
 export async function askLLMTool(
-  opts: AskLLMOpts,
+  opts: AskLLMOpts
 ): Promise<AskLLMResult> {
   if (isElectron) {
-    // Electron メインプロセス経由
     return (await ipcClient.askLLMTool(opts as any)) as AskLLMResult;
   } else {
-    // ブラウザ直接呼び出し
     return fetchLLM(opts);
   }
 }
 
 /**
- * 必要に応じてツール一覧取得をモック or 実装
+ * ツール一覧取得
+ * - Electron: ipcRenderer.invoke('listTools')
+ * - ブラウザ: 空配列 or 任意定義
  */
 export async function listTools(): Promise<
   { name: string; description: string }[]
 > {
-  // Electron なら IPC
   if (isElectron) {
     return ipcClient.listTools();
+  } else {
+    return [];
   }
-  // ブラウザでは手動で定義、あるいは空配列
-  return [];
 }
 
 /**
- * llm:stream イベント購読用ユーティリティ
- * （Electron 環境のみ有効。ブラウザでは no-op）
+ * llm:stream イベント購読ユーティリティ
+ * Electron 環境のみ有効（ブラウザでは no-op）
  */
 export const onMainStreamEvent = (
   streamId: string,
@@ -123,7 +124,7 @@ export const onMainStreamEvent = (
     onData: (chunk: string) => void;
     onError: (error: Error) => void;
     onEnd: () => void;
-  },
+  }
 ) => {
   if (!isElectron || !window.api) {
     return () => {};
@@ -137,10 +138,8 @@ export const onMainStreamEvent = (
   window.api.on(`llm:stream:${streamId}:end`, endListener);
 
   return () => {
-    if (window.api) {
-      window.api.off(`llm:stream:${streamId}:data`, dataListener);
-      window.api.off(`llm:stream:${streamId}:error`, errorListener);
-      window.api.off(`llm:stream:${streamId}:end`, endListener);
-    }
+    window.api.off(`llm:stream:${streamId}:data`, dataListener);
+    window.api.off(`llm:stream:${streamId}:error`, errorListener);
+    window.api.off(`llm:stream:${streamId}:end`, endListener);
   };
 };
