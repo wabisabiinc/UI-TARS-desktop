@@ -47,6 +47,9 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
       model: opts.model,
       messages: opts.messages,
       functions: opts.functions,
+      // ここで関数呼び出しをモデルに明示的に指示
+      function_call: { name: 'aware_analysis' },
+      // function_call: 'auto', // 自動選択方式を使うならこちら
     }),
   });
 
@@ -100,7 +103,7 @@ export async function askLLMTool(
 /**
  * ツール一覧取得
  * - Electron: ipcRenderer.invoke('listTools')
- * - ブラウザ: 空配列 or 任意定義
+ * - ブラウザ: 空配列
  */
 export async function listTools(): Promise<
   { name: string; description: string }[]
@@ -142,7 +145,6 @@ export const onMainStreamEvent = (
   };
 };
 
-// ──────────────── 以下を追加 ────────────────
 /**
  * LLM プロバイダー一覧取得
  * - Electron: メインプロセス経由
@@ -154,5 +156,3 @@ export async function getAvailableProviders(): Promise<string[]> {
   }
   return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
-
-
