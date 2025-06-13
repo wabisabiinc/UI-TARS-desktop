@@ -4,7 +4,7 @@
 import '@/globals';
 
 // ② IPC stub or 本物を選択するスタブ実装を強制的に読み込む
-import './src/api';
+import './api';
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
