@@ -23,9 +23,9 @@ export interface AskLLMResult {
 
 // Electron 環境判定
 const isElectron =
-  typeof window !== 'undefined' &&
-  typeof window.electron?.ipcRenderer?.invoke === 'function';
-
+  typeof navigator !== 'undefined' &&
+  navigator.userAgent.toLowerCase().includes('electron');
+  
 // ブラウザ実行時には API キーの存在を警告
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn(
