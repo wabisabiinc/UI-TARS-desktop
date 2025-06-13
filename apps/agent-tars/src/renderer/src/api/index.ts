@@ -47,9 +47,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
       model: opts.model,
       messages: opts.messages,
       functions: opts.functions,
-      // ここで関数呼び出しをモデルに明示的に指示
-      function_call: { name: 'aware_analysis' },
-      // function_call: 'auto', // 自動選択方式を使うならこちら
+      function_call: 'auto',
     }),
   });
 
