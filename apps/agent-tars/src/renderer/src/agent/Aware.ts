@@ -121,7 +121,8 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       // Prepare options for LLM call
       const opts = {
         requestId,
-        model: process.env.LLM_USE_GEMINI == 'false'
+        model: 
+          process.env.LLM_USE_GEMINI == 'true'
           ? process.env.LLM_MODEL_GEMINI || 'gemini-2.0-flash'
           : process.env.LLM_MODEL_GPT || 'gpt-3.5-turbo',
         messages: [
