@@ -10,7 +10,6 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.scss';
 
-// （以降は従来どおり）
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
