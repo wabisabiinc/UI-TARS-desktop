@@ -77,8 +77,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 // Electron 実行時は従来の IPC クライアントを使う
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
-
-// Preload や globals.ts で定義された window.electron を利用
 const { ipcRenderer } = window.electron!;
 const ipcClient = createClient<Router>({
   ipcInvoke: ipcRenderer.invoke.bind(ipcRenderer),
@@ -143,3 +141,20 @@ export const onMainStreamEvent = (
     window.api.off(`llm:stream:${streamId}:end`, endListener);
   };
 };
+
+// ──────────────── 以下を追加 ────────────────
+/**
+ * LLM プロバイダー一覧取得
+ * - Electron: メインプロセス経由
+ * - ブラウザ: 固定リスト
+ */
+export async function getAvailableProviders(): Promise<string[]> {
+  if (isElectron) {
+    return ipcClient.getAvailableProviders();
+  }
+  return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
+}
+
+
+// apps/agent-tars/src/renderer/src/api/llmConfig.ts
+export { getAvailableProviders } from './index';
