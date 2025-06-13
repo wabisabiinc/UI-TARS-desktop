@@ -100,18 +100,15 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     let abortHandler: () => void;
 
     try {
-      // ユーザー途中中断対応
-      abortHandler = () => {
-        // askLLMTool には abort 機能がある想定
-        // (ブラウザ fetch 版は未対応)
-      };
+      // ユーザー途中中断対応 (fetch版は未対応)
+      abortHandler = () => {};
       this.abortSignal.addEventListener('abort', abortHandler);
 
       // ツール一覧を取得（Electron: IPC / Browser: 空配列）
-      const available = await listTools();
+      const available = (await listTools()) || [];
       const toolList = available.map((t) => `${t.name}: ${t.description}`).join(', ');
 
-      // 環境変数または設定ストア経由でモデルを決定（既存ロジックをそのまま利用）
+      // 環境変数または設定ストア経由でモデルを決定
       const useGemini = process.env.LLM_USE_GEMINI === 'true';
       const model = useGemini
         ? process.env.LLM_MODEL_GEMINI || 'gemini-2.0-flash'
@@ -136,7 +133,6 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       } as const;
 
       console.log('[Aware] → askLLMTool opts=', opts);
-      // fetch 版 or IPC 版を自動切り替え
       const raw = await askLLMTool(opts);
       const result = raw ?? { tool_calls: [], content: '' };
       console.log('[Aware] ← askLLMTool result=', result);
@@ -158,7 +154,7 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
         return this.getDefaultResult();
       }
 
-      const firstCall = calls.find((c) => c.arguments);
+      const firstCall = calls.find((c) => (c as any).arguments);
       if (!firstCall) {
         console.error('Tool call with arguments not found', calls);
         return this.getDefaultResult();
