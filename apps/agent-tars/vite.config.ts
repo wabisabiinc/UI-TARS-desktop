@@ -15,8 +15,6 @@ export default defineConfig(
       resolve: {
         alias: {
           '@renderer/': path.resolve(__dirname,'src/renderer/src/*'),
-          '@vendor/chat-ui/': path.resolve(__dirname, 'src/vendor/chat-ui') + '/',
-          '@vendor/chat-ui': path.resolve(__dirname,'src/vendor/chat-ui'),
           '@ui-tars/electron-ipc/renderer': path.resolve(
             __dirname,
             './src/renderer/mock/ipc.ts',

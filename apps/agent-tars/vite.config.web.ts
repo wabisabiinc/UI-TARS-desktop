@@ -57,6 +57,12 @@ export default defineConfig(async () => {
         '@': path.resolve(__dirname, 'src/renderer'),
         '@vendor/chat-ui': path.resolve(__dirname,'src/vendor/chat-ui'),
         '@vendor/chat-ui/': path.resolve(__dirname, 'src/vendor/chat-ui') + '/',
+        '@shared': path.resolve(__dirname, 'src/shared'),
+        '@shared/': path.resolve(__dirname, 'src/shared') + '/',
+        '@main': path.resolve(__dirname, 'src/main'),
+        '@main/': path.resolve(__dirname, 'src/main') + '/',
+        '@resources': path.resolve(__dirname, 'src/resources'),
+        '@resources/': path.resolve(__dirname, 'src/resources') + '/',
       },
     },
   };
