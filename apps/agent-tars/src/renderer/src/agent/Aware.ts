@@ -121,7 +121,7 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       // Prepare options for LLM call
       const opts = {
         requestId,
-        model: process.env.LLM_USE_GEMINI == 'true'
+        model: process.env.LLM_USE_GEMINI == 'false'
           ? process.env.LLM_MODEL_GEMINI || 'gemini-2.0-flash'
           : process.env.LLM_MODEL_GPT || 'gpt-3.5-turbo',
         messages: [
@@ -133,20 +133,12 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
             'Please call aware_analysis to decide the next step.'
           ),
         ],
-        tools: [
+        functions: [
           {
-            type: 'function',
-            function: {
               name: 'aware_analysis',
               description: 'Analyze environment and propose next task',
               parameters: this.awareSchema,
             },
-            // ツール実行時のハンドラ（必須）
-            func: async (args: AwareResult) => {
-              // LLM から返ってきた args をそのまま返却
-              return args;
-            },
-          },
         ],
       } as const;
 
