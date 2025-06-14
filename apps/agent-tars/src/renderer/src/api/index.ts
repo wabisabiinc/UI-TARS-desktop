@@ -1,3 +1,5 @@
+// ===== apps/agent-tars/src/renderer/src/api/index.ts =====
+
 /**
  * クライアント側 LLM 呼び出しインターフェース
  */
@@ -40,31 +42,19 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const key = opts.model.toLowerCase();
 
-  // --- Gemini モード: プロキシ経由で送信 ---
+  // --- Gemini モード: プロキシ経由 ---
   if (key.startsWith('gemini')) {
     const resp = await fetch('/api/generateMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: opts.model,
-        prompt: {
-          messages: opts.messages.map((m) => ({
-            author:
-              m.role === 'system'
-                ? 'system'
-                : m.role === 'user'
-                ? 'user'
-                : 'assistant',
-            content: m.content,
-          })),
-        },
+        contents: opts.messages.map(m => ({ role: m.role, parts: [{ text: m.content }] })),
       }),
     });
     if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(
-        `[api] Gemini proxy error ${resp.status}: ${resp.statusText}\n${text}`
-      );
+      const txt = await resp.text();
+      throw new Error(`[api] Gemini proxy error ${resp.status}: ${txt}`);
     }
     const data = await resp.json();
     const content = data.candidates?.[0]?.content ?? '';
@@ -86,10 +76,8 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
     }),
   });
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `[api] OpenAI API error ${response.status}: ${response.statusText}\n${text}`
-    );
+    const txt = await response.text();
+    throw new Error(`[api] OpenAI API error ${response.status}: ${txt}`);
   }
   const json = await response.json();
   const choice = json.choices?.[0]?.message;
@@ -103,49 +91,27 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
 const { ipcRenderer } = window.electron!;
-export const ipcClient = createClient<Router>({
-  ipcInvoke: ipcRenderer.invoke.bind(ipcRenderer),
-});
+export const ipcClient = createClient<Router>({ ipcInvoke: ipcRenderer.invoke.bind(ipcRenderer) });
 
 /**
  * askLLMTool:
  * - Electron: ipcRenderer.invoke('askLLMTool', opts)
  * - ブラウザ: fetchLLM(opts)
  */
-export async function askLLMTool(
-  opts: AskLLMOpts
-): Promise<AskLLMResult> {
-  if (isElectron) {
-    return (await ipcClient.askLLMTool(opts as any)) as AskLLMResult;
-  } else {
-    return fetchLLM(opts);
-  }
+export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
+  return isElectron
+    ? (await ipcClient.askLLMTool(opts as any)) as AskLLMResult
+    : fetchLLM(opts);
 }
 
-/**
- * ツール一覧取得
- * - Electron: ipcRenderer.invoke('listTools')
- * - ブラウザ: 空配列
- */
 export async function listTools(): Promise<{ name: string; description: string }[]> {
-  if (isElectron) {
-    return ipcClient.listTools();
-  } else {
-    return [];
-  }
+  return isElectron ? ipcClient.listTools() : [];
 }
 
 /**
  * llm:stream イベント購読ユーティリティ
  */
-export const onMainStreamEvent = (
-  streamId: string,
-  handlers: {
-    onData: (chunk: string) => void;
-    onError: (error: Error) => void;
-    onEnd: () => void;
-  }
-) => {
+export const onMainStreamEvent = (streamId: string, handlers: { onData: (chunk: string) => void; onError: (error: Error) => void; onEnd: () => void; }) => {
   if (!isElectron || !window.api) return () => {};
   const onData = (d: string) => handlers.onData(d);
   const onError = (e: Error) => handlers.onError(e);
@@ -160,12 +126,6 @@ export const onMainStreamEvent = (
   };
 };
 
-/**
- * LLM プロバイダー一覧取得
- */
 export async function getAvailableProviders(): Promise<string[]> {
-  if (isElectron) {
-    return ipcClient.getAvailableProviders();
-  }
-  return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
+  return isElectron ? ipcClient.getAvailableProviders() : ['anthropic','openai','azure_openai','deepseek'];
 }
