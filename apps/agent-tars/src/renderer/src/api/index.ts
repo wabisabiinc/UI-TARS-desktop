@@ -1,6 +1,4 @@
-/**
- * apps/agent-tars/src/renderer/src/api/index.ts
- */
+// apps/agent-tars/src/renderer/src/api/index.ts
 
 /**
  * クライアント側 LLM 呼び出しインターフェース
@@ -46,25 +44,25 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 
   // --- Gemini モード: プロキシ経由 ---
   if (key.startsWith('gemini')) {
+    // プロンプトをテキスト化
+    const promptText = opts.messages
+      .map((m) => `${m.role}: ${m.content}`)
+      .join("\n");
     const resp = await fetch('/api/generateMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: opts.model,
-        // server.mjs の generateContent が期待する形式
-        contents: opts.messages.map((m) => ({
-          role: m.role,
-          parts: [{ text: m.content }],
-        })),
-      }),
+      body: JSON.stringify({ model: opts.model, prompt: promptText }),
     });
     if (!resp.ok) {
       const txt = await resp.text();
       throw new Error(`[api] Gemini proxy error ${resp.status}: ${txt}`);
     }
     const data = await resp.json();
-    // data.candidates[0].content をそのまま使う
-    const content = data.candidates?.[0]?.content ?? '';
+    // Google Gemini は data.candidates や data.choices に結果が入る場合がある
+    const content =
+      data.candidates?.[0]?.content ??
+      data.choices?.[0]?.message?.content ??
+      '';
     return { tool_calls: [], content };
   }
 
@@ -79,7 +77,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
       model: opts.model,
       messages: opts.messages,
       functions: opts.functions,
-      // 明示的に aware_analysis を呼び出すよう指定
+      // 明示的に aware_analysis を呼び出す
       function_call: { name: opts.functions![0].name },
     }),
   });
@@ -129,13 +127,16 @@ export async function askLLMTool(
  * - Electron: ipcRenderer.invoke('listTools')
  * - ブラウザ: 空配列
  */
-export async function listTools(): Promise<{ name: string; description: string }[]> {
+export async function listTools(): Promise<{
+  name: string;
+  description: string;
+}[]> {
   return isElectron ? ipcClient.listTools() : [];
 }
 
 /**
  * llm:stream イベント購読ユーティリティ
- * Electron 環境のみ有効（ブラウザでは no-op）
+ * Electron 実行時のみ有効（ブラウザでは no-op）
  */
 export const onMainStreamEvent = (
   streamId: string,
