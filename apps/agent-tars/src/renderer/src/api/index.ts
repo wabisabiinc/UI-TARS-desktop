@@ -1,5 +1,3 @@
-// apps/agent-tars/src/renderer/src/api/index.ts
-
 /**
  * クライアント側 LLM 呼び出しインターフェース
  */
@@ -40,24 +38,26 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
  * を自動切り替えで呼び出す
  */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
-  const model = opts.model.toLowerCase();
+  const key = opts.model.toLowerCase();
 
-  // --- Gemini via プロキシ ---
-  if (model.startsWith('gemini')) {
+  // --- Gemini モード: プロキシ経由で送信 ---
+  if (key.startsWith('gemini')) {
     const resp = await fetch('/api/generateMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: opts.model,
-        instances: opts.messages.map((m) => ({
-          author:
-            m.role === 'system'
-              ? 'system'
-              : m.role === 'user'
-              ? 'user'
-              : 'assistant',
-          content: m.content,
-        })),
+        prompt: {
+          messages: opts.messages.map((m) => ({
+            author:
+              m.role === 'system'
+                ? 'system'
+                : m.role === 'user'
+                ? 'user'
+                : 'assistant',
+            content: m.content,
+          })),
+        },
       }),
     });
     if (!resp.ok) {
@@ -67,12 +67,11 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
       );
     }
     const data = await resp.json();
-    // Google Generative Language のレスポンス構造に合わせて抽出
     const content = data.candidates?.[0]?.content ?? '';
     return { tool_calls: [], content };
   }
 
-  // --- OpenAI 呼び出し (GPT 系) ---
+  // --- OpenAI GPT 系モード ---
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -95,20 +94,12 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const json = await response.json();
   const choice = json.choices?.[0]?.message;
   const toolCall = choice?.function_call
-    ? [
-        {
-          name: choice.function_call.name,
-          arguments: choice.function_call.arguments,
-        },
-      ]
+    ? [{ name: choice.function_call.name, arguments: choice.function_call.arguments }]
     : [];
-  return {
-    tool_calls: toolCall,
-    content: choice?.content ?? '',
-  };
+  return { tool_calls: toolCall, content: choice?.content ?? '' };
 }
 
-// Electron 実行時は従来の IPC クライアントを使う
+// Electron 実行時: IPC クライアントを使用
 import { createClient } from '@ui-tars/electron-ipc/renderer';
 import type { Router } from '../../../main/ipcRoutes';
 const { ipcRenderer } = window.electron!;
@@ -136,9 +127,7 @@ export async function askLLMTool(
  * - Electron: ipcRenderer.invoke('listTools')
  * - ブラウザ: 空配列
  */
-export async function listTools(): Promise<
-  { name: string; description: string }[]
-> {
+export async function listTools(): Promise<{ name: string; description: string }[]> {
   if (isElectron) {
     return ipcClient.listTools();
   } else {
@@ -148,7 +137,6 @@ export async function listTools(): Promise<
 
 /**
  * llm:stream イベント購読ユーティリティ
- * Electron 環境のみ有効（ブラウザでは no-op）
  */
 export const onMainStreamEvent = (
   streamId: string,
@@ -158,28 +146,22 @@ export const onMainStreamEvent = (
     onEnd: () => void;
   }
 ) => {
-  if (!isElectron || !window.api) {
-    return () => {};
-  }
-  const dataListener = (data: string) => handlers.onData(data);
-  const errorListener = (error: Error) => handlers.onError(error);
-  const endListener = () => handlers.onEnd();
-
-  window.api.on(`llm:stream:${streamId}:data`, dataListener);
-  window.api.on(`llm:stream:${streamId}:error`, errorListener);
-  window.api.on(`llm:stream:${streamId}:end`, endListener);
-
+  if (!isElectron || !window.api) return () => {};
+  const onData = (d: string) => handlers.onData(d);
+  const onError = (e: Error) => handlers.onError(e);
+  const onEnd = () => handlers.onEnd();
+  window.api.on(`llm:stream:${streamId}:data`, onData);
+  window.api.on(`llm:stream:${streamId}:error`, onError);
+  window.api.on(`llm:stream:${streamId}:end`, onEnd);
   return () => {
-    window.api.off(`llm:stream:${streamId}:data`, dataListener);
-    window.api.off(`llm:stream:${streamId}:error`, errorListener);
-    window.api.off(`llm:stream:${streamId}:end`, endListener);
+    window.api.off(`llm:stream:${streamId}:data`, onData);
+    window.api.off(`llm:stream:${streamId}:error`, onError);
+    window.api.off(`llm:stream:${streamId}:end`, onEnd);
   };
 };
 
 /**
  * LLM プロバイダー一覧取得
- * - Electron: メインプロセス経由
- * - ブラウザ: 固定リスト
  */
 export async function getAvailableProviders(): Promise<string[]> {
   if (isElectron) {

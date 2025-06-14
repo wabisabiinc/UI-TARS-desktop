@@ -1,7 +1,7 @@
-// apps/agent-tars/server.mjs
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';  // npm install node-fetch@2
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,22 +11,22 @@ const app = express();
 // JSON ボディをパース
 app.use(express.json());
 
-// Gemini Proxy エンドポイント
+// --- Gemini プロキシエンドポイント ---
 app.post('/api/generateMessage', async (req, res) => {
   try {
-    const { model, instances } = req.body;
+    const { model, prompt } = req.body;
     const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/${model}:generateMessage`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({ instances }),
-      }
-    );
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateMessage`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ prompt }),
+    });
+
     const data = await response.json();
     res.json(data);
   } catch (error) {
