@@ -25,7 +25,7 @@ export interface AskLLMResult {
 const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
-  
+
 // ブラウザ実行時には API キーの存在を警告
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn(
@@ -34,9 +34,51 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
 }
 
 /**
- * ブラウザ実行時（非-Electron）には OpenAI REST エンドポイントを直接呼び出す
+ * ブラウザ実行時（非-Electron）には
+ * - Gemini (Google Generative Language API)
+ * - OpenAI REST API
+ * を自動切り替えで呼び出す
  */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
+  const model = opts.model.toLowerCase();
+
+  // --- Gemini 呼び出し (例: gemini-2.0-flash) ---
+  if (model.startsWith('gemini')) {
+    const url = `https://generativelanguage.googleapis.com/v1/models/${opts.model}:generateMessage`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${import.meta.env.VITE_GEMINI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        instances: [
+          {
+            messages: opts.messages.map((m) => ({
+              author:
+                m.role === 'system'
+                  ? 'system'
+                  : m.role === 'user'
+                  ? 'user'
+                  : 'assistant',
+              content: m.content,
+            })),
+          },
+        ],
+      }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(
+        `[api] Gemini API error ${resp.status}: ${resp.statusText}\n${text}`
+      );
+    }
+    const data = await resp.json();
+    const content = data?.candidates?.[0]?.content ?? '';
+    return { tool_calls: [], content };
+  }
+
+  // --- OpenAI 呼び出し (GPT 系) ---
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -50,16 +92,14 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
       function_call: 'auto',
     }),
   });
-
   if (!response.ok) {
     const text = await response.text();
     throw new Error(
       `[api] OpenAI API error ${response.status}: ${response.statusText}\n${text}`
     );
   }
-
-  const data = await response.json();
-  const choice = data.choices?.[0]?.message;
+  const json = await response.json();
+  const choice = json.choices?.[0]?.message;
   const toolCall = choice?.function_call
     ? [
         {
@@ -68,7 +108,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
         },
       ]
     : [];
-
   return {
     tool_calls: toolCall,
     content: choice?.content ?? '',
