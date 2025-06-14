@@ -1,4 +1,4 @@
-// apps/agent-tars/src/renderer/src/api/Aware.ts
+// apps/agent-tars/src/renderer/src/agent/Aware.ts
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
 import { askLLMTool, listTools } from '../api';
@@ -19,22 +19,13 @@ export interface AwareResult {
  * - Plans next actionable step
  */
 export class Aware {
-  /** Default system prompt for OpenAI */
-  private readonly getSystemPrompt = (): string => `
-You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
-Use the 'aware_analysis' tool and return only a function call with this JSON format:
-```json
-{
-  "reflection": "[Your reflection on the environment]",
-  "step": [nextStepNumber],
-  "status": "[Next action description]",
-  "plan": [
-    {"id": "step_001", "title": "First actionable task"},
-    ...
-  ]
-}
-```
-`;
+  /**
+   * Default prompt for OpenAI mode (uses function calls).
+   */
+  private readonly getDefaultPrompt = (): string =>
+    'You are an AI agent responsible for analyzing the current environment and planning the next actionable step. ' +
+    'Use the \"aware_analysis\" tool and return only a function call with a JSON object containing: ' +
+    'reflection (string), step (number), status (string), and plan (array of {id: string, title: string}).';
 
   private readonly awareSchema = {
     type: 'object',
@@ -91,93 +82,81 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       return this.getDefaultResult();
     }
 
+    // Gather environment context
     const envInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext
     );
     console.log('[Aware] envInfo=', envInfo);
 
-    const requestId = `aware_${Date.now()}`;
-    let abortHandler: () => void;
+    // Abort handler placeholder
+    this.abortSignal.addEventListener('abort', () => {});
 
-    try {
-      abortHandler = () => {};
-      this.abortSignal.addEventListener('abort', abortHandler);
+    // Determine mode and model
+    const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
+    const model = useGemini
+      ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
+      : import.meta.env.VITE_LLM_MODEL_GPT    || 'gpt-3.5-turbo';
 
-      const available = (await listTools()) || [];
-      const toolList = available.map(t => `${t.name}: ${t.description}`).join(', ');
+    // Build prompt
+    const systemPrompt = useGemini
+      ? 'You are an AI agent responsible for analyzing the current environment and planning the next actionable step. ' +
+        'Return only a JSON object with keys: reflection (string), step (number), status (string), plan (array of {id:string,title:string}).'
+      : this.getDefaultPrompt();
 
-      const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
-      const model = useGemini
-        ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
-        : import.meta.env.VITE_LLM_MODEL_GPT    || 'gpt-3.5-turbo';
+    // Fetch available tools
+    const available = (await listTools()) || [];
+    const toolList = available.map(t => `${t.name}: ${t.description}`).join(', ');
 
-      const systemPrompt = useGemini
-        ? `You are an AI agent responsible for analyzing the current environment and planning the next actionable step. Return ONLY a single JSON object with keys: reflection (string), step (number), status (string), plan (array of {id:string,title:string}), with no additional text.`
-        : this.getSystemPrompt();
-
-      const opts: any = {
-        requestId,
-        model,
-        messages: [
-          Message.systemMessage(systemPrompt),
-          Message.systemMessage(`Available tools: ${toolList}`),
-          Message.userMessage(envInfo),
-          Message.userMessage('Please call aware_analysis to decide the next step.'),
-        ],
-      };
-      if (!useGemini) {
-        opts.functions = [
-          {
-            name: 'aware_analysis',
-            description: 'Analyze environment and propose next task',
-            parameters: this.awareSchema,
-          },
-        ];
-      }
-
-      console.log('[Aware] → askLLMTool opts=', opts);
-      const raw = await askLLMTool(opts);
-      const result = raw ?? { tool_calls: [], content: '' };
-      console.log('[Aware] ← askLLMTool result=', result);
-
-      const calls = result.tool_calls ?? [];
-      if (calls.length === 0) {
-        if (useGemini) {
-          try {
-            const parsed = Aware.safeParse<AwareResult>(result.content || '');
-            if (parsed) return parsed;
-            console.error('Gemini JSON parse failed:', result.content);
-          } catch (e) {
-            console.error('Gemini JSON error:', e, result.content);
-          }
-        }
-        console.warn('No tool calls returned');
-        return this.getDefaultResult();
-      }
-
-      const firstCall = calls.find(c => (c as any).arguments);
-      if (!firstCall) {
-        console.error('Tool call with arguments not found', calls);
-        return this.getDefaultResult();
-      }
-
-      const argsText = (firstCall as any).arguments;
-      const parsed = Aware.safeParse<AwareResult>(argsText);
-      if (!parsed) {
-        console.error('Failed to parse tool arguments:', argsText);
-        return this.getDefaultResult();
-      }
-
-      return parsed;
-    } catch (e: any) {
-      if (e.name === 'AbortError') {
-        return this.getDefaultResult();
-      }
-      console.error('Aware.run error:', e);
-      return this.getDefaultResult();
-    } finally {
-      this.abortSignal.removeEventListener('abort', abortHandler!);
+    const opts: any = {
+      model,
+      messages: [
+        Message.systemMessage(systemPrompt),
+        Message.systemMessage(`Available tools: ${toolList}`),
+        Message.userMessage(envInfo),
+        Message.userMessage('Please call aware_analysis to decide the next step.'),
+      ],
+    };
+    if (!useGemini) {
+      opts.requestId = `aware_${Date.now()}`;
+      opts.functions = [
+        {
+          name: 'aware_analysis',
+          description: 'Analyze environment and propose next task',
+          parameters: this.awareSchema,
+        },
+      ];
     }
+
+    console.log('[Aware] → askLLMTool opts=', opts);
+    const raw = await askLLMTool(opts);
+    const result = raw ?? { tool_calls: [], content: '' };
+    console.log('[Aware] ← askLLMTool result=', result);
+
+    // Parse result
+    const calls = result.tool_calls ?? [];
+    if (calls.length === 0) {
+      if (useGemini) {
+        // JSON-only response from Gemini
+        const parsed = Aware.safeParse<AwareResult>(result.content || '');
+        if (parsed) {
+          return parsed;
+        }
+        console.error('Gemini JSON parse failed:', result.content);
+      }
+      console.warn('No tool calls returned');
+      return this.getDefaultResult();
+    }
+
+    // Handle function call result
+    const firstCall = calls[0];
+    const argsText = (firstCall as any).arguments;
+    const parsed = Aware.safeParse<AwareResult>(argsText);
+    if (!parsed) {
+      console.error('Failed to parse tool arguments:', argsText);
+      return this.getDefaultResult();
+    }
+
+    return parsed;
   }
 }
