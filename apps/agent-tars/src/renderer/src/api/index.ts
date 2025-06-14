@@ -35,46 +35,40 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
 
 /**
  * ブラウザ実行時（非-Electron）には
- * - Gemini (Google Generative Language API)
+ * - Gemini via プロキシ
  * - OpenAI REST API
  * を自動切り替えで呼び出す
  */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const model = opts.model.toLowerCase();
 
-  // --- Gemini 呼び出し (例: gemini-2.0-flash) ---
+  // --- Gemini via プロキシ ---
   if (model.startsWith('gemini')) {
-    const url = `https://generativelanguage.googleapis.com/v1/models/${opts.model}:generateMessage`;
-    const resp = await fetch(url, {
+    const resp = await fetch('/api/generateMessage', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_GEMINI_API_KEY}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        instances: [
-          {
-            messages: opts.messages.map((m) => ({
-              author:
-                m.role === 'system'
-                  ? 'system'
-                  : m.role === 'user'
-                  ? 'user'
-                  : 'assistant',
-              content: m.content,
-            })),
-          },
-        ],
+        model: opts.model,
+        instances: opts.messages.map((m) => ({
+          author:
+            m.role === 'system'
+              ? 'system'
+              : m.role === 'user'
+              ? 'user'
+              : 'assistant',
+          content: m.content,
+        })),
       }),
     });
     if (!resp.ok) {
       const text = await resp.text();
       throw new Error(
-        `[api] Gemini API error ${resp.status}: ${resp.statusText}\n${text}`
+        `[api] Gemini proxy error ${resp.status}: ${resp.statusText}\n${text}`
       );
     }
     const data = await resp.json();
-    const content = data?.candidates?.[0]?.content ?? '';
+    // Google Generative Language のレスポンス構造に合わせて抽出
+    const content = data.candidates?.[0]?.content ?? '';
     return { tool_calls: [], content };
   }
 
