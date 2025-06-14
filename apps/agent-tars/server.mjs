@@ -1,3 +1,4 @@
+// ===== apps/agent-tars/server.mjs =====
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,16 +8,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
 // JSON ボディをパース
 app.use(express.json());
 
-// --- Gemini プロキシエンドポイント ---
+// ── Gemini プロキシエンドポイント ──
+// クライアントから { model, contents } を受け取り、generateContent を呼び出す
 app.post('/api/generateMessage', async (req, res) => {
   try {
-    const { model, prompt } = req.body;
+    const { model, contents } = req.body;
     const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateMessage`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -24,7 +25,7 @@ app.post('/api/generateMessage', async (req, res) => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ contents }),
     });
 
     const data = await response.json();
@@ -35,10 +36,8 @@ app.post('/api/generateMessage', async (req, res) => {
   }
 });
 
-// 静的ファイルを配信
+// 静的ファイルを配信 & SPA フォールバック
 app.use(express.static(path.join(__dirname, 'dist/web')));
-
-// SPA フォールバック
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist/web/index.html'));
 });
