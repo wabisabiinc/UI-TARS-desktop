@@ -80,7 +80,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
         model: opts.model,
         messages: opts.messages,
         functions: opts.functions,
-        function_call: 'auto',
+        function_call: { name: opts.functions![0].name },
       }),
     }
   );
