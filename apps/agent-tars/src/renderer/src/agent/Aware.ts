@@ -1,6 +1,6 @@
+// apps/agent-tars/src/renderer/src/api/Aware.ts
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
-// 直接 fetch／IPC 切り替え版をインポート
 import { askLLMTool, listTools } from '../api';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { PlanTask } from '@renderer/type/agent';
@@ -19,10 +19,11 @@ export interface AwareResult {
  * - Plans next actionable step
  */
 export class Aware {
+  /** Default system prompt for OpenAI */
   private readonly getSystemPrompt = (): string => `
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
 Use the 'aware_analysis' tool and return only a function call with this JSON format:
-\`\`\`json
+```json
 {
   "reflection": "[Your reflection on the environment]",
   "step": [nextStepNumber],
@@ -32,7 +33,7 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     ...
   ]
 }
-\`\`\`
+```
 `;
 
   private readonly awareSchema = {
@@ -100,37 +101,40 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
     let abortHandler: () => void;
 
     try {
-      // ユーザー途中中断対応 (fetch版は未対応)
       abortHandler = () => {};
       this.abortSignal.addEventListener('abort', abortHandler);
 
-      // ツール一覧を取得（Electron: IPC / Browser: 空配列）
       const available = (await listTools()) || [];
-      const toolList = available.map((t) => `${t.name}: ${t.description}`).join(', ');
+      const toolList = available.map(t => `${t.name}: ${t.description}`).join(', ');
 
-      // 環境変数または設定ストア経由でモデルを決定
       const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
       const model = useGemini
-        ? import.meta.env.VITE_LLM_MODEL_GEMINI!
-        : import.meta.env.VITE_LLM_MODEL_GPT!
+        ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
+        : import.meta.env.VITE_LLM_MODEL_GPT    || 'gpt-3.5-turbo';
 
-      const opts = {
+      const systemPrompt = useGemini
+        ? `You are an AI agent responsible for analyzing the current environment and planning the next actionable step. Return ONLY a single JSON object with keys: reflection (string), step (number), status (string), plan (array of {id:string,title:string}), with no additional text.`
+        : this.getSystemPrompt();
+
+      const opts: any = {
         requestId,
         model,
         messages: [
-          Message.systemMessage(this.getSystemPrompt()),
+          Message.systemMessage(systemPrompt),
           Message.systemMessage(`Available tools: ${toolList}`),
           Message.userMessage(envInfo),
           Message.userMessage('Please call aware_analysis to decide the next step.'),
         ],
-        functions: [
+      };
+      if (!useGemini) {
+        opts.functions = [
           {
             name: 'aware_analysis',
             description: 'Analyze environment and propose next task',
             parameters: this.awareSchema,
           },
-        ],
-      } as const;
+        ];
+      }
 
       console.log('[Aware] → askLLMTool opts=', opts);
       const raw = await askLLMTool(opts);
@@ -139,22 +143,20 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
 
       const calls = result.tool_calls ?? [];
       if (calls.length === 0) {
-        console.warn('No tool calls returned');
-        const rawContent = result.content ?? '';
-        if (rawContent.trim()) {
+        if (useGemini) {
           try {
-            const repaired = jsonrepair(rawContent);
-            const fallback = Aware.safeParse<AwareResult>(repaired);
-            if (fallback) return fallback;
-            console.error('Fallback parse failed:', rawContent);
+            const parsed = Aware.safeParse<AwareResult>(result.content || '');
+            if (parsed) return parsed;
+            console.error('Gemini JSON parse failed:', result.content);
           } catch (e) {
-            console.error('jsonrepair or parse error:', e, rawContent);
+            console.error('Gemini JSON error:', e, result.content);
           }
         }
+        console.warn('No tool calls returned');
         return this.getDefaultResult();
       }
 
-      const firstCall = calls.find((c) => (c as any).arguments);
+      const firstCall = calls.find(c => (c as any).arguments);
       if (!firstCall) {
         console.error('Tool call with arguments not found', calls);
         return this.getDefaultResult();
