@@ -44,7 +44,16 @@ function createWindow(): BrowserWindow {
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com;",
             "font-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com;",
             "worker-src 'self' blob:;",
-            "connect-src 'self' https://cdn.jsdelivr.net/npm/ blob:",
+
+            "connect-src 'self' " +
+              // OpenAI
+              "https://api.openai.com " +
+              // Google Generative Language API (Gemini)
+              "https://generativelanguage.googleapis.com https://*.googleapis.com " +
+              // Hugging Face API 
+              "https://*.huggingface.co " +
+              // CDN 等
+              "https://cdn.jsdelivr.net/npm/ blob:",
           ],
         },
       });
