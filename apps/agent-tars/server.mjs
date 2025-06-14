@@ -1,4 +1,4 @@
-// ===== apps/agent-tars/server.mjs =====
+// apps/agent-tars/server.mjs
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
