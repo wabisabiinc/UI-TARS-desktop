@@ -109,10 +109,10 @@ Use the 'aware_analysis' tool and return only a function call with this JSON for
       const toolList = available.map((t) => `${t.name}: ${t.description}`).join(', ');
 
       // 環境変数または設定ストア経由でモデルを決定
-      const useGemini = process.env.LLM_USE_GEMINI === 'true';
+      const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
       const model = useGemini
-        ? process.env.LLM_MODEL_GEMINI || 'gemini-2.0-flash'
-        : process.env.LLM_MODEL_GPT    || 'gpt-3.5-turbo';
+        ? import.meta.env.VITE_LLM_MODEL_GEMINI!
+        : import.meta.env.VITE_LLM_MODEL_GPT!
 
       const opts = {
         requestId,
