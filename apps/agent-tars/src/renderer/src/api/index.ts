@@ -1,4 +1,6 @@
-// apps/agent-tars/src/renderer/src/api/index.ts
+/**
+ * apps/agent-tars/src/renderer/src/api/index.ts
+ */
 
 /**
  * クライアント側 LLM 呼び出しインターフェース
@@ -49,7 +51,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: opts.model,
-        // generateContent が期待する形式
+        // server.mjs の generateContent が期待する形式
         contents: opts.messages.map((m) => ({
           role: m.role,
           parts: [{ text: m.content }],
@@ -58,37 +60,32 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
     });
     if (!resp.ok) {
       const txt = await resp.text();
-      throw new Error(
-        `[api] Gemini proxy error ${resp.status}: ${txt}`
-      );
+      throw new Error(`[api] Gemini proxy error ${resp.status}: ${txt}`);
     }
     const data = await resp.json();
+    // data.candidates[0].content をそのまま使う
     const content = data.candidates?.[0]?.content ?? '';
     return { tool_calls: [], content };
   }
 
   // --- OpenAI GPT 系モード ---
-  const response = await fetch(
-    'https://api.openai.com/v1/chat/completions',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: opts.model,
-        messages: opts.messages,
-        functions: opts.functions,
-        function_call: { name: opts.functions![0].name },
-      }),
-    }
-  );
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: opts.model,
+      messages: opts.messages,
+      functions: opts.functions,
+      // 明示的に aware_analysis を呼び出すよう指定
+      function_call: { name: opts.functions![0].name },
+    }),
+  });
   if (!response.ok) {
     const txt = await response.text();
-    throw new Error(
-      `[api] OpenAI API error ${response.status}: ${txt}`
-    );
+    throw new Error(`[api] OpenAI API error ${response.status}: ${txt}`);
   }
   const json = await response.json();
   const choice = json.choices?.[0]?.message;
@@ -132,15 +129,13 @@ export async function askLLMTool(
  * - Electron: ipcRenderer.invoke('listTools')
  * - ブラウザ: 空配列
  */
-export async function listTools(): Promise<{
-  name: string;
-  description: string;
-}[]> {
+export async function listTools(): Promise<{ name: string; description: string }[]> {
   return isElectron ? ipcClient.listTools() : [];
 }
 
 /**
  * llm:stream イベント購読ユーティリティ
+ * Electron 環境のみ有効（ブラウザでは no-op）
  */
 export const onMainStreamEvent = (
   streamId: string,
