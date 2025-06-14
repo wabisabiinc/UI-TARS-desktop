@@ -44,14 +44,15 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 
   // --- Gemini モード: プロキシ経由 ---
   if (key.startsWith('gemini')) {
-    // プロンプトをテキスト化
-    const promptText = opts.messages
-      .map((m) => `${m.role}: ${m.content}`)
-      .join("\n");
+    // contents 配列を構築
+    const contents = opts.messages.map((m) => ({
+      role: m.role,
+      parts: [{ text: m.content }],
+    }));
     const resp = await fetch('/api/generateMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: opts.model, prompt: promptText }),
+      body: JSON.stringify({ model: opts.model, contents }),
     });
     if (!resp.ok) {
       const txt = await resp.text();
