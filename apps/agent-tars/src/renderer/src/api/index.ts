@@ -44,7 +44,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 
   // --- Gemini モード: プロキシ経由 ---
   if (key.startsWith('gemini')) {
-    // contents 配列を構築
+    // server.mjs の proxy に合わせて contents で送信
     const contents = opts.messages.map((m) => ({
       role: m.role,
       parts: [{ text: m.content }],
@@ -59,12 +59,17 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
       throw new Error(`[api] Gemini proxy error ${resp.status}: ${txt}`);
     }
     const data = await resp.json();
-    // Google Gemini は data.candidates や data.choices に結果が入る場合がある
-    const content =
-      data.candidates?.[0]?.content ??
-      data.choices?.[0]?.message?.content ??
-      '';
+    // 色々なレスポンス形態に対応
+    let content = '';
+    if (Array.isArray(data.candidates) && data.candidates.length > 0) {
+      content = data.candidates[0].content ?? data.candidates[0].output?.content ?? '';
+    } else if (data.output?.content) {
+      content = data.output.content;
+    } else if (Array.isArray(data.choices) && data.choices.length > 0) {
+      content = data.choices[0].message?.content ?? '';
+    }
     return { tool_calls: [], content };
+  }
   }
 
   // --- OpenAI GPT 系モード ---
