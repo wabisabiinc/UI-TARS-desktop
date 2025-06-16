@@ -11,13 +11,32 @@ const app = express();
 // JSON ボディをパース
 app.use(express.json());
 
-// ── Gemini プロキシエンドポイント ──
-// クライアントから { model, contents } を受け取り、generateContent を呼び出す
+// ── Gemini 2.0-flash プロキシエンドポイント ──
 app.post('/api/generateMessage', async (req, res) => {
   try {
+    // 純粋な JavaScript としてデストラクト
     const { model, contents } = req.body;
+
+    // 必須キーがあるかチェック
     const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    if (!apiKey) {
+      throw new Error('Gemini API key is not set.');
+    }
+
+    // Gemini v1 generateMessage エンドポイント
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateMessage`;
+
+    // リクエストボディ組み立て
+    const instances = Array.isArray(contents)
+      ? contents.map((c) => ({
+          author:
+            c.role === 'system' || c.role === 'assistant' ? c.role : 'user',
+          content:
+            Array.isArray(c.parts) && c.parts.length
+              ? c.parts[0].text
+              : '',
+        }))
+      : [];
 
     const response = await fetch(url, {
       method: 'POST',
@@ -25,18 +44,23 @@ app.post('/api/generateMessage', async (req, res) => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ contents }),
+      body: JSON.stringify({ instances }),
     });
 
+    if (!response.ok) {
+      const txt = await response.text();
+      throw new Error(`[Gemini proxy] ${response.status}: ${txt}`);
+    }
+
     const data = await response.json();
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     console.error('Gemini proxy error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message || String(error) });
   }
 });
 
-// 静的ファイルを配信 & SPA フォールバック
+// 静的ファイル配信 & SPA フォールバック
 app.use(express.static(path.join(__dirname, 'dist/web')));
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist/web/index.html'));
