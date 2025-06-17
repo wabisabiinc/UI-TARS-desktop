@@ -1,23 +1,13 @@
-######################## 1) build stage ########################
+################ 1) build ################
 FROM node:20-bullseye AS build
 WORKDIR /app
-
-# プロジェクト全体をコピー
 COPY . .
-
-# 依存インストール & Linux 用 Zip を作成
-RUN corepack enable \
- && corepack prepare pnpm@9 --activate \
+RUN corepack enable && corepack prepare pnpm@9 --activate \
  && pnpm install --frozen-lockfile=false \
  && pnpm exec electron-forge make --platform linux --targets zip
 
-
-######################## 2) runtime (= artifact) stage ########################
-FROM debian:bullseye-slim      # わずか 22 MB の極小イメージ
+################ 2) runtime ##############
+FROM debian:bullseye-slim
 WORKDIR /release
-
-# Forge の生成物（*.zip）だけコピー
 COPY --from=build /app/out/make/*.zip ./
-
-# コンテナを落とさず待機（必要に応じて変更）
-CMD ["bash", "-c", "echo 'ZIP artifacts ready'; sleep infinity"]
+CMD ["bash","-c","echo 'ZIP ready'; sleep infinity"]
