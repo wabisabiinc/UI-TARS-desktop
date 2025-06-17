@@ -1,0 +1,23 @@
+name: deploy
+
+on:
+  workflow_dispatch:  # 手動実行
+  push:
+    branches: [ main ]  # main ブランチに push されたら実行
+
+permissions:
+  contents: write      # ← Release もアップロードできる
+
+jobs:
+  trigger-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy via webhook
+        shell: bash           # ← ここが今回のキモ
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          echo "🌐 Triggering Render deploy via webhook"
+          curl -X POST "$RENDER_DEPLOY_HOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"skip":false}'
