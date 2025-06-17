@@ -7,7 +7,7 @@ RUN corepack enable \
  && corepack prepare pnpm@9.12.3 --activate
 COPY . .
 RUN pnpm install --frozen-lockfile=false \
- && pnpm exec electron-forge make --targets zip
+ && pnpm exec electron-forge make 
 
 ########## runtime stage ##########
 FROM debian:bullseye-slim
