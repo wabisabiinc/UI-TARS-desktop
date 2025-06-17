@@ -6,6 +6,7 @@ import fs, { readdirSync } from 'node:fs';
 import { cp, readdir } from 'node:fs/promises';
 import path, { resolve } from 'node:path';
 
+import { MakerAppImage } from '@electron-forge/maker-appimage';
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZip } from '@electron-forge/maker-zip'; // ★ 修正①
@@ -43,11 +44,9 @@ const config: ForgeConfig = {
     },
   ],
   makers: [
-    /* ----------★ 修正②: MakerZip を正式クラス名で追加 ---------- */
-    //   - `platforms` を明示しない場合は全 OS 向け ZIP を出力
-    //
-    //
     new MakerZip(),
+
+    new MakerAppImage({}),
 
     /* Windows */
     new MakerSquirrel({ name: 'UI-TARS', setupIcon: 'resources/icon.ico' }),
