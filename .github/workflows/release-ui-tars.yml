@@ -2,34 +2,29 @@ name: Release UI-TARS app
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   publish_windows:
     runs-on: windows-latest
     steps:
-      # 1) ソースをチェックアウト
       - uses: actions/checkout@v4
 
-      # 2) pnpm をインストールして依存解決
       - name: Install pnpm and dependencies
         run: |
           npm install -g pnpm@9
           pnpm install
 
-      # 3) Windows 向けビルド＆GitHub Releases へアップロード
       - name: Build & Publish Windows
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}   # ← ここ重要
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           cd apps/ui-tars
           pnpm run publish:win32
 
-      # 4) Render に自動デプロイをトリガー
       - name: Trigger deploy on Render
         run: |
           echo "🌐 Triggering Render deploy via webhook"
           curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
-            -H "Content-Type: application/json"
+               -H "Content-Type: application/json"
