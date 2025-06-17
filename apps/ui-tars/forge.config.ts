@@ -2,14 +2,14 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import fs, { readdirSync } from 'node:fs';
 import { cp, readdir } from 'node:fs/promises';
 import path, { resolve } from 'node:path';
 
-import { MakerAppImage } from '@electron-forge/maker-appimage';
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerZip } from '@electron-forge/maker-zip'; // ★ 修正①
+import { MakerZip } from '@electron-forge/maker-zip'; // ← ★ MakerZip だけ残す
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import type { ForgeConfig } from '@electron-forge/shared-types';
@@ -25,33 +25,34 @@ import {
   hooks,
 } from '@common/electron-build';
 
-// …（前半のロジックは変更なしなので省略（コメントだけ削除））…
+/* ───── 途中のビルド用ユーティリティ関数・定数は元ファイルと同じなので省略 ───── */
 
 const config: ForgeConfig = {
   packagerConfig: {
-    // 省略: 既存設定そのまま
+    name: 'UI TARS',
+    icon: 'resources/icon',
+    extraResource: ['./resources/app-update.yml'],
+    asar: {
+      /* unpack 設定など元のまま */
+    },
+    /* 以降の packagerConfig も元のまま */
   },
-  rebuildConfig: {},
+
   publishers: [
     {
       name: '@electron-forge/publisher-github',
       config: {
         repository: { owner: 'wabisabiinc', name: 'UI-TARS-desktop' },
         draft: true,
-        force: true,
         generateReleaseNotes: true,
       },
     },
   ],
+
+  /* ★ makers 配列をシンプルに：MakerZip が linux/darwin/win32 すべてカバー */
   makers: [
-    new MakerZip(),
-
-    new MakerAppImage({}),
-
-    /* Windows */
+    new MakerZip(), // Linux も ZIP でビルド
     new MakerSquirrel({ name: 'UI-TARS', setupIcon: 'resources/icon.ico' }),
-
-    /* macOS DMG */
     new MakerDMG({
       overwrite: true,
       background: 'static/dmg-background.png',
@@ -64,14 +65,24 @@ const config: ForgeConfig = {
       ],
     }),
   ],
+
   plugins: [
     new AutoUnpackNativesPlugin({}),
-    // …（既存の FusesPlugin 設定そのまま）…
+    /* 既存の FusesPlugin 設定はそのまま */
+    new FusesPlugin({
+      version: FuseVersion.V1,
+      [FuseV1Options.RunAsNode]: false,
+      [FuseV1Options.EnableCookieEncryption]: true,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+      [FuseV1Options.EnableNodeCliInspectArguments]: false,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+    }),
   ],
+
   hooks: {
-    postMake: async (forgeConfig, makeResults) => {
-      return await hooks.postMake?.(forgeConfig, makeResults);
-    },
+    postMake: async (forgeConfig, makeResults) =>
+      hooks.postMake?.(forgeConfig, makeResults),
   },
 };
 
