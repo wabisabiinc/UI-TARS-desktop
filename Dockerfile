@@ -19,5 +19,5 @@ WORKDIR /release
 # Forge の生成物（*.zip）だけコピー
 COPY --from=build /app/out/make/*.zip ./
 
-# このコンテナ自体は実行するものが無いので no-op
+# コンテナを落とさず待機（必要に応じて変更）
 CMD ["bash", "-c", "echo 'ZIP artifacts ready'; sleep infinity"]
