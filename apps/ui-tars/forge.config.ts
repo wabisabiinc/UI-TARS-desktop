@@ -8,7 +8,7 @@ import path, { resolve } from 'node:path';
 
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerZip } from '@electron-forge/maker-zip';          // ★ 修正①
+import { MakerZip } from '@electron-forge/maker-zip'; // ★ 修正①
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import type { ForgeConfig } from '@electron-forge/shared-types';
@@ -45,9 +45,9 @@ const config: ForgeConfig = {
   makers: [
     /* ----------★ 修正②: MakerZip を正式クラス名で追加 ---------- */
     //   - `platforms` を明示しない場合は全 OS 向け ZIP を出力
-    //   - macOS のみで十分なら { platforms: ['darwin'] } と指定
     //
-    new MakerZip({ platforms: ['darwin'] }),
+    //
+    new MakerZip(),
 
     /* Windows */
     new MakerSquirrel({ name: 'UI-TARS', setupIcon: 'resources/icon.ico' }),
