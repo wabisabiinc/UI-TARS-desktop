@@ -2,8 +2,8 @@ FROM node:22.12-alpine AS builder
 
 WORKDIR /app
 
-COPY browser/src/filesystem /app
-COPY browser/tsconfig.json /tsconfig.json
+COPY ../filesystem/src /app
+COPY ../filesystem/tsconfig.json /tsconfig.json
 
 RUN --mount=type=cache,target=/root/.npm npm install
 
