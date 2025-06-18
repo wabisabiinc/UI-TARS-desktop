@@ -3,27 +3,38 @@ name: build-and-push-image
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]          # main への push で実行
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     permissions:
-      contents: read
-      packages: write
+      contents: read            # ソース取得
+      packages: write           # GHCR へ push
+
     steps:
+      # ① ソースをチェックアウト
       - uses: actions/checkout@v4
+
+      # ② マルチアーキビルド用 QEMU / Buildx をセットアップ
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
+
+      # ③ GHCR にログイン（GITHUB_TOKEN で OK）
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ④ ビルドして GHCR へ push
       - uses: docker/build-push-action@v5
         with:
-          context: .
-          push: true
-          tags: ghcr.io/wabisabiinc/ui-tars:latest
+          context: ./packages/agent-infra/mcp-servers/browser   # ← Dockerfile があるフォルダ
+          file:   ./packages/agent-infra/mcp-servers/browser/Dockerfile
+          push:   true
+          tags:   ghcr.io/wabisabiinc/ui-tars:latest            # Render は latest を Pull
+          # ビルド時に渡すシークレット類（必要に応じて追加）
           build-args: |
             VITE_OPENAI_API_KEY=${{ secrets.VITE_OPENAI_API_KEY }}
