@@ -1,6 +1,3 @@
-/*
-
- */
 # .github/workflows/build-and-push-image.yml
 name: build-and-push-image
 

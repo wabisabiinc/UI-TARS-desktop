@@ -1,0 +1,14 @@
+# Git 管理フォルダ
+.git
+
+# 依存の実体
+node_modules
+
+# 環境変数ファイルはビルドに含めない
+*.env
+*.env.*
+
+# OS ごとの不要ファイル
+.DS_Store
+Thumbs.db
+
