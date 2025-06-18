@@ -1,27 +1,29 @@
 ######################## 1) build stage ########################
 FROM node:22.12-alpine AS builder
 
-# 0. グローバル CLI を入れ、pnpm をセット
-RUN npm install -g pnpm@9 shx
+# 0. グローバル CLI: pnpm + shx + rslib
+RUN npm install -g pnpm@9 shx rslib
 
 # 1. ルートを作業ディレクトリに
 WORKDIR /repo
 
-# 2. ワークスペース全体の依存を解決
+# 2. 依存解決に必要なメタファイルだけコピー
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY packages/*/*/package.json packages/*/*/package.json
-RUN pnpm install --frozen-lockfile=false               # ← ここで rslib も入る
 
-# 3. 必要ソースをコピー
+# 3. ルート依存をすべてインストール（devDeps 含む）
+RUN pnpm install --frozen-lockfile=false
+
+# 4. 必要ソースをコピー
 COPY packages/agent-infra/mcp-servers/browser \
      packages/agent-infra/mcp-servers/browser
 COPY packages/agent-infra/mcp-servers/filesystem/src \
      packages/agent-infra/mcp-servers/browser/src/filesystem
 
-# 4. ブラウザ workspace だけビルド
+# 5. ブラウザ workspace をビルド
 RUN pnpm --filter "./packages/agent-infra/mcp-servers/browser..." run build
 
-# 5. 不要な devDependencies を削除して容量削減
+# 6. devDependencies を削除して容量削減
 RUN pnpm prune --prod
 
 ######################## 2) runtime stage ######################
