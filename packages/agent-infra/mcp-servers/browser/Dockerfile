@@ -1,28 +1,44 @@
+######################## 1) build (= builder) stage ########################
 FROM node:22.12-alpine AS builder
 
-WORKDIR /app
+# ─── 0. pnpm を使えるように ───────────────────────────────────────
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
-COPY ../browser/package*.json /app/
+# ─── 1. 作業ディレクトリはブラウザ用パッケージ ────────────────
+WORKDIR /repo
 
+# ルートの package.json／pnpm-lock.yaml（ワークスペース情報）を先にコピー
+COPY package.json pnpm-lock.yaml* ./
 
-COPY ../filesystem/src /app
-COPY ../filesystem/tsconfig.json /tsconfig.json
+# ブラウザワークスペースの package.json だけ上書きコピー
+COPY packages/agent-infra/mcp-servers/browser/package*.json \
+     packages/agent-infra/mcp-servers/browser/
 
-RUN --mount=type=cache,target=/root/.npm npm install
+# ─── 2. 依存インストール（ブラウザだけ） ────────────────────
+RUN --mount=type=cache,target=/root/.pnpm-store \
+    pnpm install --filter "./packages/agent-infra/mcp-servers/browser..." --frozen-lockfile=false
 
-RUN --mount=type=cache,target=/root/.npm-production npm ci --ignore-scripts --omit-dev
+# ─── 3. 必要なソース一式をコピー ─────────────────────────────
+COPY packages/agent-infra/mcp-servers/browser \
+     packages/agent-infra/mcp-servers/browser
+COPY packages/agent-infra/mcp-servers/filesystem/src \
+     packages/agent-infra/mcp-servers/browser/src/filesystem
 
+# ─── 4. ビルド（例: ts-node, vite など適宜変更） ──────────────
+RUN pnpm --filter "./packages/agent-infra/mcp-servers/browser..." run build
 
+######################## 2) runtime (= artifact) stage ########################
 FROM node:22-alpine AS release
 
+ENV NODE_ENV=production
 WORKDIR /app
 
-COPY --from=builder /app/dist /app/dist
-COPY --from=builder /app/package.json /app/package.json
-COPY --from=builder /app/package-lock.json /app/package-lock.json
+# ビルド成果物をコピー
+COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/dist ./dist
+COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/package*.json ./
 
-ENV NODE_ENV=production
+# ─── 本番依存だけインストール ────────────────────────────────
+RUN corepack enable && corepack prepare pnpm@9 --activate \
+ && pnpm install --prod --frozen-lockfile=false --ignore-scripts
 
-RUN npm ci --ignore-scripts --omit-dev
-
-ENTRYPOINT ["node", "/app/dist/index.js"]
+ENTRYPOINT ["node", "dist/index.js"]

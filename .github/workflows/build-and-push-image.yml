@@ -31,7 +31,7 @@ jobs:
       # ④ ビルドして GHCR へ push
       - uses: docker/build-push-action@v5
         with:
-          context: ./packages/agent-infra/mcp-servers
+          context: .
           file:   ./packages/agent-infra/mcp-servers/browser/Dockerfile
           push:   true
           tags:   ghcr.io/wabisabiinc/ui-tars:latest            # Render は latest を Pull
