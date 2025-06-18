@@ -2,6 +2,9 @@ FROM node:22.12-alpine AS builder
 
 WORKDIR /app
 
+COPY ../browser/package*.json /app/
+
+
 COPY ../filesystem/src /app
 COPY ../filesystem/tsconfig.json /tsconfig.json
 
