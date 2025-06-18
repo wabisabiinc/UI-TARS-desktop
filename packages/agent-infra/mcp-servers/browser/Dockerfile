@@ -1,32 +1,31 @@
-######################## 1) build (= builder) stage ########################
+######################## 1) build  stage ########################
 FROM node:22.12-alpine AS builder
 
-# ─── 0. pnpm を直接インストール（corepack バグ回避） ──────────────
+# 0. pnpm を直接インストール
 RUN npm install -g pnpm@9
 
-# ─── 1. ルートを作業ディレクトリに ────────────────────────────────
+# 1. ルートを作業ディレクトリに
 WORKDIR /repo
 
-# ルートの package.json / pnpm-lock.yaml をコピー（workspace 情報を含む）
-COPY package.json pnpm-lock.yaml* ./
+# 2. 依存解決に必要なメタファイルだけコピー
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 
-# ブラウザ用 workspace の package.json を上書きコピー
-COPY packages/agent-infra/mcp-servers/browser/package*.json \
-     packages/agent-infra/mcp-servers/browser/
+#   すべてのサブパッケージの package.json を先にコピー
+COPY packages/*/*/package.json packages/*/*/package.json
 
-# ─── 2. ブラウザ workspace だけ依存を解決 ────────────────────────
+# 3. ブラウザ workspace だけ依存インストール
 RUN pnpm install --filter "./packages/agent-infra/mcp-servers/browser..." --frozen-lockfile=false
 
-# ─── 3. 必要ソースをコピー ──────────────────────────────────────
+# 4. 本当に必要なソースをコピー
 COPY packages/agent-infra/mcp-servers/browser \
      packages/agent-infra/mcp-servers/browser
 COPY packages/agent-infra/mcp-servers/filesystem/src \
      packages/agent-infra/mcp-servers/browser/src/filesystem
 
-# ─── 4. ビルド ───────────────────────────────────────────────────
+# 5. ビルド
 RUN pnpm --filter "./packages/agent-infra/mcp-servers/browser..." run build
 
-######################## 2) runtime (= release) stage ######################
+######################## 2) runtime  stage ######################
 FROM node:22-alpine AS release
 
 ENV NODE_ENV=production
@@ -36,7 +35,6 @@ WORKDIR /app
 COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/dist ./dist
 COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/package*.json ./
 
-# pnpm を再インストールして本番依存のみ取得
 RUN npm install -g pnpm@9 \
  && pnpm install --prod --frozen-lockfile=false --ignore-scripts
 
