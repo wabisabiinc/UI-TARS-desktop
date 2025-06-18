@@ -16,6 +16,8 @@ COPY packages/agent-infra/mcp-servers/browser \
      packages/agent-infra/mcp-servers/browser
 COPY packages/agent-infra/mcp-servers/filesystem/src \
      packages/agent-infra/mcp-servers/browser/src/filesystem
+COPY packages/agent-infra/logger               \   
+     packages/agent-infra/logger                   
 
 # 4. ワークスペース全体の依存をインストール（devDeps 含む）
 RUN pnpm install --frozen-lockfile=false
