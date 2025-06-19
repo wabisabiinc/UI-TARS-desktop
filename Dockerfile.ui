@@ -2,14 +2,15 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# 1) GitHub Actions で生成された dist をコピー
+# 1) ビルド済みアセットをコピー
 COPY apps/agent-tars/dist ./dist
 
-# 2) 実行時に必要な package.json をコピー
+# 2) npm 用の package.json と package-lock.json をコピー
 COPY apps/agent-tars/package.json ./
+COPY apps/agent-tars/package-lock.json ./
 
-# 3) production 依存だけインストール
-RUN npm install --production
+# 3) lockfile ベースで production 依存だけクリーンインストール
+RUN npm ci --omit=dev
 
-# 4) これまでと同じ起動コマンド
+# 4) 起動はこれまでどおり
 CMD ["pnpm", "run", "start:web"]
