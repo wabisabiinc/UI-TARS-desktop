@@ -1,41 +1,48 @@
 # Dockerfile.ui
-# ── ステージ１：依存解決＆UIビルド ──
+
+########################################
+# ステージ1：依存解決＆UIのみビルド
+########################################
 FROM node:18-alpine AS builder
 WORKDIR /repo
 
 # pnpm と shx をグローバルインストール
 RUN npm install -g pnpm@9.12.3 shx
 
-# モノレポ定義＆ソースを丸ごとコピー
+# モノレポ定義＆ワークスペースをコピー
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages ./packages
 COPY apps     ./apps
+# packages はシンボリック参照だけ作れればよいのでコピー不要
 
-# 依存をインストール（prepare スクリプトも動き、dist が生成される）
-RUN pnpm install
+# 依存だけインストール＆全スクリプト無視
+# → prepare/postinstall が走らず、js-yaml周りのエラーを回避
+RUN echo "ignore-scripts=true" > .npmrc \
+ && pnpm install --frozen-lockfile \
+ && rm .npmrc
 
-# apps/agent-tars だけビルドして dist/web 等を生成
+# apps/agent-tars のみビルド
 RUN pnpm --filter ./apps/agent-tars run build:web
 
-# ── ステージ２：軽量ランタイム ──
+########################################
+# ステージ2：ランタイムイメージ
+########################################
 FROM node:18-alpine AS runner
 WORKDIR /app
 
 # pnpm をグローバルインストール
 RUN npm install -g pnpm@9.12.3
 
-# ワークスペース定義とロックファイルをコピー
+# ワークスペース定義と lockfile をコピー
 COPY --from=builder /repo/pnpm-workspace.yaml ./
 COPY --from=builder /repo/package.json         ./
 COPY --from=builder /repo/pnpm-lock.yaml        ./
 
-# モノレポ全体ソースをコピー（workspace:* 依存解決のため）
-COPY --from=builder /repo/packages ./packages
-COPY --from=builder /repo/apps     ./apps
+# apps/agent-tars のソースとビルド成果物をコピー
+COPY --from=builder /repo/apps/agent-tars/package.json ./package.json
+COPY --from=builder /repo/apps/agent-tars/dist           ./dist
 
-# 本番依存だけインストール（workspace:* も解決）
+# プロダクション依存だけインストール
 RUN pnpm install --prod --no-frozen-lockfile
 
-# アプリディレクトリに移動して起動
-WORKDIR /app/apps/agent-tars
+# アプリを起動
 CMD ["pnpm", "run", "start:web"]
