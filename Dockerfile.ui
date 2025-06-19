@@ -15,7 +15,7 @@ COPY apps/agent-tars/package.json ./
 COPY apps/agent-tars/dist ./dist
 
 # 5) pnpm で production 依存だけをインストール
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --prod --no-frozen-lockfile
 
 # 6) これまでと同じ起動コマンド
 CMD ["pnpm", "run", "start:web"]
