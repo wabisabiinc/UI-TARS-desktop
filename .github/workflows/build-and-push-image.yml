@@ -32,7 +32,7 @@ jobs:
       - uses: docker/build-push-action@v5
         with:
           context: .
-          file:   ./packages/agent-infra/mcp-servers/browser/Dockerfile
+          file:   ./Dockerfile
           push:   true
           tags:   ghcr.io/wabisabiinc/ui-tars:latest            # Render は latest を Pull
           # ビルド時に渡すシークレット類（必要に応じて追加）
