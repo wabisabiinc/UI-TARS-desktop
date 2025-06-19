@@ -1,22 +1,23 @@
 # Dockerfile.ui
-FROM node:20.13.1-alpine
-
+FROM node:20.13.1-alpine AS runner
 WORKDIR /app
 
-# pnpm をグローバルインストール
+# 1) pnpm をグローバルインストール
 RUN npm install -g pnpm@9.12.3
 
-# 1) アプリの package.json（依存一覧）だけコピー
-COPY apps/agent-tars/package.json ./
+# 2) ワークスペース設定・ルートの package.json・lockfile をコピー
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
-# 2) CI が生成したビルド成果物を丸ごとコピー
-COPY apps/agent-tars/dist ./dist
+# 3) workspace:* のパッケージ群が見つかるようにモノレポの packages 全体をコピー
+COPY packages ./packages
 
-# 3) production 依存だけインストール
-#    workspace:* 依存を含むなら、
-#    必要なローカルパッケージがあれば
-#    事前に CI でビルド＆パッケージ化してください
-RUN pnpm install --prod
+# 4) UI アプリの package.json とビルド済み成果物 dist をコピー
+COPY apps/agent-tars/package.json ./apps/agent-tars/
+COPY apps/agent-tars/dist           ./apps/agent-tars/dist
 
-# 4) 起動コマンド
+# 5) 本番依存だけインストール（workspace:* も解決される）
+WORKDIR /app/apps/agent-tars
+RUN pnpm install --prod --no-frozen-lockfile
+
+# 6) 起動コマンド
 CMD ["pnpm", "run", "start:web"]
