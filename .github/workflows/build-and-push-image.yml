@@ -45,3 +45,12 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/ui-tars:latest
             ghcr.io/${{ github.repository_owner }}/ui-tars:${{ github.sha }}
+
+  trigger-render:
+    name: Trigger Render Deploy
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Render to redeploy
+        run: |
+          curl -X POST -d '' "${{ secrets.RENDER_DEPLOY_HOOK }}"
