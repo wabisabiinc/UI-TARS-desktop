@@ -9,10 +9,13 @@ COPY . .
 RUN npm install -g pnpm@9 \
   && pnpm install --frozen-lockfile
 
+# ② ヒープサイズ拡大（8GB）
+ENV NODE_OPTIONS="--max_old_space_size=8192"
+
 
 # ③ apps/agent-tars（Vite）をビルド
 WORKDIR /app/apps/agent-tars
-RUN node --max_old_space_size=8192 $(which vite) build --config vite.config.web.ts
+RUN pnpm exec vite build --config vite.config.web.ts
 
 # ── 2. 本番用ステージ ─────────────────────────
 FROM node:20-alpine
