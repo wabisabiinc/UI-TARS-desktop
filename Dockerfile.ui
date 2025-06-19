@@ -1,48 +1,22 @@
 # Dockerfile.ui
+FROM node:20.13.1-alpine
 
-########################################
-# ステージ1：依存解決＆UIビルド
-########################################
-FROM node:18-alpine AS builder
-WORKDIR /repo
-
-RUN npm install -g pnpm@9.12.3 shx
-
-# モノレポ全体の定義とコードをコピー
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages ./packages
-COPY apps     ./apps
-
-# prepare/postinstall スクリプトを無視して依存だけインストール
-RUN echo "ignore-scripts=true" > .npmrc \
- && pnpm install --frozen-lockfile \
- && rm .npmrc
-
-# apps/agent-tars だけビルド
-RUN pnpm --filter ./apps/agent-tars run build:web
-
-########################################
-# ステージ2：軽量ランタイムイメージ
-########################################
-FROM node:18-alpine AS runner
 WORKDIR /app
 
+# pnpm をグローバルインストール
 RUN npm install -g pnpm@9.12.3
 
-# ルートのワークスペース定義と lockfile
-COPY --from=builder /repo/pnpm-workspace.yaml ./
-COPY --from=builder /repo/package.json         ./
-COPY --from=builder /repo/pnpm-lock.yaml        ./
+# 1) アプリの package.json（依存一覧）だけコピー
+COPY apps/agent-tars/package.json ./
 
-# workspace:* を解決するために packages を丸ごとコピー
-COPY --from=builder /repo/packages ./packages
+# 2) CI が生成したビルド成果物を丸ごとコピー
+COPY apps/agent-tars/dist ./dist
 
-# アプリ固有の package.json ＆ ビルド成果物(dist)
-COPY --from=builder /repo/apps/agent-tars/package.json ./
-COPY --from=builder /repo/apps/agent-tars/dist           ./dist
+# 3) production 依存だけインストール
+#    workspace:* 依存を含むなら、
+#    必要なローカルパッケージがあれば
+#    事前に CI でビルド＆パッケージ化してください
+RUN pnpm install --prod
 
-# 本番依存だけインストール（workspace:* も解決）
-RUN pnpm install --prod --no-frozen-lockfile
-
-# アプリ起動
+# 4) 起動コマンド
 CMD ["pnpm", "run", "start:web"]
