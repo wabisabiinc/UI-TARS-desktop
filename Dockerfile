@@ -5,7 +5,7 @@ WORKDIR /app
 
 # ① 依存パッケージをインストール
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm@7 && pnpm install --frozen-lockfile
+RUN npm install -g pnpm@9 && pnpm install --frozen-lockfile
 
 # ② フロントをビルド
 COPY apps/agent-tars/src/renderer ./src/renderer
