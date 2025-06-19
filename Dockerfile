@@ -1,38 +1,40 @@
 # syntax=docker/dockerfile:1
 
 ############################################
-# ステージ１：依存解決
+# ステージ１：依存解決（スクリプトはスキップ）
 ############################################
 FROM node:18-alpine AS deps
 WORKDIR /repo
 
-# 1) グローバルツール
+# グローバルツール
 RUN npm install -g pnpm@9.12.3 shx
 
-# 2) ワークスペース定義＆ロックファイルをコピー
+# ワークスペース定義＆ロックファイルを先に
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
-# 3) 全ソースをコピー（依存解決用）
+# ソース全体を依存解決用にコピー
 COPY apps     ./apps
 COPY packages ./packages
 
-# 4) npm install 時に各パッケージの prepare/build script をスキップさせる設定
-#    → packages/common/electron-build の d.tsジェネレーション失敗を回避
-RUN echo "ignore-scripts=true" > .npmrc
-
-# 5) 依存解決だけ実行
-RUN pnpm install --frozen-lockfile=false
-
-# 6) スクリプト実行を戻す
-RUN rm .npmrc
+# prepare/postinstall を抑止して依存だけインストール
+RUN echo "ignore-scripts=true" > .npmrc \
+ && pnpm install --frozen-lockfile=false \
+ && rm .npmrc
 
 ############################################
-# ステージ２：対象パッケージのビルド
+# ステージ２：依存パッケージのビルド
 ############################################
 FROM deps AS builder
-WORKDIR /repo/packages/agent-infra/mcp-servers/browser
+WORKDIR /repo
 
-# 7) ここで初めてブラウザ用サーバーだけビルド
+# 依存先パッケージだけ個別ビルド
+RUN cd packages/agent-infra/logger       && pnpm run build
+RUN cd packages/agent-infra/browser      && pnpm run build
+RUN cd packages/agent-infra/browser-use  && pnpm run build
+RUN cd packages/mcp-http-server          && pnpm run build
+
+# 最後に mcp-server-browser をビルド
+WORKDIR /repo/packages/agent-infra/mcp-servers/browser
 RUN pnpm run build
 
 ############################################
@@ -41,14 +43,12 @@ RUN pnpm run build
 FROM node:18-alpine AS runner
 WORKDIR /app
 
-# 8) ビルド成果物をコピー
+# 実行に必要なバンドルをコピー
 COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/dist ./dist
-
-# 9) package.json（production deps 用）をコピー
 COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/package.json ./
 
-# 10) productionのみインストール
+# production 依存だけインストール
 RUN npm install --production
 
-# 11) 実行コマンド
+# サーバー起動
 CMD ["node", "dist/server.cjs"]
