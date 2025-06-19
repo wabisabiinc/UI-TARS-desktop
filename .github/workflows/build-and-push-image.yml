@@ -1,40 +1,35 @@
-# .github/workflows/build-and-push-image.yml
-name: build-and-push-image
+name: Build and Publish to GHCR
 
 on:
   push:
-    branches: [ main ]          # main への push で実行
+    branches: [ main ]
 
 jobs:
-  build:
+  build-push:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read            # ソース取得
-      packages: write           # GHCR へ push
-
     steps:
-      # ① ソースをチェックアウト
-      - uses: actions/checkout@v4
+      # コード取得
+      - uses: actions/checkout@v3
 
-      # ② マルチアーキビルド用 QEMU / Buildx をセットアップ
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      # Buildxセットアップ
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # ③ GHCR にログイン（GITHUB_TOKEN で OK）
-      - uses: docker/login-action@v3
+      # GHCR にログイン
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.CR_PAT }}
 
-      # ④ ビルドして GHCR へ push
-      - uses: docker/build-push-action@v5
+      # イメージのビルド＆プッシュ
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
           context: .
-          file:   ./Dockerfile
-          push:   true
-          tags:   ghcr.io/wabisabiinc/ui-tars:latest            # Render は latest を Pull
-          # ビルド時に渡すシークレット類（必要に応じて追加）
-          build-args: |
-            VITE_OPENAI_API_KEY=${{ secrets.VITE_OPENAI_API_KEY }}
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/wabisabiinc/ui-tars:latest
+            ghcr.io/wabisabiinc/ui-tars:${{ github.sha }}
