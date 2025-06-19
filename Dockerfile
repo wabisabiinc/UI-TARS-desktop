@@ -1,35 +1,33 @@
-# ベースに Node を使う
 FROM node:20-alpine AS builder
-
 WORKDIR /app
 
-# ① 依存パッケージをインストール
+# ① モノレポ全体の依存を一旦インストール
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm@9 && pnpm install --frozen-lockfile
+RUN npm install -g pnpm@9 \
+  && pnpm install --frozen-lockfile
 
-# ② フロントをビルド
-COPY apps/agent-tars/src/renderer ./src/renderer
-WORKDIR /app/src/renderer
-RUN pnpm run build
+# ② apps/agent-tars の中身をコピー
+COPY apps/agent-tars ./apps/agent-tars
 
-# ――――――――――――――――――――――――――――――――――
+# ③ Vite（renderer）のビルド
+WORKDIR /app/apps/agent-tars
+RUN pnpm run build:web      # package.json に定義されている build:web を実行
 
-# 本番用イメージ
+# ── 2. 本番用ステージ ─────────────────────────
 FROM node:20-alpine
-
 WORKDIR /app
 
-# ③ サーバー依存を再インストール（軽量化のため）
+# ④ 本番依存のみをインストール（husky やスクリプト実行はスキップ）
 COPY package.json pnpm-lock.yaml ./
 ENV HUSKY_SKIP_INSTALL=1
-RUN npm install -g pnpm@9 && pnpm install --prod --frozen-lockfile --ignore-scripts
-# ④ ビルド成果物をコピー
-COPY --from=builder /app/src/renderer/dist/web ./dist/web
+RUN npm install -g pnpm@9 \
+  && pnpm install --prod --frozen-lockfile --ignore-scripts
+
+# ⑤ ビルド済み静的ファイルとサーバーコードを配置
+COPY --from=builder /app/apps/agent-tars/dist/web ./dist/web
 COPY apps/agent-tars/server.mjs ./
 
-# ⑤ ポートを開放
-ENV PORT 4173
+# ⑥ ポートを開放してサーバー起動
+ENV PORT=4173
 EXPOSE 4173
-
-# ⑥ デフォルトコマンド
 CMD ["node", "server.mjs"]
