@@ -1,23 +1,27 @@
-# Dockerfile.ui
+# ① ベースイメージは Node 20
 FROM node:20.13.1-alpine AS runner
 WORKDIR /app
 
-# 1) pnpm をグローバルインストール
+# ② pnpm をグローバルインストール
 RUN npm install -g pnpm@9.12.3
 
-# 2) ワークスペース設定・ルートの package.json・lockfile をコピー
+# ③ モノレポのルート設定だけコピー
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
-# 3) workspace:* のパッケージ群が見つかるようにモノレポの packages 全体をコピー
+# ④ workspace:^ を解決可能にするため packages フォルダをまるごとコピー
 COPY packages ./packages
 
-# 4) UI アプリの package.json とビルド済み成果物 dist をコピー
-COPY apps/agent-tars/package.json ./apps/agent-tars/
-COPY apps/agent-tars/dist           ./apps/agent-tars/dist
+# ⑤ UI アプリ本体の package.json と、CI で事前ビルドした dist をコピー
+COPY apps/agent-tars/package.json    ./apps/agent-tars/
+COPY apps/agent-tars/dist            ./apps/agent-tars/dist
 
-# 5) 本番依存だけインストール（workspace:* も解決される）
+# ⑥ UI アプリフォルダに移動
 WORKDIR /app/apps/agent-tars
-RUN pnpm install --prod --no-frozen-lockfile
 
-# 6) 起動コマンド
+# ⑦ 本番依存だけインストール／フックスクリプトは無視
+RUN echo "ignore-scripts=true" > .npmrc \
+ && pnpm install --prod --no-frozen-lockfile \
+ && rm .npmrc
+
+# ⑧ 起動コマンド
 CMD ["pnpm", "run", "start:web"]
