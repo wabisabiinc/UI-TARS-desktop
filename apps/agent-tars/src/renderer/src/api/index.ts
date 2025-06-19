@@ -1,5 +1,3 @@
-// apps/agent-tars/src/renderer/src/api/index.ts
-
 /**
  * クライアント側 LLM 呼び出しインターフェース
  */
@@ -29,67 +27,51 @@ const isElectron =
 // ブラウザ実行時には API キーの存在を警告
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn(
-    '[api] VITE_OPENAI_API_KEY が設定されていません。環境変数を確認してください。'
+    '[api] VITE_OPENAI_API_KEY が設定されていません。環境変数を確認してください。',
   );
 }
 
 /**
- * ブラウザ実行時（非-Electron）には
- * - Gemini via プロキシ
- * - OpenAI REST API
- * を自動切り替えで呼び出す
+ * 内部： /api プロキシ経由で LLM を呼び出す
  */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
-  const key = opts.model.toLowerCase();
+  // サーバーが期待する contents 形式に変換
+  const contents = opts.messages.map((m) => ({
+    role: m.role,
+    parts: [{ text: m.content }],
+  }));
 
-  // --- Gemini モード: プロキシ経由 ---
-  if (key.startsWith('gemini')) {
-    const contents = opts.messages.map(m => ({ role: m.role, parts: [{ text: m.content }] }));
-    const resp = await fetch('/api/generateMessage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: opts.model, contents }),
-    });
-    if (!resp.ok) {
-      const txt = await resp.text();
-      throw new Error(`[api] Gemini proxy error ${resp.status}: ${txt}`);
-    }
-    const data = await resp.json();
-    let content = '';
-    if (Array.isArray(data.candidates) && data.candidates.length) {
-      content = data.candidates[0].content ?? data.candidates[0].output?.content ?? '';
-    } else if (data.output?.content) {
-      content = data.output.content;
-    } else if (Array.isArray(data.choices) && data.choices.length) {
-      content = data.choices[0].message?.content ?? '';
-    }
-    return { tool_calls: [], content };
-  }
-
-  // --- OpenAI GPT 系モード ---
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const resp = await fetch('/api/generateMessage', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: opts.model,
-      messages: opts.messages,
+      contents,
       functions: opts.functions,
-      function_call: { name: opts.functions![0].name },
     }),
   });
-  if (!response.ok) {
-    const txt = await response.text();
-    throw new Error(`[api] OpenAI API error ${response.status}: ${txt}`);
+
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`[api] Proxy error ${resp.status}: ${txt}`);
   }
-  const json = await response.json();
-  const choice = json.choices?.[0]?.message;
-  const toolCall = choice?.function_call
-    ? [{ name: choice.function_call.name, arguments: choice.function_call.arguments }]
+
+  const data = await resp.json();
+  // OpenAI のチャット API 形式に合わせてパース
+  const choice = data.choices?.[0]?.message;
+  const tool_calls = choice?.function_call
+    ? [
+        {
+          name: choice.function_call.name,
+          arguments: choice.function_call.arguments,
+        },
+      ]
     : [];
-  return { tool_calls: toolCall, content: choice?.content ?? '' };
+
+  return {
+    tool_calls,
+    content: choice?.content ?? '',
+  };
 }
 
 // Electron 実行時: IPC クライアントを使用
@@ -105,11 +87,9 @@ export const ipcClient = createClient<Router>({
  * - Electron: ipcRenderer.invoke('askLLMTool', opts)
  * - ブラウザ: fetchLLM(opts)
  */
-export async function askLLMTool(
-  opts: AskLLMOpts
-): Promise<AskLLMResult> {
+export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   if (isElectron) {
-    return await ipcClient.askLLMTool(opts as any);
+    return ipcClient.askLLMTool(opts as any);
   }
   return fetchLLM(opts);
 }
@@ -119,7 +99,9 @@ export async function askLLMTool(
  * - Electron: ipcRenderer.invoke('listTools')
  * - ブラウザ: 空配列
  */
-export async function listTools(): Promise<{ name: string; description: string }[]> {
+export async function listTools(): Promise<
+  { name: string; description: string }[]
+> {
   return isElectron ? await ipcClient.listTools() : [];
 }
 
@@ -129,7 +111,11 @@ export async function listTools(): Promise<{ name: string; description: string }
  */
 export const onMainStreamEvent = (
   streamId: string,
-  handlers: { onData: (chunk: string) => void; onError: (error: Error) => void; onEnd: () => void }
+  handlers: {
+    onData: (chunk: string) => void;
+    onError: (error: Error) => void;
+    onEnd: () => void;
+  },
 ) => {
   if (!isElectron || !window.api) return () => {};
   const onData = (d: string) => handlers.onData(d);
@@ -149,5 +135,7 @@ export const onMainStreamEvent = (
  * LLM プロバイダー一覧取得
  */
 export async function getAvailableProviders(): Promise<string[]> {
-  return isElectron ? await ipcClient.getAvailableProviders() : ['anthropic', 'openai', 'azure_openai', 'deepseek'];
+  return isElectron
+    ? await ipcClient.getAvailableProviders()
+    : ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }

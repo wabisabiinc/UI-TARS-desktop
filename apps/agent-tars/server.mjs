@@ -2,60 +2,48 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fetch from 'node-fetch';  // npm install node-fetch@2
+import OpenAI from 'openai';           // npm install openai
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname  = path.dirname(__filename);
 
 const app = express();
-// JSON ボディをパース
 app.use(express.json());
 
-// ── Gemini 2.0-Flash プロキシエンドポイント ──
+// → 環境変数から API キーを取得
+const openaiApiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+if (!openaiApiKey) {
+  console.error('⚠️ OpenAI API key is not set in environment variables.');
+}
+
+const openai = new OpenAI({
+  apiKey: openaiApiKey,
+});
+
+// ── OpenAI Chat Completions 用エンドポイント ──
 app.post('/api/generateMessage', async (req, res) => {
   try {
-    // クライアントから { model, contents } を受け取る
     const { model, contents } = req.body;
-    // サーバ側キー（Render の env か .env でセット）
-    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(400).json({ error: 'Gemini API key is not set.' });
+
+    if (!openaiApiKey) {
+      return res.status(400).json({ error: 'OpenAI API key is not configured.' });
     }
 
-    // ★ ここを v1beta2 に変更 ★
-    const url = `https://generativelanguage.googleapis.com/v1beta2/models/${model}:generateMessage`;
+    // フロントから送られてくる contents を chat-completions 用の messages 形式に整形
+    const messages = contents.map((c) => ({
+      role:    c.role,                                 // 'user' または 'assistant'
+      content: c.content ?? c.parts?.[0]?.text ?? '',  // contents の形に合わせて適宜
+    }));
 
-    // Google の期待フォーマットに合わせて build
-    const body = {
-      instances: [
-        {
-          messages: contents.map((c) => ({
-            author: c.role,           // 'user' か 'assistant'
-            content: c.parts[0]?.text || '',
-          })),
-        },
-      ],
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
+    // OpenAI にリクエスト
+    const completion = await openai.chat.completions.create({
+      model,      // 例: 'gpt-4o-mini' や 'gpt-4o'
+      messages,
     });
 
-    if (!response.ok) {
-      const txt = await response.text();
-      console.error('[Gemini proxy] error response:', txt);
-      return res.status(response.status).json({ error: txt });
-    }
-
-    const data = await response.json();
-    return res.json(data);
+    return res.json(completion);
   } catch (err) {
-    console.error('Gemini proxy error:', err);
+    console.error('OpenAI proxy error:', err);
     return res.status(500).json({ error: err.message || err.toString() });
   }
 });
