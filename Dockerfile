@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# ① リポジトリ全体をコピーして依存をインストール
+# ① リポジトリ全体をコピーして devDependencies 含む依存をインストール
 COPY . .
 RUN npm install -g pnpm@9 \
   && pnpm install --frozen-lockfile
@@ -18,23 +18,17 @@ RUN pnpm exec vite build --config vite.config.web.ts
 FROM node:20-alpine
 WORKDIR /app
 
-# ① ワークスペース設定＆各 package.json を用意
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY apps/agent-tars/package.json ./apps/agent-tars/
+# ① ビルドステージで揃えた node_modules と lockfile/workspace 定義を丸ごとコピー
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/pnpm-lock.yaml ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
 
-# ② husky スクリプト無効化
-ENV HUSKY_SKIP_INSTALL=1
-
-# ③ 本番依存のみインストール（scripts も無視）
-RUN npm install -g pnpm@9 \
-  && pnpm install --prod --frozen-lockfile --ignore-scripts
-
-# ④ ビルド成果物とサーバーコードを配置
+# ② ビルド成果物とサーバーコードを配置
 COPY --from=builder /app/apps/agent-tars/dist/web ./dist/web
 COPY apps/agent-tars/server.mjs ./
 
-# ⑤ ポート公開（Render の指定 ENV PORT を利用）
+# ③ ポート公開（Render の ENV PORT をそのまま利用）
 EXPOSE ${PORT:-4173}
 
-# ⑥ サーバー起動コマンド
+# ④ サーバー起動コマンド
 CMD ["node", "server.mjs"]
