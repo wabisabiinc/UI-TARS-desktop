@@ -1,27 +1,31 @@
-# ① ベースイメージは Node 20
-FROM node:20.13.1-alpine AS runner
+# syntax=docker/dockerfile:1
+
+####################################
+# ① まず Node でビルドステージを作成
+####################################
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# ② pnpm をグローバルインストール
-RUN npm install -g pnpm@9.12.3
+# npm で pnpm をグローバルインストール
+RUN npm install -g pnpm@9
 
-# ③ モノレポのルート設定だけコピー
+# ワークスペース定義とルートの package.json をコピーして依存解決
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-# ④ workspace:^ を解決可能にするため packages フォルダをまるごとコピー
-COPY packages ./packages
+# アプリ本体を全部コピーしてビルド
+COPY apps/agent-tars ./apps/agent-tars
+RUN pnpm --filter ./apps/agent-tars run build:web
 
-# ⑤ UI アプリ本体の package.json と、CI で事前ビルドした dist をコピー
-COPY apps/agent-tars/package.json    ./apps/agent-tars/
-COPY apps/agent-tars/dist            ./apps/agent-tars/dist
+####################################
+# ② 軽量な nginx イメージに静的ファイルを受け渡す
+####################################
+FROM nginx:stable-alpine AS production
+# ビルド成果物だけを nginx のデフォルトドキュメントルートにコピー
+COPY --from=builder /app/apps/agent-tars/dist/web /usr/share/nginx/html
 
-# ⑥ UI アプリフォルダに移動
-WORKDIR /app/apps/agent-tars
+# （必要に応じて）ポート公開
+EXPOSE 80
 
-# ⑦ 本番依存だけインストール／フックスクリプトは無視
-RUN echo "ignore-scripts=true" > .npmrc \
- && pnpm install --prod --no-frozen-lockfile \
- && rm .npmrc
-
-# ⑧ 起動コマンド
-CMD ["pnpm", "run", "start:web"]
+# コンテナ起動時のコマンド
+CMD ["nginx", "-g", "daemon off;"]
