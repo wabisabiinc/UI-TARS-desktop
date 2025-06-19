@@ -1,21 +1,47 @@
 # Dockerfile.ui
-FROM node:18-alpine
-WORKDIR /app
+# ＝＝＝ ステージ1：ビルドステージ ＝＝＝
+FROM node:20.13.1-alpine AS builder
+WORKDIR /repo
 
-# 1) pnpm をグローバルインストール
+# pnpm をグローバルに
 RUN npm install -g pnpm@9.12.3
 
-# 2) ルートのワークスペース定義＆ロックファイルをコピー
+# モノレポ全体の定義とソースをコピー
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages ./packages
+COPY apps     ./apps
 
-# 3) apps/agent-tars の package.json をルートに置き換え
-COPY apps/agent-tars/package.json ./
+# 依存解決して
+RUN pnpm install
 
-# 4) ビルド済み成果物をコピー
-COPY apps/agent-tars/dist ./dist
+# apps/agent-tars だけビルドして dist を生成
+RUN pnpm --filter ./apps/agent-tars run build:web
 
-# 5) pnpm で production 依存だけをインストール
+# ＝＝＝ ステージ2：ランタイムステージ ＝＝＝
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# pnpm をグローバルに
+RUN npm install -g pnpm@9.12.3
+
+# ワークスペース定義とロックファイルをまるっとコピー
+COPY --from=builder /repo/pnpm-workspace.yaml ./
+COPY --from=builder /repo/package.json         ./
+COPY --from=builder /repo/pnpm-lock.yaml        ./
+
+# パッケージ群とアプリソースをコピー
+COPY --from=builder /repo/packages ./packages
+COPY --from=builder /repo/apps     ./apps
+
+# すでにビルド済み dist をそのまま取り込む
+# （apps/agent-tars/dist が builder で作られている）
+# ↓ dist は apps/agent-tars/dist に入っている前提
+#    ここでは“コピーのみ”なので実行しない
+# （COPY apps をしているので dist フォルダも含まれています）
+
+# 本番依存だけインストール（workspace:* も解決可）
 RUN pnpm install --prod --no-frozen-lockfile
 
-# 6) これまでと同じ起動コマンド
+# 最後にアプリを起動
+WORKDIR /app/apps/agent-tars
 CMD ["pnpm", "run", "start:web"]
