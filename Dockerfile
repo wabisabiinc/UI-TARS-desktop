@@ -21,17 +21,21 @@ RUN pnpm exec vite build --config vite.config.web.ts
 FROM node:20-alpine
 WORKDIR /app
 
-# ④ 本番依存のみをインストール（husky 等スキップ）
-COPY package.json pnpm-lock.yaml ./
+# ① ワークスペース設定と各 package.json をすべてコピー
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY apps/agent-tars/package.json ./apps/agent-tars/
+
+# ② husky スクリプト無効化
 ENV HUSKY_SKIP_INSTALL=1
+
+# ③ workspace 全体の prod 依存をインストール
 RUN npm install -g pnpm@9 \
   && pnpm install --prod --frozen-lockfile --ignore-scripts
 
-# ⑤ ビルド済み静的ファイルとサーバーコードを配置
+# ④ ビルド成果物とサーバーコードを配置
 COPY --from=builder /app/apps/agent-tars/dist/web ./dist/web
 COPY apps/agent-tars/server.mjs ./
 
-# ⑥ ポート設定とサーバー起動
+# ⑤ ポート設定と起動コマンド
 ENV PORT=4173
 EXPOSE 4173
-CMD ["node", "server.mjs"]
