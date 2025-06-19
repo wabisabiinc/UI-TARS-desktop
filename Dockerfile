@@ -21,7 +21,7 @@ WORKDIR /app
 
 # ③ サーバー依存を再インストール（軽量化のため）
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm@7 && pnpm install --prod --frozen-lockfile
+RUN npm install -g pnpm@9 && pnpm install --prod --frozen-lockfile
 
 # ④ ビルド成果物をコピー
 COPY --from=builder /app/src/renderer/dist/web ./dist/web
