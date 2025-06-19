@@ -1,56 +1,40 @@
-name: Build & Publish UI to GHCR
+name: Build and Push Docker Image
 
 on:
   push:
     branches:
       - main
 
-jobs:
-  build-push:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read     # ソースコードをチェックアウトするため
+  packages: write    # GHCR へイメージを push するための権限
 
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
     steps:
-      # 1) リポジトリのチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2) pnpm をセットアップ
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: '9.12.3'
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-      # 3) Node.js をセットアップ (pnpm キャッシュ有効化)
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.13.1'
-          cache: 'pnpm'
-          cache-dependency-path: '**/pnpm-lock.yaml'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      # 4) 依存インストールと UI のビルド
-      - name: Install & Build UI
-        env:
-          NODE_OPTIONS: --max_old_space_size=8192
-        run: |
-          pnpm install
-          pnpm --filter ./apps/agent-tars run build:web
-
-      # 5) GHCR へのログイン
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 6) Docker イメージのビルド＆プッシュ
-      - name: Build & Push Docker Image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.ui
+          file: ./Dockerfile.ui
           push: true
           tags: |
-            ghcr.io/wabisabiinc/ui-tars:latest
-            ghcr.io/wabisabiinc/ui-tars:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/ui-tars:latest
+            ghcr.io/${{ github.repository_owner }}/ui-tars:${{ github.sha }}
