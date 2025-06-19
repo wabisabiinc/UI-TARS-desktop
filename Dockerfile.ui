@@ -2,15 +2,21 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# 1) ビルド済みアセットをコピー
+# 1) pnpm をグローバルインストール
+RUN npm install -g pnpm@9.12.3
+
+# 2) ワークスペース定義とルートの lockfile をコピー
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+
+# 3) apps/agent-tars 用 package.json をコピー
+COPY apps/agent-tars/package.json ./package.json
+
+# 4) ビルド済み成果物をコピー
 COPY apps/agent-tars/dist ./dist
 
-# 2) npm 用の package.json と package-lock.json をコピー
-COPY apps/agent-tars/package.json ./
-COPY apps/agent-tars/package-lock.json ./
+# 5) pnpm でプロダクション依存だけインストール
+#    workspace:* もそのまま解決できる
+RUN pnpm install --frozen-lockfile --prod
 
-# 3) lockfile ベースで production 依存だけクリーンインストール
-RUN npm ci --omit=dev
-
-# 4) 起動はこれまでどおり
+# 6) これまで通り起動
 CMD ["pnpm", "run", "start:web"]
