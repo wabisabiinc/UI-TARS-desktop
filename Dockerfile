@@ -11,11 +11,11 @@ RUN npm install -g pnpm@9.12.3
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # 2) ワークスペース内のソースを一括コピー（依存解決用）
-COPY apps apps
-COPY packages packages
+COPY apps     ./apps
+COPY packages ./packages
 
 # 3) 依存をインストール（devDeps 含む）
-RUN pnpm install --frozen-lockfile=false
+RUN pnpm recursive install --frozen-lockfile=false
 
 # 4) ビルド対象ディレクトリに移動してビルド
 WORKDIR /repo/packages/agent-infra/mcp-servers/browser
@@ -28,9 +28,8 @@ WORKDIR /app
 # 5) ビルド成果物をコピー
 COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/dist ./dist
 
-# 6) package.json（production deps インストール用）をコピー
-COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/package.json ./package.json
-
+#6) 実行に必要な package.json をコピー
+COPY --from=builder /repo/packages/agent-infra/mcp-servers/browser/package.json ./
 # 7) production dependencies のみインストール
 RUN npm install --production
 
