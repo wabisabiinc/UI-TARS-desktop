@@ -5,18 +5,17 @@ WORKDIR /app
 # 1) pnpm をグローバルインストール
 RUN npm install -g pnpm@9.12.3
 
-# 2) ワークスペース定義とルートの lockfile をコピー
+# 2) ルートのワークスペース定義＆ロックファイルをコピー
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
-# 3) apps/agent-tars 用 package.json をコピー
-COPY apps/agent-tars/package.json ./package.json
+# 3) apps/agent-tars の package.json をルートに置き換え
+COPY apps/agent-tars/package.json ./
 
 # 4) ビルド済み成果物をコピー
 COPY apps/agent-tars/dist ./dist
 
-# 5) pnpm でプロダクション依存だけインストール
-#    workspace:* もそのまま解決できる
+# 5) pnpm で production 依存だけをインストール
 RUN pnpm install --frozen-lockfile --prod
 
-# 6) これまで通り起動
+# 6) これまでと同じ起動コマンド
 CMD ["pnpm", "run", "start:web"]

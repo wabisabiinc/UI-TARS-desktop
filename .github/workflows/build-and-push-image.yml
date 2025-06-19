@@ -20,10 +20,6 @@ jobs:
           pnpm install
           pnpm --filter ./apps/agent-tars run build:web
 
-      - name: Generate npm lockfile
-        working-directory: apps/agent-tars
-        run: npm install --package-lock-only
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
