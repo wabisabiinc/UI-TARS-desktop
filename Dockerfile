@@ -36,6 +36,5 @@ RUN npm install -g pnpm@9 \
 COPY --from=builder /app/apps/agent-tars/dist/web ./dist/web
 COPY apps/agent-tars/server.mjs ./
 
-# ⑤ ポート設定と起動コマンド
-ENV PORT=4173
+# ⑤ 起動コマンド
 EXPOSE 4173
