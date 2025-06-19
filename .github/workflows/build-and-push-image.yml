@@ -1,41 +1,42 @@
-# .github/workflows/build-and-push-image.yml
 name: Build & Publish UI to GHCR
 
 on:
   push:
-    branches: [ main ]
-
-# GITHUB_TOKEN にパッケージ権限は不要なのでこのまま
-permissions:
-  contents: read
+    branches:
+      - main
 
 jobs:
   build-push:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) コード取得
-      - name: Checkout code
+      # 1) リポジトリのチェックアウト
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2) Node + pnpm セットアップ
-      - name: Setup Node & pnpm
+      # 2) pnpm をセットアップ
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9.12.3'
+
+      # 3) Node.js をセットアップ (pnpm キャッシュ有効化)
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20.13.1
-          cache: 'pnpm'           # 依存キャッシュして高速化
-      - name: Install pnpm
-        run: npm install -g pnpm@9.12.3
+          node-version: '20.13.1'
+          cache: 'pnpm'
+          cache-dependency-path: '**/pnpm-lock.yaml'
 
-      # 3) 依存インストール＆UIビルド
-      - name: Install deps & Build UI
+      # 4) 依存インストールと UI のビルド
+      - name: Install & Build UI
         env:
           NODE_OPTIONS: --max_old_space_size=8192
         run: |
-          pnpm install --frozen-lockfile
+          pnpm install
           pnpm --filter ./apps/agent-tars run build:web
 
-      # 4) GHCR にログイン（ここで CR_PAT を使う）
+      # 5) GHCR へのログイン
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -43,7 +44,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT }}
 
-      # 5) Docker イメージのビルド＆プッシュ
+      # 6) Docker イメージのビルド＆プッシュ
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
