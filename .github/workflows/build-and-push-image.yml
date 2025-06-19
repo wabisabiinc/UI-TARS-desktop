@@ -1,4 +1,3 @@
-# .github/workflows/build-and-push-image.yml
 name: Build & Publish UI to GHCR
 
 on:
@@ -9,20 +8,18 @@ jobs:
   build-push:
     runs-on: ubuntu-latest
     steps:
-      # 1) リポジトリチェックアウト
       - uses: actions/checkout@v3
 
-      # 2) pnpm をグローバルインストール
       - name: Setup pnpm
         run: npm install -g pnpm
 
-      # 3) 依存インストール & apps/agent-tars のビルド
       - name: Install & Build UI
+        env:
+          NODE_OPTIONS: --max_old_space_size=4096
         run: |
           pnpm install
           pnpm --filter ./apps/agent-tars run build:web
 
-      # 4) GHCR にログイン
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -30,7 +27,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT }}
 
-      # 5) ビルド済み dist を含むイメージをビルド＆プッシュ
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
