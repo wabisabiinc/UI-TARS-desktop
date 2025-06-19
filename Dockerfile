@@ -1,5 +1,5 @@
 # ── 1. ビルド用ステージ ─────────────────────────
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # ① リポジトリ全体をコピー
@@ -9,15 +9,13 @@ COPY . .
 RUN npm install -g pnpm@9 \
   && pnpm install --frozen-lockfile
 
-# ③ Vite のヒープサイズを増やす
-ENV NODE_OPTIONS="--max_old_space_size=8192"
 
 # ③ apps/agent-tars（Vite）をビルド
 WORKDIR /app/apps/agent-tars
-RUN pnpm run build:web
+RUN node --max_old_space_size=8192 $(which vite) build --config vite.config.web.ts
 
 # ── 2. 本番用ステージ ─────────────────────────
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
 
 # ④ 本番依存のみをインストール（husky 等スキップ）
