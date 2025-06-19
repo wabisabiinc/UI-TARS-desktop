@@ -9,6 +9,9 @@ COPY . .
 RUN npm install -g pnpm@9 \
   && pnpm install --frozen-lockfile
 
+# ③ Vite のヒープサイズを増やす
+ENV NODE_OPTIONS="--max_old_space_size=8192"
+
 # ③ apps/agent-tars（Vite）をビルド
 WORKDIR /app/apps/agent-tars
 RUN pnpm run build:web
