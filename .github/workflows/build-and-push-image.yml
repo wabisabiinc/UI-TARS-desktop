@@ -15,7 +15,7 @@ jobs:
 
       - name: Install & Build UI
         env:
-          NODE_OPTIONS: --max_old_space_size=4096
+          NODE_OPTIONS: --max_old_space_size=8192
         run: |
           pnpm install
           pnpm --filter ./apps/agent-tars run build:web
