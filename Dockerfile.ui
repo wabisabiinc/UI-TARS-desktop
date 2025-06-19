@@ -1,31 +1,33 @@
 # syntax=docker/dockerfile:1
 
 ####################################
-# ① まず Node でビルドステージを作成
+# ① Builder ステージ (Node + pnpm)
 ####################################
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# npm で pnpm をグローバルインストール
+# pnpm をグローバルインストール
 RUN npm install -g pnpm@9
 
-# ワークスペース定義とルートの package.json をコピーして依存解決
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+# モノレポ全体をコピー
+COPY . .
+
+# 依存解決 (devDependencies 含む)
 RUN pnpm install --frozen-lockfile
 
-# アプリ本体を全部コピーしてビルド
-COPY apps/agent-tars ./apps/agent-tars
+# agent-tars のみビルド
 RUN pnpm --filter ./apps/agent-tars run build:web
 
 ####################################
-# ② 軽量な nginx イメージに静的ファイルを受け渡す
+# ② Production ステージ (nginx)
 ####################################
 FROM nginx:stable-alpine AS production
-# ビルド成果物だけを nginx のデフォルトドキュメントルートにコピー
+
+# ビルド成果物だけを静的ホスティング用にコピー
 COPY --from=builder /app/apps/agent-tars/dist/web /usr/share/nginx/html
 
-# （必要に応じて）ポート公開
+# ポート公開
 EXPOSE 80
 
-# コンテナ起動時のコマンド
+# nginx をフォアグラウンド実行
 CMD ["nginx", "-g", "daemon off;"]
