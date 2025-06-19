@@ -53,4 +53,4 @@ jobs:
     steps:
       - name: Notify Render to redeploy
         run: |
-          curl -X POST -d '' "${{ secrets.RENDER_DEPLOY_HOOK }}"
+          curl -X POST -d '' "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
