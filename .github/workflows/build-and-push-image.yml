@@ -3,36 +3,39 @@ name: Build & Publish UI to GHCR
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 permissions:
-  contents: read      # ソースコードを checkout するため
-  packages: write     # GHCR にプッシュするため
+  contents: read    # ソースコードをチェックアウトするため
+  packages: write   # GHCR にイメージをプッシュするため
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) リポジトリをチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up QEMU (マルチアーキ用)
+      # 2) マルチアーキ用 QEMU をセットアップ（省略可）
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      # 3) Buildx をセットアップ
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # 4) GHCR にログイン（組み込みの GITHUB_TOKEN を使用）
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          # ここは GITHUB_TOKEN でも、CR_PAT でも OK
-          # 組織設定で write 権限が取れるなら GITHUB_TOKEN を…
-          # 取りづらければ secrets.CR_PAT を使う
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ github.token }}
 
+      # 5) Dockerfile.ui をビルド＆プッシュ
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
