@@ -1,48 +1,20 @@
 # Dockerfile.ui
+FROM node:20.13.1-alpine
 
-########################################
-# ステージ1：依存解決＆UIのみビルド
-########################################
-FROM node:18-alpine AS builder
-WORKDIR /repo
-
-# pnpm と shx をグローバルインストール
-RUN npm install -g pnpm@9.12.3 shx
-
-# モノレポ定義＆ワークスペースをコピー
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY apps     ./apps
-# packages はシンボリック参照だけ作れればよいのでコピー不要
-
-# 依存だけインストール＆全スクリプト無視
-# → prepare/postinstall が走らず、js-yaml周りのエラーを回避
-RUN echo "ignore-scripts=true" > .npmrc \
- && pnpm install --frozen-lockfile \
- && rm .npmrc
-
-# apps/agent-tars のみビルド
-RUN pnpm --filter ./apps/agent-tars run build:web
-
-########################################
-# ステージ2：ランタイムイメージ
-########################################
-FROM node:18-alpine AS runner
 WORKDIR /app
 
 # pnpm をグローバルインストール
 RUN npm install -g pnpm@9.12.3
 
-# ワークスペース定義と lockfile をコピー
-COPY --from=builder /repo/pnpm-workspace.yaml ./
-COPY --from=builder /repo/package.json         ./
-COPY --from=builder /repo/pnpm-lock.yaml        ./
+# 1) アプリの package.json（依存一覧）だけコピー
+COPY apps/agent-tars/package.json ./
 
-# apps/agent-tars のソースとビルド成果物をコピー
-COPY --from=builder /repo/apps/agent-tars/package.json ./package.json
-COPY --from=builder /repo/apps/agent-tars/dist           ./dist
+# 2) CI で生成されたビルド成果物を丸ごとコピー
+COPY apps/agent-tars/dist ./dist
 
-# プロダクション依存だけインストール
-RUN pnpm install --prod --no-frozen-lockfile
+# 3) production 依存だけインストール
+RUN pnpm install --prod
 
-# アプリを起動
+# 4) アプリを起動
+WORKDIR /app
 CMD ["pnpm", "run", "start:web"]
