@@ -1,29 +1,30 @@
 // apps/agent-tars/server.mjs
-import 'dotenv/config';            // ① .env の自動読み込み
+import 'dotenv/config';            // 環境変数 (.env) を自動読み込み
 import express from 'express';
-import cors from 'cors';          // ② CORS ミドルウェア
+import cors from 'cors';          // CORS 対応
 import path from 'path';
 import { fileURLToPath } from 'url';
 import OpenAI from 'openai';      // npm install openai
 
-// __dirname/__filename の定義
+// ── __dirname/__filename の定義 ──────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app = express();
-app.use(cors());                  // ② フロントからの API 呼び出しを許可
+app.use(cors());                  // フロントからの API 呼び出しを許可
 app.use(express.json());
 
-// → 環境変数から API キーを取得
+// ── OpenAI API キーの取得 ────────────────────────────────────────────────
 const openaiApiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
 if (!openaiApiKey) {
   console.error('⚠️ OpenAI API key is not set in environment variables.');
-  // キーがない場合は起動を止めても良いですが、ここではログのみ出力して続行
+  // 必要に応じて process.exit(1) しても OK
 }
 
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
-// ── 1) メッセージ生成用エンドポイント ──
+
+// ── 1) メッセージ生成用エンドポイント ─────────────────────────────────
 app.post('/api/generateMessage', async (req, res) => {
   try {
     const { model, contents } = req.body;
@@ -31,15 +32,15 @@ app.post('/api/generateMessage', async (req, res) => {
       return res.status(400).json({ error: 'OpenAI API key is not configured.' });
     }
 
-    // フロントから送られてくる contents を chat-completions 用の messages 形式に変換
+    // フロントから送られてくる contents を chat-completions 向けの messages 形式に整形
     const messages = contents.map(c => ({
-      role:    c.role,                                 // 'user' または 'assistant'
-      content: (c.content ?? c.parts?.[0]?.text) || '',  // incoming schema に合わせて
+      role:    c.role,
+      content: (c.content ?? c.parts?.[0]?.text) || '',
     }));
 
-    // OpenAI にリクエスト
+    // OpenAI へリクエスト
     const completion = await openai.chat.completions.create({
-      model,   // UI から渡された文字列をそのまま利用
+      model,
       messages,
     });
 
@@ -50,27 +51,41 @@ app.post('/api/generateMessage', async (req, res) => {
   }
 });
 
-// ── 2) 利用可能モデル一覧取得エンドポイント ──
+
+// ── 2) 利用可能モデル一覧取得エンドポイント ─────────────────────────────
 app.get('/api/models', async (_req, res) => {
   try {
     const list = await openai.models.list();
-    // UI 側でプルダウン等を作るため、モデル名の配列だけ返しても良い
-    const names = list.data.map(m => m.id);
-    res.json({ success: true, models: names });
+
+    // フロントの Select が { key, title } の配列を期待するので整形
+    const models = list.data.map(m => ({
+      key:   m.id,
+      title: m.id,
+    }));
+
+    return res.json({
+      success: true,
+      models,
+    });
   } catch (err) {
     console.error('Error listing models:', err);
     const status = err.status || 500;
-    res.status(status).json({ success: false, error: err.message });
+    return res.status(status).json({
+      success: false,
+      error: err.message,
+    });
   }
 });
 
-// ── 3) 静的ファイルと SPA フォールバック ──
+
+// ── 3) 静的ファイル配信 & SPA フォールバック ───────────────────────────
 app.use(express.static(path.join(__dirname, 'dist/web')));
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist/web/index.html'));
 });
 
-// サーバー起動
+
+// ── サーバー起動 ────────────────────────────────────────────────────
 const port = process.env.PORT || 4173;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running at http://localhost:${port}`);
