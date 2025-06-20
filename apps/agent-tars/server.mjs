@@ -48,6 +48,19 @@ app.post('/api/generateMessage', async (req, res) => {
   }
 });
 
+
+// API & connect設定
+app.get('/api/models', async (_req, res) => {
+  try {
+    const list = await openai.models.list();
+    // 接続OKならモデル数を返す
+    res.json({ ok: true, count: list.data.length });
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ ok: false, error: err.message });
+  }
+});
+
 // 静的ファイル配信 & SPA フォールバック
 app.use(express.static(path.join(__dirname, 'dist/web')));
 app.use((req, res) => {
