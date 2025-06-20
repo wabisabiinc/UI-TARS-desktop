@@ -10,6 +10,10 @@ RUN npm install -g pnpm@9 \
 # ② Vite ビルド時のメモリ不足対策
 ENV NODE_OPTIONS="--max_old_space_size=8192"
 
+# api key変更
+ARG VITE_OPENAI_API_KEY
+ENV VITE_OPENAI_API_KEY=${VITE_OPENAI_API_KEY}
+
 # ③ apps/agent-tars の Vite ビルド
 WORKDIR /app/apps/agent-tars
 RUN pnpm exec vite build --config vite.config.web.ts
