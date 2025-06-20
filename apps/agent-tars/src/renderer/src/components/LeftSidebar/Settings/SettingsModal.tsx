@@ -1,3 +1,5 @@
+// src/renderer/components/LeftSidebar/Settings/SettingsModal.tsx
+
 import {
   Modal,
   ModalContent,
@@ -13,8 +15,8 @@ import { useState } from 'react';
 import { ModelSettingsTab } from './ModelSettingsTab';
 import { FileSystemSettingsTab } from './FileSystemSettingsTab';
 import { SearchSettingsTab } from './SearchSettingsTab';
-import { useAppSettings } from './useAppSettings';
 import { MCPServersSettingsTab } from './MCPServersSettingsTab';
+import { useAppSettings } from './useAppSettings';
 import {
   FiSettings,
   FiBox,
@@ -32,6 +34,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  // カスタムフックから必要な関数・状態を取得
   const {
     settings,
     setSettings,
@@ -39,33 +42,42 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     validateSettings,
     resetToDefaults,
   } = useAppSettings();
+
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [selectedTab, setSelectedTab] = useState('models');
+  const [selectedTab, setSelectedTab] = useState<
+    'models' | 'search' | 'filesystem' | 'mcp-servers'
+  >('models');
 
+  // 「Save」ボタン押下時のハンドラ
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Validate settings and get error information
-      const validationResult = validateSettings();
-      if (validationResult.hasError) {
-        // Switch to the tab with the error
-        if (validationResult.errorTab) {
-          setSelectedTab(validationResult.errorTab);
+      // バリデーション
+      const result = validateSettings();
+      if (result.hasError) {
+        // エラーのあるタブに切り替え
+        if (result.errorTab) {
+          setSelectedTab(result.errorTab as any);
         }
-        return;
+        return; // 保存処理中断
       }
 
-      await saveSettings();
-      onClose();
-    } catch (error) {
-      console.error('Failed to save settings:', error);
+      // 実際の保存処理
+      const ok = await saveSettings();
+      if (ok) {
+        onClose();
+      }
+      // saveSettings 内で toast による成功／失敗表示を行う
+    } catch (e) {
+      console.error('Failed to save settings:', e);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleResetToDefaults = async () => {
+  // 「Reset to Defaults」ボタン押下時のハンドラ
+  const handleReset = async () => {
     setIsResetting(true);
     try {
       await resetToDefaults();
@@ -89,146 +101,124 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       <ModalContent>
         {(onModalClose) => (
           <>
+            {/* ヘッダー */}
             <ModalHeader className="border-b border-divider">
               <div className="flex justify-center items-center gap-2 w-full">
                 <FiSettings className="text-primary" />
                 <span className="text-xl">Settings</span>
               </div>
             </ModalHeader>
+
+            {/* 本体 */}
             <ModalBody>
               <div className="flex h-full">
-                {/* Vertical tabs */}
+                {/* 左側タブ */}
                 <div className="w-48 border-r border-divider bg-default-50 dark:bg-default-100/5 flex flex-col h-full">
-                  <div
-                    className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${
-                      selectedTab === 'models'
-                        ? 'bg-primary-100/50 dark:bg-primary-900/20 text-primary border-r-2 border-primary'
-                        : 'hover:bg-default-100 dark:hover:bg-default-100/10'
-                    }`}
+                  <TabButton
+                    icon={<FiBox />}
+                    label="AI Models"
+                    active={selectedTab === 'models'}
                     onClick={() => setSelectedTab('models')}
-                  >
-                    <FiBox size={16} />
-                    <span className="text-sm">AI Models</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${
-                      selectedTab === 'search'
-                        ? 'bg-primary-100/50 dark:bg-primary-900/20 text-primary border-r-2 border-primary'
-                        : 'hover:bg-default-100 dark:hover:bg-default-100/10'
-                    }`}
+                  />
+                  <TabButton
+                    icon={<FiSearch />}
+                    label="Search"
+                    active={selectedTab === 'search'}
                     onClick={() => setSelectedTab('search')}
-                  >
-                    <FiSearch size={16} />
-                    <span className="text-sm">Search</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${
-                      selectedTab === 'filesystem'
-                        ? 'bg-primary-100/50 dark:bg-primary-900/20 text-primary border-r-2 border-primary'
-                        : 'hover:bg-default-100 dark:hover:bg-default-100/10'
-                    }`}
+                  />
+                  <TabButton
+                    icon={<FiFolder />}
+                    label="File System"
+                    active={selectedTab === 'filesystem'}
                     onClick={() => setSelectedTab('filesystem')}
-                  >
-                    <FiFolder size={16} />
-                    <span className="text-sm">File System</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${
-                      selectedTab === 'mcp-servers'
-                        ? 'bg-primary-100/50 dark:bg-primary-900/20 text-primary border-r-2 border-primary'
-                        : 'hover:bg-default-100 dark:hover:bg-default-100/10'
-                    }`}
+                  />
+                  <TabButton
+                    icon={<FiServer />}
+                    label="MCP Servers"
+                    active={selectedTab === 'mcp-servers'}
                     onClick={() => setSelectedTab('mcp-servers')}
-                  >
-                    <FiServer size={16} />
-                    <span className="text-sm">MCP Servers</span>
-                  </div>
+                  />
                 </div>
 
-                {/* Content area */}
+                {/* 右側中身 */}
                 <div className="flex-1 overflow-auto p-6">
-                  <div className="max-w-3xl mx-auto">
-                    {selectedTab === 'models' && (
-                      <div className="space-y-6">
-                        <h2 className="text-xl font-semibold pt-2 text-left">
-                          AI Models Settings
+                  {selectedTab === 'models' && (
+                    <>
+                      <h2 className="text-xl font-semibold mb-4">
+                        AI Models Settings
+                      </h2>
+                      <ModelSettingsTab
+                        settings={settings.model}
+                        setSettings={(model) =>
+                          setSettings({ ...settings, model })
+                        }
+                      />
+                    </>
+                  )}
+                  {selectedTab === 'search' && (
+                    <>
+                      <h2 className="text-xl font-semibold mb-4">
+                        Search Settings
+                      </h2>
+                      <SearchSettingsTab
+                        settings={settings.search}
+                        setSettings={(search) =>
+                          setSettings({ ...settings, search })
+                        }
+                      />
+                    </>
+                  )}
+                  {selectedTab === 'filesystem' && (
+                    <>
+                      <h2 className="text-xl font-semibold mb-4">
+                        File System Settings
+                      </h2>
+                      <FileSystemSettingsTab
+                        settings={settings.fileSystem}
+                        setSettings={(fs) =>
+                          setSettings({ ...settings, fileSystem: fs })
+                        }
+                      />
+                    </>
+                  )}
+                  {selectedTab === 'mcp-servers' && (
+                    <>
+                      <div className="flex items-center gap-2 mb-4">
+                        <h2 className="text-xl font-semibold">
+                          MCP Servers Settings
                         </h2>
-                        <ModelSettingsTab
-                          settings={settings.model}
-                          setSettings={(modelSettings) =>
-                            setSettings({ ...settings, model: modelSettings })
-                          }
-                        />
+                        <Tooltip content="MCP Servers Help" placement="top">
+                          <Link
+                            href="https://agent-tars.com/doc/mcp"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <FiHelpCircle className="text-gray-400 cursor-pointer" />
+                          </Link>
+                        </Tooltip>
                       </div>
-                    )}
-                    {selectedTab === 'search' && (
-                      <div className="space-y-6">
-                        <h2 className="text-xl font-semibold pt-2 text-left">
-                          Search Settings
-                        </h2>
-                        <SearchSettingsTab
-                          settings={settings.search}
-                          setSettings={(searchSettings) =>
-                            setSettings({ ...settings, search: searchSettings })
-                          }
-                        />
-                      </div>
-                    )}
-                    {selectedTab === 'filesystem' && (
-                      <div className="space-y-6">
-                        <h2 className="text-xl font-semibold pt-2 text-left">
-                          File System Settings
-                        </h2>
-                        <FileSystemSettingsTab
-                          settings={settings.fileSystem}
-                          setSettings={(fsSettings) =>
-                            setSettings({ ...settings, fileSystem: fsSettings })
-                          }
-                        />
-                      </div>
-                    )}
-                    {selectedTab === 'mcp-servers' && (
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-semibold pt-2 text-left">
-                            MCP Servers Settings
-                          </h2>
-                          <Tooltip content="MCP Servers Help" placement="top">
-                            <Link
-                              href="https://agent-tars.com/doc/mcp"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <FiHelpCircle
-                                size={12}
-                                className="text-gray-400 cursor-pointer outline-none"
-                              />
-                            </Link>
-                          </Tooltip>
-                        </div>
-                        <MCPServersSettingsTab
-                          settings={settings.mcp}
-                          setSettings={(mcpSettings) =>
-                            setSettings({ ...settings, mcp: mcpSettings })
-                          }
-                        />
-                      </div>
-                    )}
-                  </div>
+                      <MCPServersSettingsTab
+                        settings={settings.mcp}
+                        setSettings={(mcp) => setSettings({ ...settings, mcp })}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             </ModalBody>
+
+            {/* フッター */}
             <ModalFooter className="border-t border-divider flex justify-between">
               <Button
                 color="danger"
                 variant="light"
-                onPress={handleResetToDefaults}
-                disabled={isResetting || isSaving}
+                onPress={handleReset}
+                disabled={isSaving || isResetting}
                 startContent={
                   isResetting ? <Spinner size="sm" /> : <FiRefreshCw />
                 }
               >
-                {isResetting ? 'Resetting...' : 'Reset to Default Settings'}
+                {isResetting ? 'Resetting...' : 'Reset to Defaults'}
               </Button>
               <div className="flex gap-2">
                 <Button
@@ -252,5 +242,32 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         )}
       </ModalContent>
     </Modal>
+  );
+}
+
+/** 左側のタブボタン部分を小コンポーネント化 */
+function TabButton({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${
+        active
+          ? 'bg-primary-100/50 dark:bg-primary-900/20 text-primary border-r-2 border-primary'
+          : 'hover:bg-default-100 dark:hover:bg-default-100/10'
+      }`}
+      onClick={onClick}
+    >
+      {icon}
+      <span className="text-sm">{label}</span>
+    </div>
   );
 }
