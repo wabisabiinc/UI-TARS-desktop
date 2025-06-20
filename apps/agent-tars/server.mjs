@@ -34,7 +34,7 @@ app.post('/api/generateMessage', async (req, res) => {
     // フロントから送られてくる contents を chat-completions 用の messages 形式に変換
     const messages = contents.map(c => ({
       role:    c.role,                                 // 'user' または 'assistant'
-      content: c.content ?? c.parts?.[0]?.text || '',  // incoming schema に合わせて
+      content: (c.content ?? c.parts?.[0]?.text) || '',  // incoming schema に合わせて
     }));
 
     // OpenAI にリクエスト
