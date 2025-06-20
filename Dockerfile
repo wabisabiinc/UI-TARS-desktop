@@ -29,8 +29,7 @@ COPY --from=builder /app/pnpm-workspace.yaml ./
 
 # ② ビルド成果物とサーバーコードを配置
 COPY --from=builder /app/apps/agent-tars/dist/web ./dist/web
-COPY apps/agent-tars/server.mjs ./
-
+COPY --from=builder /app/apps/agent-tars/server.mjs ./
 # ③ ポート公開（Render の ENV PORT をそのまま利用）
 EXPOSE ${PORT:-4173}
 
