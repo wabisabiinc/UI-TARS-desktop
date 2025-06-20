@@ -14,7 +14,7 @@ import { getProviderLogo, getModelOptions } from './modelUtils';
 import { useProviders } from './useProviders';
 import { PasswordInput } from '@renderer/components/PasswordInput';
 import toast from 'react-hot-toast';
-import { useAppSettings } from '@/hooks/useAppSettings';
+import { useAppSettings } from './useAppSettings';
 import { FiAlertCircle, FiZap } from 'react-icons/fi';
 
 interface ModelSettingsTabProps {
