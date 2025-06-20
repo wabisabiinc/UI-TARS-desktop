@@ -1,3 +1,5 @@
+// src/renderer/hooks/useAppSettings.ts
+
 import { useEffect, useRef } from 'react';
 import {
   AppSettings,
@@ -22,138 +24,124 @@ export const appSettingsAtom = atom<AppSettings>(DEFAULT_SETTINGS);
 
 export function useAppSettings() {
   const [settings, setSettings] = useAtom<AppSettings>(appSettingsAtom);
-  const intiializationRef = useRef(false);
+  const initializationRef = useRef(false);
 
-  // Load settings from store on mount
+  // ── 初回マウント時にメインプロセスから設定を読み込む ─────────────
   useEffect(() => {
-    if (isReportHtmlMode) {
-      return;
-    }
-    // Listen for settings changes from main process and update local value.
-    if (!intiializationRef.current) {
-      // eslint-disable-next-line no-inner-declarations
-      const loadSettings = async () => {
-        const settings = await ipcClient.getSettings();
-        console.log(`[Setting] initial value`, settings);
-        setSettings({
-          model: settings?.model ?? DEFAULT_MODEL_SETTINGS,
-          fileSystem: settings?.fileSystem ?? DEFAULT_FILESYSTEM_SETTINGS,
-          search: settings?.search ?? DEFAULT_SEARCH_SETTINGS,
-          mcp: settings?.mcp ?? DEFAULT_MCP_SETTINGS,
-        });
-      };
+    if (isReportHtmlMode) return;
 
-      loadSettings();
-      const settingUpdatedListener = (newSettings: AppSettings) => {
-        console.log(`[Setting] store updated`, newSettings);
+    if (!initializationRef.current) {
+      (async () => {
+        const s = await ipcClient.getSettings();
+        console.log('[Setting] initial value', s);
+        setSettings({
+          model: s?.model ?? DEFAULT_MODEL_SETTINGS,
+          fileSystem: s?.fileSystem ?? DEFAULT_FILESYSTEM_SETTINGS,
+          search: s?.search ?? DEFAULT_SEARCH_SETTINGS,
+          mcp: s?.mcp ?? DEFAULT_MCP_SETTINGS,
+        });
+      })();
+
+      const onUpdate = (newSettings: AppSettings) => {
+        console.log('[Setting] store updated', newSettings);
         setSettings(newSettings);
       };
 
-      window.api.on('setting-updated', settingUpdatedListener);
-      intiializationRef.current = true;
-      return () => {
-        window.api.off('setting-updated', settingUpdatedListener);
-      };
+      window.api.on('setting-updated', onUpdate);
+      initializationRef.current = true;
+      return () => window.api.off('setting-updated', onUpdate);
     }
-
-    return () => {};
   }, []);
 
-  const validateModelSettings = (
-    modelSettings: ModelSettings,
-  ): string | null => {
-    if (!modelSettings.provider) {
-      return 'Provider is required';
-    }
-    if (!modelSettings.model) {
-      return 'Model is required';
-    }
-
-    // Azure OpenAI specific validations
-    if (modelSettings.provider === ModelProvider.AZURE_OPENAI) {
-      if (modelSettings.endpoint) {
-        // Validate endpoint format
-        try {
-          new URL(modelSettings.endpoint);
-        } catch {
-          return 'Invalid endpoint URL format';
-        }
+  // ── バリデーション関数群 (省略：既存コードのまま) ───────────────
+  const validateModelSettings = (ms: ModelSettings): string | null => {
+    if (!ms.provider) return 'Provider is required';
+    if (!ms.model) return 'Model is required';
+    if (ms.provider === ModelProvider.AZURE_OPENAI && ms.endpoint) {
+      try {
+        new URL(ms.endpoint);
+      } catch {
+        return 'Invalid endpoint URL format';
       }
     }
-
     return null;
   };
 
-  const validateSearchSettings = (
-    searchSettings: SearchSettings,
-  ): string | null => {
-    if (!searchSettings.provider) {
-      return 'Search provider is required';
-    }
-    console.log('searchSettings.provider', searchSettings.provider);
+  const validateSearchSettings = (ss: SearchSettings): string | null => {
+    if (!ss.provider) return 'Search provider is required';
     if (
       [SearchProvider.BingSearch, SearchProvider.Tavily].includes(
-        searchSettings.provider,
+        ss.provider,
       ) &&
-      !searchSettings.apiKey
+      !ss.apiKey
     ) {
-      return `API Key is required for Search Provider "${searchSettings.provider}" `;
+      return `API Key is required for "${ss.provider}"`;
     }
     return null;
   };
 
   const validateSettings = () => {
-    // Validate model settings
-    const modelError = validateModelSettings(settings.model);
-    if (modelError) {
-      toast.error(modelError);
+    const me = validateModelSettings(settings.model);
+    if (me) {
+      toast.error(me);
       return { hasError: true, errorTab: 'models' };
     }
-
-    // Validate search settings
-    const searchError = validateSearchSettings(settings.search);
-    if (searchError) {
-      toast.error(searchError);
+    const se = validateSearchSettings(settings.search);
+    if (se) {
+      toast.error(se);
       return { hasError: true, errorTab: 'search' };
     }
-
     return { hasError: false, errorTab: null };
   };
 
-  const saveSettings = async () => {
-    const validationResult = validateSettings();
-    if (validationResult.hasError) {
-      return false;
+  // ── Test Model Provider ボタン用 API 呼び出し ─────────────────
+  const testModelProvider = async (modelName: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/testModelProvider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: modelName }),
+      });
+      if (!res.ok) {
+        throw new Error(`ステータス ${res.status}`);
+      }
+      const json = (await res.json()) as { success: boolean };
+      return json.success;
+    } catch (err: any) {
+      console.error('TestModelProvider error:', err);
+      throw err;
     }
+  };
 
+  // ── 設定を保存 ─────────────────────────────────────────────
+  const saveSettings = async (): Promise<boolean> => {
+    const v = validateSettings();
+    if (v.hasError) return false;
     try {
       await ipcClient.updateAppSettings(settings);
       toast.success('Settings saved successfully');
       return true;
-    } catch (error) {
-      toast.error('Failed to save settings: ' + (error as Error).message);
+    } catch (err: any) {
+      toast.error('Failed to save settings: ' + err.message);
       return false;
     }
   };
 
-  const resetToDefaults = async () => {
+  // ── デフォルトにリセット ─────────────────────────────────────
+  const resetToDefaults = async (): Promise<boolean> => {
     try {
-      // Preserve the directory settings from current settings
-      const currentDirectories = settings.fileSystem.availableDirectories;
-
-      const defaultSettings = { ...DEFAULT_SETTINGS };
-      // Keep the current file system directories
-      defaultSettings.fileSystem = {
+      const currentDirs = settings.fileSystem.availableDirectories;
+      const def = { ...DEFAULT_SETTINGS };
+      def.fileSystem = {
         ...DEFAULT_FILESYSTEM_SETTINGS,
-        availableDirectories: currentDirectories,
+        availableDirectories: currentDirs,
       };
-
-      setSettings(defaultSettings);
-      await ipcClient.updateAppSettings(defaultSettings);
+      setSettings(def);
+      await ipcClient.updateAppSettings(def);
       toast.success('Settings reset to defaults');
       return true;
-    } catch (error) {
-      toast.error('Failed to reset settings: ' + (error as Error).message);
+    } catch (err: any) {
+      toast.error('Failed to reset settings: ' + err.message);
       return false;
     }
   };
@@ -162,7 +150,8 @@ export function useAppSettings() {
     settings,
     setSettings,
     saveSettings,
-    validateSettings,
     resetToDefaults,
+    // ここでエクスポート
+    testModelProvider,
   };
 }
