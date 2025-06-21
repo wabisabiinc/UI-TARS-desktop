@@ -27,7 +27,6 @@ export class Aware {
     private abortSignal: AbortSignal,
   ) {}
 
-  // ★ここを修正！コードブロックの除去ロジックを追加★
   private static safeParse<T>(text: string): T | null {
     // コードブロック（```json ... ```）があれば取り除く
     const cleaned = text
