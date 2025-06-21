@@ -35,11 +35,14 @@ export function ModelSettingsTab({
   // Test Model Provider 用
   const { testModelProvider } = useAppSettings();
 
+  // プリセットモデルリスト取得
+  const modelOptions = getModelOptions(settings.provider);
+
   // プリセットにないモデル名なら「カスタム」に切り替える
   useEffect(() => {
-    if (!settings.model) return;
-    const opts = getModelOptions(settings.provider).map((o) => o.value);
-    setUseCustomModel(!opts.includes(settings.model));
+    if (!settings.model) return setUseCustomModel(false);
+    const optionValues = modelOptions.map((o) => o.value);
+    setUseCustomModel(!optionValues.includes(settings.model));
   }, [settings.provider, settings.model]);
 
   if (loading) {
@@ -113,13 +116,17 @@ export function ModelSettingsTab({
           ) : (
             <Select
               label="Model"
-              selectedKeys={settings.model ? [settings.model] : []}
+              selectedKeys={
+                modelOptions.find((m) => m.value === settings.model)
+                  ? [settings.model]
+                  : []
+              }
               onChange={(e) =>
                 setSettings({ ...settings, model: e.target.value })
               }
               disallowEmptySelection
             >
-              {getModelOptions(settings.provider).map((m) => (
+              {modelOptions.map((m) => (
                 <SelectItem key={m.value} value={m.value}>
                   {m.label}
                 </SelectItem>
