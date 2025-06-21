@@ -73,13 +73,16 @@ export function MCPServersSettingsTab({
     null,
   );
 
+  // === コア修正: レスポンス型ガードを追加 ===
   const handleAddServer = async (
     mode: 'create' | 'edit',
     serverData: MCPServerSetting,
   ) => {
     console.log('New server data:', serverData);
     if (serverData.status === 'activate') {
-      const { error } = await ipcClient.checkServerStatus(serverData);
+      const result = await ipcClient.checkServerStatus(serverData);
+      const error =
+        result && typeof result === 'object' ? result.error : undefined;
       if (error) {
         console.error(`MCP Server is not running: ${error}`);
         throw new Error(error);
@@ -118,13 +121,16 @@ export function MCPServersSettingsTab({
     }
   };
 
+  // === コア修正: レスポンス型ガードを追加 ===
   const handleActivateServer = async (
     serverData: MCPServerSetting,
     isSelected: boolean,
   ) => {
     console.log('Activate server data:', serverData);
     if (isSelected) {
-      const { error } = await ipcClient.checkServerStatus(serverData);
+      const result = await ipcClient.checkServerStatus(serverData);
+      const error =
+        result && typeof result === 'object' ? result.error : undefined;
       if (error) {
         console.error(`MCP Server is not running: ${error}`);
         throw new Error(error);
