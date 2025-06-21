@@ -37,8 +37,8 @@ export function getModelOptions(provider: ModelProvider) {
       ];
     case ModelProvider.OPENAI:
       return [
-        { value: 'gpt-4o', label: 'GPT-4o' }, // ← 大文字に統一
-        { value: 'gpt-4o Mini', label: 'GPT-4o Mini' }, // ← 大文字に統一
+        { value: 'gpt-4o', label: 'GPT-4o' },
+        { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
       ];
     case ModelProvider.GEMINI:
       return [
