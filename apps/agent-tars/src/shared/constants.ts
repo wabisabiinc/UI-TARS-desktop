@@ -4,13 +4,13 @@ import {
   ModelSettings,
   ModelProvider,
   SearchSettings,
-  MCPSettings,
   SearchProvider,
+  MCPSettings,
 } from '@agent-infra/shared';
 
 export const DEFAULT_MODEL_SETTINGS: ModelSettings = {
-  provider: ModelProvider.ANTHROPIC,
-  model: 'claude-3-7-sonnet-latest',
+  provider: ModelProvider.OPENAI, // OPENAIへ変更
+  model: 'GPT-4o', // GPT-4oを指定
   apiKey: '',
   apiVersion: '',
   endpoint: '',

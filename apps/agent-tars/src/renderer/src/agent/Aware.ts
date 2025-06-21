@@ -62,7 +62,7 @@ export class Aware {
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
-      : import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-3.5-turbo';
+      : import.meta.env.VITE_LLM_MODEL_GPT || 'GPT-4o';
 
     // Get available tools for info only
     const available = (await listTools()) || [];
