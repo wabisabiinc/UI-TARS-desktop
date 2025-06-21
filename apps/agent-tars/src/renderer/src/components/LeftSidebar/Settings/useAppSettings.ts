@@ -151,7 +151,7 @@ export function useAppSettings() {
     setSettings,
     saveSettings,
     resetToDefaults,
-    // ここでエクスポート
+    validateSettings,
     testModelProvider,
   };
 }
