@@ -29,8 +29,6 @@ export interface AgentContext {
   eventManager: EventManager;
 }
 
-export interface EventStream {}
-
 export class AgentFlow {
   private eventManager: EventManager;
   private abortController: AbortController;
@@ -58,13 +56,8 @@ export class AgentFlow {
         shouldSyncStorage: true,
       },
     );
-    // this.appContext.setEvents([
-    //   ...this.eventManager.getHistoryEvents(),
-    //   ...this.eventManager.getAllEvents(),
-    // ]);
-    // return;
     setAgentStatusTip('Thinking');
-    // First, we give a loading ui to the user to indicate that the agent is thinking
+
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
@@ -97,7 +90,6 @@ export class AgentFlow {
       },
     );
     const preparePromise = greeter.run().then(async () => {
-      // Run planner agent
       const omegaMessage = await chatUtils.addMessage(
         ChatMessageUtil.assistantOmegaMessage({
           events: this.eventManager.getAllEvents(),
@@ -106,18 +98,14 @@ export class AgentFlow {
           shouldSyncStorage: true,
         },
       );
-      // Bind event data and ui, when event added, the ui will be updated automatically
-      // In other words, reactive ui programming
       this.eventManager.setUpdateCallback(async (events) => {
         this.appContext.setEvents((preEvents: EventItem[]) => {
-          // Show canvas automatically when tool used
           if (preEvents.find((e) => e.type === EventType.ToolUsed)) {
             this.appContext.setShowCanvas(true);
           }
           const latestToolUsedEvent = [...events]
             .reverse()
             .find((e) => e.type === EventType.ToolUsed);
-          console.log('latestToolUsedEvent', latestToolUsedEvent);
           latestToolUsedEvent &&
             this.appContext.setEventId(latestToolUsedEvent.id);
           return [...this.eventManager.getHistoryEvents(), ...events];
@@ -175,10 +163,6 @@ export class AgentFlow {
     this.loadingStatusTip = 'Thinking';
     try {
       while (!this.abortController.signal.aborted && !this.hasFinished) {
-        // The environment includes
-        // - The current event stream context
-        // - The current task
-        // - The current user message
         try {
           await this.eventManager.addLoadingStatus(this.loadingStatusTip);
           console.log(
@@ -191,6 +175,28 @@ export class AgentFlow {
           if (this.abortController.signal.aborted) {
             break;
           }
+
+          // === ★ここでPlanUpdateイベントを必ずpushする！ ===
+          // reflectionやstatusをPlanUpdateイベントのcontentに必ず含める
+          await this.eventManager.addPlanUpdate(
+            awareResult.step,
+            (awareResult.plan || []).map((t) => ({
+              ...t,
+              status: PlanTaskStatus.Todo, // 必要に応じてstatusを調整
+            })),
+            {
+              reflection: awareResult.reflection,
+              status: awareResult.status,
+            }, // content拡張
+          );
+          await this.eventManager.addAgentStatus(awareResult.status);
+
+          // === ↑ここまで重要！！↑ ===
+
+          // Reset the plan
+          agentContext.plan = this.normalizePlan(awareResult, agentContext);
+          this.appContext.setPlanTasks(agentContext.plan);
+
           if (
             awareResult.plan &&
             awareResult.plan.every(
@@ -200,46 +206,26 @@ export class AgentFlow {
             this.hasFinished = true;
             break;
           }
-
-          if (this.interruptController.signal.aborted) {
-            this.interruptController = new AbortController();
-            this.loadingStatusTip = 'Replanning';
-            aware.updateSignal(this.interruptController.signal);
-            executor.updateSignal(this.interruptController.signal);
-            await this.eventManager.addLoadingStatus(this.loadingStatusTip);
-            this.appContext.setAgentStatusTip(this.loadingStatusTip);
-            continue;
-          }
-          console.log('aware result', awareResult);
-
-          // Reset the plan
-          agentContext.plan = this.normalizePlan(awareResult, agentContext);
-          await this.eventManager.addPlanUpdate(
-            awareResult.step,
-            agentContext.plan,
-          );
-          this.appContext.setPlanTasks(agentContext.plan);
           if (agentContext.plan.length === 0) {
             this.hasFinished = true;
             break;
           }
           agentContext.currentStep = awareResult.step;
+
           if (awareResult.step > agentContext.currentStep) {
-            // Update UI, render new step
             await this.eventManager.addNewPlanStep(agentContext.currentStep);
-            // Over the max task number, break the loop
             if (awareResult.step > agentContext.plan.length) {
               break;
             }
           }
           if (awareResult.status) {
-            // Update UI, render new status
             await this.eventManager.addAgentStatus(awareResult.status);
           }
 
           await this.eventManager.addLoadingStatus(this.loadingStatusTip);
           this.appContext.setAgentStatusTip(this.loadingStatusTip);
 
+          // 以下（ツール実行や後続処理）は元のまま
           const toolCallList = (await executor.run(awareResult.status)).filter(
             Boolean,
           );
@@ -247,7 +233,6 @@ export class AgentFlow {
           if (this.abortController.signal.aborted) {
             break;
           }
-
           if (this.interruptController.signal.aborted) {
             this.handleUserInterrupt(aware, executor);
             continue;
@@ -256,7 +241,6 @@ export class AgentFlow {
           const mcpTools = await ipcClient.listMcpTools();
           const customServerTools = await ipcClient.listCustomTools();
           this.loadingStatusTip = 'Executing Tool';
-          // Execute the tools
           for (const toolCall of toolCallList) {
             const toolName = toolCall.function.name;
             const isMCPToolCall = mcpTools.some(
@@ -265,15 +249,12 @@ export class AgentFlow {
             const isCustomServerToolCall = customServerTools.some(
               (tool) => tool.function.name === toolCall.function.name,
             );
-
             await this.eventManager.addToolCallStart(
               toolName,
               toolCall.function.arguments,
             );
-
             await this.eventManager.addToolExecutionLoading(toolCall);
 
-            // Set up permission check interval for this specific tool execution
             let originalFileContent: string | null = null;
 
             if (isMCPToolCall || isCustomServerToolCall) {
@@ -288,7 +269,6 @@ export class AgentFlow {
                   filePath: params.path,
                 });
               }
-              // Execute tool in the main thread
               const callResult = (await executor.executeTools([toolCall]))[0];
               this.appContext.setAgentStatusTip('Executing Tool');
 
@@ -302,7 +282,6 @@ export class AgentFlow {
             }
 
             if (originalFileContent) {
-              // Add the missing original file content for diff code display
               this.eventManager.updateFileContentForEdit(originalFileContent);
             }
 
@@ -378,30 +357,24 @@ Current task: ${currentTask}
     `;
   }
 
-  /**
-   * Get the event manager instance
-   */
   public getEventManager(): EventManager {
     return this.eventManager;
   }
 
   private normalizePlan(awareResult: AwareResult, agentContext: AgentContext) {
     return (awareResult.plan || agentContext.plan).map((item, index) => {
-      // const currentTask = agentContext.plan[index];
       if (index < awareResult.step - 1) {
         return {
           ...item,
           status: PlanTaskStatus.Done,
         };
       }
-
       if (index === awareResult.step - 1) {
         return {
           ...item,
           status: PlanTaskStatus.Doing,
         };
       }
-
       return {
         ...item,
         status: PlanTaskStatus.Todo,
