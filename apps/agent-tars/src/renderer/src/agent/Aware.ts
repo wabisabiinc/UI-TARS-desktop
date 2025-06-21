@@ -27,11 +27,18 @@ export class Aware {
     private abortSignal: AbortSignal,
   ) {}
 
+  // ★ここを修正！コードブロックの除去ロジックを追加★
   private static safeParse<T>(text: string): T | null {
+    // コードブロック（```json ... ```）があれば取り除く
+    const cleaned = text
+      .replace(/^\s*```json\s*/i, '') // 先頭の```jsonを除去
+      .replace(/^\s*```\s*/i, '') // 先頭の```だけも除去
+      .replace(/\s*```\s*$/, ''); // 末尾の```を除去
+
     try {
-      return JSON.parse(text) as T;
+      return JSON.parse(cleaned) as T;
     } catch {
-      console.warn('JSON.parse failed:', text);
+      console.warn('JSON.parse failed:', cleaned);
       return null;
     }
   }
