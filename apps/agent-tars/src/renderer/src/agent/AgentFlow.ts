@@ -154,7 +154,6 @@ export class AgentFlow {
     }
   }
 
-  // === ここから大幅修正版 ===
   private async launchAgentLoop(
     executor: Executor,
     aware: Aware,
@@ -194,6 +193,10 @@ export class AgentFlow {
             },
           );
           console.log('[AgentFlow] PlanUpdate added', agentContext.plan);
+          console.log(
+            '[AgentFlow] events after addPlanUpdate',
+            this.eventManager.getAllEvents(),
+          );
 
           this.appContext.setPlanTasks(agentContext.plan);
 
@@ -367,7 +370,6 @@ Current task: ${currentTask}
   }
 
   private normalizePlan(awareResult: AwareResult, agentContext: AgentContext) {
-    // awareResult.planが空やundefinedの場合は空配列を返す
     if (!awareResult.plan || awareResult.plan.length === 0) {
       return [];
     }
