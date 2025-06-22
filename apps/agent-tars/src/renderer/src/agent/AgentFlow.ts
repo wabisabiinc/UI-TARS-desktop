@@ -37,6 +37,7 @@ export class AgentFlow {
   private loadingStatusTip = '';
 
   constructor(private appContext: AppContext) {
+    console.log('[AgentFlow] constructor called');
     const omegaHistoryEvents = this.parseHistoryEvents();
     this.eventManager = new EventManager(omegaHistoryEvents);
     this.abortController = new AbortController();
@@ -44,6 +45,7 @@ export class AgentFlow {
   }
 
   async run() {
+    console.log('[AgentFlow] run() called');
     this.appContext.setPlanTasks([]);
     const chatUtils = this.appContext.chatUtils;
     const { setAgentStatusTip } = this.appContext;
@@ -81,6 +83,7 @@ export class AgentFlow {
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (event) => {
+        console.log('[AgentFlow] globalEventEmitter triggered', event);
         if (event.type === 'terminate') {
           this.abortController.abort();
           await this.eventManager.addEndEvent(
@@ -99,9 +102,7 @@ export class AgentFlow {
         },
       );
       this.eventManager.setUpdateCallback(async (events) => {
-        // ★ここを追加（UIに渡るeventsを確認）
-        console.log('[DEBUG] setUpdateCallback received events:', events);
-
+        console.log('[AgentFlow] setUpdateCallback received events:', events);
         this.appContext.setEvents((preEvents: EventItem[]) => {
           if (preEvents.find((e) => e.type === EventType.ToolUsed)) {
             this.appContext.setShowCanvas(true);
@@ -126,6 +127,7 @@ export class AgentFlow {
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (event: GlobalEvent) => {
+          console.log('[AgentFlow] globalEventEmitter inner triggered', event);
           switch (event.type) {
             case 'user-interrupt':
               await this.eventManager.addUserInterruptionInput(event.text);
@@ -163,41 +165,39 @@ export class AgentFlow {
     agentContext: AgentContext,
     preparePromise: Promise<void>,
   ) {
+    console.log('[AgentFlow] launchAgentLoop() start');
     this.loadingStatusTip = 'Thinking';
     let firstStep = true;
 
     try {
       while (!this.abortController.signal.aborted && !this.hasFinished) {
         try {
+          console.log('[AgentFlow] loop start, adding loading status');
           await this.eventManager.addLoadingStatus(this.loadingStatusTip);
 
           // 1. 環境分析
+          console.log('[AgentFlow] before aware.run()');
           const awareResult = await aware.run();
+          console.log('[AgentFlow] after aware.run()', awareResult);
+
           this.loadingStatusTip = 'Thinking';
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
-          // --- awareResult.planログ ---
           console.log(
-            '=== awareResult.plan ===',
+            '[AgentFlow] awareResult.plan',
             awareResult.plan,
             'step:',
             awareResult.step,
           );
 
-          // ★ ここでPlanTaskに必ず型補完
           const normalizedPlan = this.normalizePlan(awareResult, agentContext);
-          console.log('=== normalizePlan ===', normalizedPlan);
+          console.log('[AgentFlow] normalizedPlan', normalizedPlan);
 
-          // 2. planの正規化＆PlanUpdateイベントpush
           const prevStep = agentContext.currentStep;
           agentContext.plan = normalizedPlan;
 
-          // PlanUpdate追加直前
-          console.log(
-            '[AgentFlow DEBUG] PlanUpdate前のplan:',
-            agentContext.plan,
-          );
+          console.log('[AgentFlow] Before addPlanUpdate:', agentContext.plan);
 
           await this.eventManager.addPlanUpdate(
             awareResult.step && awareResult.step > 0 ? awareResult.step : 1,
@@ -208,39 +208,35 @@ export class AgentFlow {
             },
           );
 
-          // ★ここでPlanUpdateイベントがeventsに入っているか必ず確認！
           const allEvents = this.eventManager.getAllEvents();
-          console.log('★ [AgentFlow] events after PlanUpdate:', allEvents);
+          console.log('[AgentFlow] events after PlanUpdate:', allEvents);
 
-          // PlanUpdateのみ強調
           const latestPlanUpdate = allEvents.filter(
             (e) => e.type === EventType.PlanUpdate,
           );
-          console.log('★ [AgentFlow] latestPlanUpdate:', latestPlanUpdate);
+          console.log('[AgentFlow] latestPlanUpdate:', latestPlanUpdate);
 
           this.appContext.setEvents(allEvents);
           this.appContext.setPlanTasks(agentContext.plan);
 
-          // 3. planが空ならエラー警告を出して早期終了
           if (!agentContext.plan || agentContext.plan.length === 0) {
-            console.warn('[AgentFlow] planが空: LLM応答が不正か、パース失敗');
+            console.warn(
+              '[AgentFlow] plan is empty: LLM response invalid or parse failure',
+            );
             await this.eventManager.addAgentStatus('No plan generated (error)');
             this.hasFinished = true;
             break;
           }
 
-          // 4. currentStep更新
           agentContext.currentStep =
             awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
 
-          // 5. NewPlanStepイベント（初回 or step進行時のみpush）
           if (firstStep || agentContext.currentStep > prevStep) {
             await this.eventManager.addNewPlanStep(agentContext.currentStep);
             firstStep = false;
             if (agentContext.currentStep > agentContext.plan.length) break;
           }
 
-          // 6. statusイベント
           if (awareResult.status) {
             await this.eventManager.addAgentStatus(awareResult.status);
           }
@@ -248,7 +244,6 @@ export class AgentFlow {
           await this.eventManager.addLoadingStatus(this.loadingStatusTip);
           this.appContext.setAgentStatusTip(this.loadingStatusTip);
 
-          // planが全てDoneなら終了
           if (
             agentContext.plan.length > 0 &&
             agentContext.plan.every(
@@ -259,10 +254,11 @@ export class AgentFlow {
             break;
           }
 
-          // ツール実行
           const toolCallList = (await executor.run(awareResult.status)).filter(
             Boolean,
           );
+          console.log('[AgentFlow] toolCallList', toolCallList);
+
           if (this.abortController.signal.aborted) break;
           if (this.interruptController.signal.aborted) {
             this.handleUserInterrupt(aware, executor);
@@ -340,7 +336,7 @@ export class AgentFlow {
           }
           this.loadingStatusTip = 'Thinking';
         } catch (e) {
-          console.log(e);
+          console.error('[AgentFlow] loop error', e);
           break;
         }
       }
@@ -349,6 +345,7 @@ export class AgentFlow {
         console.log('Agent loop aborted');
         return;
       }
+      console.error('[AgentFlow] fatal error', error);
       throw error;
     }
   }
@@ -391,7 +388,6 @@ Current task: ${currentTask}
     return this.eventManager;
   }
 
-  // ★ LLM応答（plan: [{ id, title }]だけ）でも必ずPlanTask型に揃える
   private normalizePlan(
     awareResult: AwareResult,
     agentContext: AgentContext,
@@ -401,14 +397,11 @@ Current task: ${currentTask}
       !Array.isArray(awareResult.plan) ||
       awareResult.plan.length === 0
     ) {
-      // 空・未定義・配列じゃない場合は空Planとして扱う
       return [];
     }
     const step =
       awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
-    // 型不整合防止のためPlanTask構造を必ず満たす
     return (awareResult.plan || agentContext.plan).map((item, index) => {
-      // idとtitleがあればOK、status/startedAt/finishedAt/cost/errorはデフォルト
       return {
         id: item.id ?? `${index + 1}`,
         title: item.title ?? `Step ${index + 1}`,
