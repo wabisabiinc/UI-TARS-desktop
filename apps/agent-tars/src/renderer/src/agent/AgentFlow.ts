@@ -256,7 +256,7 @@ export class AgentFlow {
             break;
           }
 
-          // ツール実行（省略：ここはあなたの現状で問題なし）
+          // ツール実行
           const toolCallList = (await executor.run(awareResult.status)).filter(
             Boolean,
           );
@@ -393,7 +393,12 @@ Current task: ${currentTask}
     awareResult: AwareResult,
     agentContext: AgentContext,
   ): PlanTask[] {
-    if (!awareResult.plan || awareResult.plan.length === 0) {
+    if (
+      !awareResult.plan ||
+      !Array.isArray(awareResult.plan) ||
+      awareResult.plan.length === 0
+    ) {
+      // 空・未定義・配列じゃない場合は空Planとして扱う
       return [];
     }
     const step =

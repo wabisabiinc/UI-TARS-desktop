@@ -95,22 +95,32 @@ export class Aware {
       ),
     ];
 
-    console.log('[Aware] → askLLMTool', { model, messages });
-    const raw = await askLLMTool({ model, messages });
+    // ★ API型へ変換
+    const messagesForAPI = messages.map((m) => ({
+      role: m.role as 'system' | 'user' | 'assistant',
+      content: m.content,
+    }));
+
+    console.log('[Aware] → askLLMTool', { model, messages: messagesForAPI });
+    const raw = await askLLMTool({ model, messages: messagesForAPI });
     const content = raw?.content || '';
     console.log('[Aware] ← askLLMTool content=', content);
 
     // Parse JSON response
     const parsed = Aware.safeParse<AwareResult>(content);
 
-    // ---- ★ここがポイント ----
-    if (parsed) {
+    // planがundefinedや配列でない場合も必ず空配列で補正
+    if (parsed && Array.isArray(parsed.plan)) {
       return {
         ...parsed,
-        plan: parsed.plan ?? [], // ← planがundefinedなら必ず空配列に
+        plan: parsed.plan,
+      };
+    } else if (parsed) {
+      return {
+        ...parsed,
+        plan: [],
       };
     }
-    // ---- ★ここまで ----
 
     console.warn('Failed to parse JSON, returning default.');
     return this.getDefaultResult();
