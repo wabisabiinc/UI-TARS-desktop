@@ -99,8 +99,6 @@ export class AgentFlow {
         },
       );
       this.eventManager.setUpdateCallback(async (events) => {
-        // PlanUpdateが追加された後でのみUI events状態を更新する
-        // preEvents(前の状態)とevents(最新)を合成
         this.appContext.setEvents((preEvents: EventItem[]) => {
           if (preEvents.find((e) => e.type === EventType.ToolUsed)) {
             this.appContext.setShowCanvas(true);
@@ -193,16 +191,19 @@ export class AgentFlow {
               status: awareResult.status,
             },
           );
-          // ★ここを追加！
-          this.appContext.setEvents(this.eventManager.getAllEvents());
 
-          // 追加：PlanUpdate後のイベント配列を確認
-          console.log('[AgentFlow] PlanUpdate added', agentContext.plan);
+          // ここでPlanUpdateイベントがeventsに入っているか必ず確認！
           console.log(
-            '[AgentFlow] events after addPlanUpdate',
+            '★ [AgentFlow] events after PlanUpdate:',
             this.eventManager.getAllEvents(),
           );
+          // さらにPlanUpdateが含まれているか個別に強調
+          const latestPlanUpdate = this.eventManager
+            .getAllEvents()
+            .filter((e) => e.type === EventType.PlanUpdate);
+          console.log('★ [AgentFlow] latestPlanUpdate:', latestPlanUpdate);
 
+          this.appContext.setEvents(this.eventManager.getAllEvents());
           this.appContext.setPlanTasks(agentContext.plan);
 
           // 3. planが空ならエラー警告を出して早期終了
