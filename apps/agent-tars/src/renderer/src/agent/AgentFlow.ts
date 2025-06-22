@@ -185,7 +185,6 @@ export class AgentFlow {
           const prevStep = agentContext.currentStep;
           agentContext.plan = normalizedPlan;
 
-          // --- PlanUpdate追加後、必ずUIでイベント配列が新しくなるまで一時waitを加えても良い ---
           await this.eventManager.addPlanUpdate(
             awareResult.step,
             agentContext.plan,
@@ -194,6 +193,9 @@ export class AgentFlow {
               status: awareResult.status,
             },
           );
+          // ★ここを追加！
+          this.appContext.setEvents(this.eventManager.getAllEvents());
+
           // 追加：PlanUpdate後のイベント配列を確認
           console.log('[AgentFlow] PlanUpdate added', agentContext.plan);
           console.log(

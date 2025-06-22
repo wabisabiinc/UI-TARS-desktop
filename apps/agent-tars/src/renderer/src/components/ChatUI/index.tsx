@@ -13,6 +13,7 @@ import {
   currentAgentFlowIdRefAtom,
   eventsAtom,
   globalEventEmitter,
+  planTasksAtom, // ★必要なら追加
 } from '@renderer/state/chat';
 import { BeforeInputContainer } from './BeforeInputContainer';
 import { AgentStatusTip } from './AgentStatusTip';
@@ -48,10 +49,20 @@ export function OpenAgentChatUI() {
   const isDarkMode = useThemeMode();
   const { initMessages, setMessages, messages } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
+  const [events] = useAtom(eventsAtom); // ★追加：現在のevents
+  const [planTasks] = useAtom(planTasksAtom); // ★追加：planTasks（もしplanTasksAtomがあれば。なければ消してOK）
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
+
+  // ★追加：UIが受け取るevents/planTasksの監視
+  useEffect(() => {
+    console.log('[ChatUI] UIで受け取ったevents:', events);
+  }, [events]);
+  useEffect(() => {
+    console.log('[ChatUI] UIで受け取ったplanTasks:', planTasks);
+  }, [planTasks]);
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
