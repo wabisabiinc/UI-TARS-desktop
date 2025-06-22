@@ -162,26 +162,35 @@ export class AgentFlow {
     preparePromise: Promise<void>,
   ) {
     this.loadingStatusTip = 'Thinking';
-    let firstStep = true; // 初回step判定
+    let firstStep = true; // ★初回判定
 
     try {
       while (!this.abortController.signal.aborted && !this.hasFinished) {
         try {
           await this.eventManager.addLoadingStatus(this.loadingStatusTip);
+
+          // 1. 環境分析
           const awareResult = await aware.run();
           this.loadingStatusTip = 'Thinking';
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
-          // 1. plan配列の正規化
+          // 2. planの正規化＆PlanUpdateイベントpush
           const prevStep = agentContext.currentStep;
           agentContext.plan = this.normalizePlan(awareResult, agentContext);
 
-          // 2. 必ずPlanUpdateイベントをpush
+          // ここでPlanUpdateが確実にpushされる
           await this.eventManager.addPlanUpdate(
             awareResult.step,
             agentContext.plan,
+            {
+              reflection: awareResult.reflection,
+              status: awareResult.status,
+            },
           );
+          // ★ログ追加
+          console.log('[AgentFlow] PlanUpdate added', agentContext.plan);
+
           this.appContext.setPlanTasks(agentContext.plan);
 
           // 3. planが空なら終了
@@ -193,7 +202,7 @@ export class AgentFlow {
           // 4. currentStep更新
           agentContext.currentStep = awareResult.step;
 
-          // 5. NewPlanStepイベント（初回 or step進行時にpush）
+          // 5. NewPlanStepイベント（初回 or step進行時のみpush）
           if (firstStep || agentContext.currentStep > prevStep) {
             await this.eventManager.addNewPlanStep(agentContext.currentStep);
             firstStep = false;
@@ -210,8 +219,8 @@ export class AgentFlow {
 
           // planが全てDoneなら終了
           if (
-            awareResult.plan &&
-            awareResult.plan.every(
+            agentContext.plan.length > 0 &&
+            agentContext.plan.every(
               (task) => task.status === PlanTaskStatus.Done,
             )
           ) {
@@ -219,7 +228,7 @@ export class AgentFlow {
             break;
           }
 
-          // === ツール実行以下はそのまま ===
+          // === ツール実行はそのまま ===
           const toolCallList = (await executor.run(awareResult.status)).filter(
             Boolean,
           );
@@ -352,6 +361,10 @@ Current task: ${currentTask}
   }
 
   private normalizePlan(awareResult: AwareResult, agentContext: AgentContext) {
+    // awareResult.planが空やundefinedの場合は空配列を返す
+    if (!awareResult.plan || awareResult.plan.length === 0) {
+      return [];
+    }
     return (awareResult.plan || agentContext.plan).map((item, index) => {
       if (index < awareResult.step - 1) {
         return {
