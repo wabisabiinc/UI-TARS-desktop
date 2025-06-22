@@ -17,6 +17,8 @@ export interface AwareResult {
  * Simplified: Direct JSON parsing without function calls
  */
 export class Aware {
+  private signal: AbortSignal; // 追加
+
   private readonly prompt =
     'You are an AI agent responsible for analyzing the current environment and planning the next actionable step. ' +
     'Return only a JSON object with keys: reflection (string), step (number), status (string), plan (array of {id:string,title:string}).';
@@ -24,8 +26,15 @@ export class Aware {
   constructor(
     private appContext: AppContext,
     private agentContext: AgentContext,
-    private abortSignal: AbortSignal,
-  ) {}
+    abortSignal: AbortSignal, // ←引数名を変更
+  ) {
+    this.signal = abortSignal; // ←プロパティに保持
+  }
+
+  /** 外部からAbortSignalを更新できるようにする */
+  updateSignal(signal: AbortSignal) {
+    this.signal = signal;
+  }
 
   private static safeParse<T>(text: string): T | null {
     // コードブロック（```json ... ```）があれば取り除く
@@ -52,8 +61,8 @@ export class Aware {
   }
 
   public async run(): Promise<AwareResult> {
-    console.log('[Aware] ▶︎ run start, aborted=', this.abortSignal.aborted);
-    if (this.abortSignal.aborted) {
+    console.log('[Aware] ▶︎ run start, aborted=', this.signal.aborted);
+    if (this.signal.aborted) {
       return this.getDefaultResult();
     }
 

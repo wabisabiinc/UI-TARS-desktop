@@ -29,17 +29,33 @@ export interface EventStreamUIMeta {
 export function extractEventStreamUIMeta(
   events: EventItem[],
 ): EventStreamUIMeta {
+  // 全体デバッグ
+  console.log(
+    '[parseEvents] 受信events:',
+    events.map((ev) => ({ type: ev.type, content: ev.content })),
+  );
+
   // Get latest plan tasks
   const lastPlanUpdate = [...events]
     .reverse()
     .find((event) => event.type === EventType.PlanUpdate);
   console.log('[parseEvents] lastPlanUpdate:', lastPlanUpdate);
 
-  // --- plan配列のパースを強化 ---
-  const planTasks =
-    lastPlanUpdate && Array.isArray((lastPlanUpdate.content as any).plan)
-      ? (lastPlanUpdate.content as any).plan
-      : [];
+  // plan配列の安全な抽出
+  let planTasks: PlanTask[] = [];
+  if (
+    lastPlanUpdate &&
+    lastPlanUpdate.content &&
+    Array.isArray((lastPlanUpdate.content as any).plan)
+  ) {
+    planTasks = (lastPlanUpdate.content as any).plan;
+  } else {
+    // デバッグ情報
+    console.warn(
+      '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない:',
+      lastPlanUpdate?.content,
+    );
+  }
   console.log('[parseEvents] planTasks:', planTasks);
 
   // Get latest agent status
@@ -60,6 +76,7 @@ export function extractEventStreamUIMeta(
   const lastEvent = events[events.length - 1];
   const isLoading = lastEvent?.type === EventType.LoadingStatus;
   const eventGroups = groupEventsByStep(events);
+
   return {
     planTasks,
     agentStatus,
