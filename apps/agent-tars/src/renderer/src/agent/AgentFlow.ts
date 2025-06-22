@@ -154,7 +154,7 @@ export class AgentFlow {
     }
   }
 
-  // === ★ここから大幅修正版★ ===
+  // === ここから大幅修正版 ===
   private async launchAgentLoop(
     executor: Executor,
     aware: Aware,
@@ -162,7 +162,7 @@ export class AgentFlow {
     preparePromise: Promise<void>,
   ) {
     this.loadingStatusTip = 'Thinking';
-    let firstStep = true; // ★初回判定
+    let firstStep = true;
 
     try {
       while (!this.abortController.signal.aborted && !this.hasFinished) {
@@ -175,11 +175,16 @@ export class AgentFlow {
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
+          // ---- ★ 追加ログでplan流れの追跡 ----
+          console.log('=== awareResult.plan ===', awareResult.plan);
+          const normalizedPlan = this.normalizePlan(awareResult, agentContext);
+          console.log('=== normalizePlan ===', normalizedPlan);
+
           // 2. planの正規化＆PlanUpdateイベントpush
           const prevStep = agentContext.currentStep;
-          agentContext.plan = this.normalizePlan(awareResult, agentContext);
+          agentContext.plan = normalizedPlan;
 
-          // ここでPlanUpdateが確実にpushされる
+          // PlanUpdateは常にpush、extra情報も必ず保持
           await this.eventManager.addPlanUpdate(
             awareResult.step,
             agentContext.plan,
@@ -188,13 +193,14 @@ export class AgentFlow {
               status: awareResult.status,
             },
           );
-          // ★ログ追加
           console.log('[AgentFlow] PlanUpdate added', agentContext.plan);
 
           this.appContext.setPlanTasks(agentContext.plan);
 
-          // 3. planが空なら終了
+          // 3. planが空ならエラー警告を出して早期終了
           if (!agentContext.plan || agentContext.plan.length === 0) {
+            console.warn('[AgentFlow] planが空: LLM応答が不正か、パース失敗');
+            await this.eventManager.addAgentStatus('No plan generated (error)');
             this.hasFinished = true;
             break;
           }
@@ -324,8 +330,8 @@ export class AgentFlow {
 
   private async handleUserInterrupt(aware: Aware, executor: Executor) {
     this.interruptController = new AbortController();
-    aware.updateSignal(this.interruptController.signal);
-    executor.updateSignal(this.interruptController.signal);
+    aware.updateSignal?.(this.interruptController.signal);
+    executor.updateSignal?.(this.interruptController.signal);
     this.loadingStatusTip = 'Replanning';
     await this.eventManager.addLoadingStatus(this.loadingStatusTip);
     this.appContext.setAgentStatusTip(this.loadingStatusTip);
