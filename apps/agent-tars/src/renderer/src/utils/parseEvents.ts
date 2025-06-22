@@ -44,10 +44,19 @@ export function extractEventStreamUIMeta(
     Array.isArray((lastPlanUpdate.content as any).plan)
   ) {
     planTasks = (lastPlanUpdate.content as any).plan;
+    // デバッグ: PlanTask配列が空の場合も原因を表示
+    if (!planTasks.length) {
+      console.warn(
+        '[parseEvents] PlanUpdateのplan配列が空! lastPlanUpdate.content:',
+        lastPlanUpdate.content,
+      );
+    }
   } else {
-    console.warn(
-      '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない:',
-      lastPlanUpdate?.content,
+    // ここでエラーをthrowして異常な型を止める（デバッグ用）
+    throw new Error(
+      `[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない: ${JSON.stringify(
+        lastPlanUpdate?.content,
+      )}`,
     );
   }
   console.log('[parseEvents] planTasks:', planTasks);

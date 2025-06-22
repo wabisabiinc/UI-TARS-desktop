@@ -174,13 +174,15 @@ export class AgentFlow {
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
-          // --- 追加: awareResult.planログ ---
+          // --- awareResult.planログ ---
           console.log(
             '=== awareResult.plan ===',
             awareResult.plan,
             'step:',
             awareResult.step,
           );
+
+          // ★ ここでPlanTaskに必ず型補完
           const normalizedPlan = this.normalizePlan(awareResult, agentContext);
           console.log('=== normalizePlan ===', normalizedPlan);
 
@@ -188,8 +190,14 @@ export class AgentFlow {
           const prevStep = agentContext.currentStep;
           agentContext.plan = normalizedPlan;
 
+          // PlanUpdate追加直前
+          console.log(
+            '[AgentFlow DEBUG] PlanUpdate前のplan:',
+            agentContext.plan,
+          );
+
           await this.eventManager.addPlanUpdate(
-            awareResult.step,
+            awareResult.step && awareResult.step > 0 ? awareResult.step : 1,
             agentContext.plan,
             {
               reflection: awareResult.reflection,
@@ -198,17 +206,16 @@ export class AgentFlow {
           );
 
           // ここでPlanUpdateイベントがeventsに入っているか必ず確認！
-          console.log(
-            '★ [AgentFlow] events after PlanUpdate:',
-            this.eventManager.getAllEvents(),
+          const allEvents = this.eventManager.getAllEvents();
+          console.log('★ [AgentFlow] events after PlanUpdate:', allEvents);
+
+          // PlanUpdateのみ強調
+          const latestPlanUpdate = allEvents.filter(
+            (e) => e.type === EventType.PlanUpdate,
           );
-          // さらにPlanUpdateが含まれているか個別に強調
-          const latestPlanUpdate = this.eventManager
-            .getAllEvents()
-            .filter((e) => e.type === EventType.PlanUpdate);
           console.log('★ [AgentFlow] latestPlanUpdate:', latestPlanUpdate);
 
-          this.appContext.setEvents(this.eventManager.getAllEvents());
+          this.appContext.setEvents(allEvents);
           this.appContext.setPlanTasks(agentContext.plan);
 
           // 3. planが空ならエラー警告を出して早期終了
@@ -249,7 +256,7 @@ export class AgentFlow {
             break;
           }
 
-          // === ツール実行はそのまま ===
+          // ツール実行（省略：ここはあなたの現状で問題なし）
           const toolCallList = (await executor.run(awareResult.status)).filter(
             Boolean,
           );
@@ -381,30 +388,33 @@ Current task: ${currentTask}
     return this.eventManager;
   }
 
-  private normalizePlan(awareResult: AwareResult, agentContext: AgentContext) {
+  // ★ LLM応答（plan: [{ id, title }]だけ）でも必ずPlanTask型に揃える
+  private normalizePlan(
+    awareResult: AwareResult,
+    agentContext: AgentContext,
+  ): PlanTask[] {
     if (!awareResult.plan || awareResult.plan.length === 0) {
       return [];
     }
-    // ★ここが重要：stepが0または未定義なら1として扱う
     const step =
       awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
+    // 型不整合防止のためPlanTask構造を必ず満たす
     return (awareResult.plan || agentContext.plan).map((item, index) => {
-      if (index < step - 1) {
-        return {
-          ...item,
-          status: PlanTaskStatus.Done,
-        };
-      }
-      if (index === step - 1) {
-        return {
-          ...item,
-          status: PlanTaskStatus.Doing,
-        };
-      }
+      // idとtitleがあればOK、status/startedAt/finishedAt/cost/errorはデフォルト
       return {
-        ...item,
-        status: PlanTaskStatus.Todo,
-      };
+        id: item.id ?? `${index + 1}`,
+        title: item.title ?? `Step ${index + 1}`,
+        status:
+          index < step - 1
+            ? PlanTaskStatus.Done
+            : index === step - 1
+              ? PlanTaskStatus.Doing
+              : PlanTaskStatus.Todo,
+        startedAt: (item as any).startedAt ?? undefined,
+        finishedAt: (item as any).finishedAt ?? undefined,
+        cost: (item as any).cost ?? undefined,
+        error: (item as any).error ?? undefined,
+      } as PlanTask;
     });
   }
 
