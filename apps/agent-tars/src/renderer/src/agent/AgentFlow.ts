@@ -99,6 +99,8 @@ export class AgentFlow {
         },
       );
       this.eventManager.setUpdateCallback(async (events) => {
+        // PlanUpdateが追加された後でのみUI events状態を更新する
+        // preEvents(前の状態)とevents(最新)を合成
         this.appContext.setEvents((preEvents: EventItem[]) => {
           if (preEvents.find((e) => e.type === EventType.ToolUsed)) {
             this.appContext.setShowCanvas(true);
@@ -174,7 +176,7 @@ export class AgentFlow {
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
-          // ---- ★ 追加ログでplan流れの追跡 ----
+          // --- 追加: awareResult.planログ ---
           console.log('=== awareResult.plan ===', awareResult.plan);
           const normalizedPlan = this.normalizePlan(awareResult, agentContext);
           console.log('=== normalizePlan ===', normalizedPlan);
@@ -183,7 +185,7 @@ export class AgentFlow {
           const prevStep = agentContext.currentStep;
           agentContext.plan = normalizedPlan;
 
-          // PlanUpdateは常にpush、extra情報も必ず保持
+          // --- PlanUpdate追加後、必ずUIでイベント配列が新しくなるまで一時waitを加えても良い ---
           await this.eventManager.addPlanUpdate(
             awareResult.step,
             agentContext.plan,
@@ -192,6 +194,7 @@ export class AgentFlow {
               status: awareResult.status,
             },
           );
+          // 追加：PlanUpdate後のイベント配列を確認
           console.log('[AgentFlow] PlanUpdate added', agentContext.plan);
           console.log(
             '[AgentFlow] events after addPlanUpdate',

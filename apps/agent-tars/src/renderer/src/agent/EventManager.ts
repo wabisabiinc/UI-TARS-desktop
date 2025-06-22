@@ -32,7 +32,6 @@ export class EventManager {
     return [...this.events];
   }
 
-  // --- ここにデバッグ用console.logを追加 ---
   private async addEvent<T extends EventType>(
     type: T,
     content: EventContentDescriptor[T],
@@ -46,7 +45,7 @@ export class EventManager {
     };
     this.events.push(event);
 
-    // ★イベント配列の中身をデバッグ出力（必要に応じてカスタムしてOK）
+    // デバッグ：イベントログ
     console.log(
       '[EventManager.events]',
       this.events.map((ev) => ({
@@ -67,10 +66,7 @@ export class EventManager {
     content: string,
     attachments: { path: string }[],
   ): Promise<EventItem> {
-    return this.addEvent(EventType.ChatText, {
-      text: content,
-      attachments,
-    });
+    return this.addEvent(EventType.ChatText, { text: content, attachments });
   }
 
   public async addLoadingStatus(
@@ -80,14 +76,13 @@ export class EventManager {
     return this.addEvent(EventType.LoadingStatus, { title }, willNotifyUpdate);
   }
 
-  // PlanUpdateもextra受け取り可能
   public async addPlanUpdate(
     step: number,
     plan: PlanTask[],
     extra?: { reflection?: string; status?: string },
   ): Promise<EventItem> {
     return this.addEvent(EventType.PlanUpdate, {
-      plan,
+      plan: plan ?? [],
       step,
       ...(extra || {}),
     });
@@ -209,9 +204,7 @@ export class EventManager {
           (event.content.tool === ToolCallType.EditFile ||
             event.content.tool === ToolCallType.WriteFile),
       );
-    if (!latestEditEvent) {
-      return;
-    }
+    if (!latestEditEvent) return;
     latestEditEvent.content = {
       ...latestEditEvent.content,
       original: originalContent,
@@ -227,9 +220,7 @@ export class EventManager {
           event.type === EventType.ToolUsed &&
           SNAPSHOT_BROWSER_ACTIONS.includes(event.content.tool),
       );
-    if (!latestBrowserNavigateEvent) {
-      return;
-    }
+    if (!latestBrowserNavigateEvent) return;
     latestBrowserNavigateEvent.content = {
       ...latestBrowserNavigateEvent.content,
       result: [

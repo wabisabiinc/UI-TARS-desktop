@@ -23,25 +23,20 @@ export interface EventStreamUIMeta {
   isLoading: boolean;
 }
 
-/**
- * Extracts UI metadata from events stream
- */
 export function extractEventStreamUIMeta(
   events: EventItem[],
 ): EventStreamUIMeta {
-  // 全体デバッグ
   console.log(
     '[parseEvents] 受信events:',
     events.map((ev) => ({ type: ev.type, content: ev.content })),
   );
 
-  // Get latest plan tasks
+  // PlanUpdateの最新イベントを取得
   const lastPlanUpdate = [...events]
     .reverse()
     .find((event) => event.type === EventType.PlanUpdate);
   console.log('[parseEvents] lastPlanUpdate:', lastPlanUpdate);
 
-  // plan配列の安全な抽出
   let planTasks: PlanTask[] = [];
   if (
     lastPlanUpdate &&
@@ -50,7 +45,6 @@ export function extractEventStreamUIMeta(
   ) {
     planTasks = (lastPlanUpdate.content as any).plan;
   } else {
-    // デバッグ情報
     console.warn(
       '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない:',
       lastPlanUpdate?.content,
@@ -58,13 +52,13 @@ export function extractEventStreamUIMeta(
   }
   console.log('[parseEvents] planTasks:', planTasks);
 
-  // Get latest agent status
+  // 最新のAgentStatusを取得
   const lastAgentStatus = [...events]
     .reverse()
     .find((event) => event.type === EventType.AgentStatus);
   const agentStatus = lastAgentStatus ? lastAgentStatus.content : '';
 
-  // Get current step
+  // 最新のNewPlanStepイベント
   const lastStepEvent = [...events]
     .reverse()
     .find((event) => event.type === EventType.NewPlanStep);
@@ -72,7 +66,7 @@ export function extractEventStreamUIMeta(
     ? (lastStepEvent.content as { step: number }).step
     : 1;
 
-  // Get latest non-loading event
+  // 最後のイベント
   const lastEvent = events[events.length - 1];
   const isLoading = lastEvent?.type === EventType.LoadingStatus;
   const eventGroups = groupEventsByStep(events);
@@ -87,9 +81,6 @@ export function extractEventStreamUIMeta(
   };
 }
 
-/**
- * Groups events by their type (ChatText vs PlanStep)
- */
 export function groupEventsByStep(events: EventItem[]): UIGroup[] {
   const groups: UIGroup[] = [];
   let currentStepEvents: EventItem[] = [];
@@ -131,10 +122,8 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
       const allDone = event.content.plan?.every(
         (task: any) => task.status === PlanTaskStatus.Done,
       );
-      if (allDone) {
-        // No need to render new plan step
-        return;
-      }
+      if (allDone) return;
+
       currentStep = (event.content as { step: number | undefined }).step || 1;
 
       if (currentStepEvents.length > 0) {
@@ -172,10 +161,8 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
 
     if (event.type === EventType.LoadingStatus) {
       if (hasPlan) {
-        // loading in plan step
         currentStepEvents.push(event);
       } else {
-        // Initial loading
         groups.push({
           type: UIGroupType.Loading,
           step: 1,
@@ -185,9 +172,7 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
       return;
     }
 
-    if (event.type === EventType.ToolCallStart) {
-      return;
-    }
+    if (event.type === EventType.ToolCallStart) return;
 
     if (event.type === EventType.ChatText || event.type === EventType.End) {
       if (currentStepEvents.length > 0) {
@@ -197,12 +182,8 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
           currentStepEvents = [];
         }
       }
-      const groupType = (() => {
-        if (event.type === EventType.End) {
-          return UIGroupType.End;
-        }
-        return UIGroupType.ChatText;
-      })();
+      const groupType =
+        event.type === EventType.End ? UIGroupType.End : UIGroupType.ChatText;
       groups.push({
         type: groupType,
         step: currentStep,
@@ -238,6 +219,5 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
   }
 
   console.log('groups', groups);
-
   return groups;
 }
