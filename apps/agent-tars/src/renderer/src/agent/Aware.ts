@@ -102,9 +102,15 @@ export class Aware {
 
     // Parse JSON response
     const parsed = Aware.safeParse<AwareResult>(content);
+
+    // ---- ★ここがポイント ----
     if (parsed) {
-      return parsed;
+      return {
+        ...parsed,
+        plan: parsed.plan ?? [], // ← planがundefinedなら必ず空配列に
+      };
     }
+    // ---- ★ここまで ----
 
     console.warn('Failed to parse JSON, returning default.');
     return this.getDefaultResult();
