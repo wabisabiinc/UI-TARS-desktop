@@ -37,6 +37,7 @@ export function extractEventStreamUIMeta(
     .find((event) => event.type === EventType.PlanUpdate);
   console.log('[parseEvents] lastPlanUpdate:', lastPlanUpdate);
 
+  // ★ どんな場合も必ず planTasks を配列型に
   let planTasks: PlanTask[] = [];
   if (
     lastPlanUpdate &&
@@ -52,11 +53,11 @@ export function extractEventStreamUIMeta(
       );
     }
   } else {
-    // ここでエラーをthrowして異常な型を止める（デバッグ用）
-    throw new Error(
-      `[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない: ${JSON.stringify(
-        lastPlanUpdate?.content,
-      )}`,
+    // ★ throwしない。空配列にしてUIクラッシュを防ぐ
+    planTasks = [];
+    console.warn(
+      '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない（空配列で初期化）:',
+      lastPlanUpdate?.content,
     );
   }
   console.log('[parseEvents] planTasks:', planTasks);
