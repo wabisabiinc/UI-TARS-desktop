@@ -32,18 +32,21 @@ export function extractEventStreamUIMeta(
   // Get latest plan tasks
   const lastPlanUpdate = [...events]
     .reverse()
-    .find((event) => event.type === EventType.PlanUpdate && event.content.plan);
-  const planTasks = lastPlanUpdate
-    ? (lastPlanUpdate.content as { plan: PlanTask[] }).plan
-    : [];
+    .find((event) => event.type === EventType.PlanUpdate);
+  console.log('[parseEvents] lastPlanUpdate:', lastPlanUpdate);
+
+  // --- plan配列のパースを強化 ---
+  const planTasks =
+    lastPlanUpdate && Array.isArray((lastPlanUpdate.content as any).plan)
+      ? (lastPlanUpdate.content as any).plan
+      : [];
+  console.log('[parseEvents] planTasks:', planTasks);
 
   // Get latest agent status
   const lastAgentStatus = [...events]
     .reverse()
     .find((event) => event.type === EventType.AgentStatus);
-  const agentStatus = lastAgentStatus
-    ? (lastAgentStatus.content as string)
-    : '';
+  const agentStatus = lastAgentStatus ? lastAgentStatus.content : '';
 
   // Get current step
   const lastStepEvent = [...events]
@@ -108,8 +111,8 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
   filterLoading(events).forEach((event) => {
     if (event.type === EventType.PlanUpdate) {
       hasPlan = true;
-      const allDone = event.content.plan.every(
-        (task) => task.status === PlanTaskStatus.Done,
+      const allDone = event.content.plan?.every(
+        (task: any) => task.status === PlanTaskStatus.Done,
       );
       if (allDone) {
         // No need to render new plan step
@@ -150,7 +153,6 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
       return;
     }
 
-    // The last event
     if (event.type === EventType.LoadingStatus) {
       if (hasPlan) {
         // loading in plan step
