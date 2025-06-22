@@ -175,7 +175,12 @@ export class AgentFlow {
           if (this.abortController.signal.aborted) break;
 
           // --- 追加: awareResult.planログ ---
-          console.log('=== awareResult.plan ===', awareResult.plan);
+          console.log(
+            '=== awareResult.plan ===',
+            awareResult.plan,
+            'step:',
+            awareResult.step,
+          );
           const normalizedPlan = this.normalizePlan(awareResult, agentContext);
           console.log('=== normalizePlan ===', normalizedPlan);
 
@@ -215,7 +220,8 @@ export class AgentFlow {
           }
 
           // 4. currentStep更新
-          agentContext.currentStep = awareResult.step;
+          agentContext.currentStep =
+            awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
 
           // 5. NewPlanStepイベント（初回 or step進行時のみpush）
           if (firstStep || agentContext.currentStep > prevStep) {
@@ -379,14 +385,17 @@ Current task: ${currentTask}
     if (!awareResult.plan || awareResult.plan.length === 0) {
       return [];
     }
+    // ★ここが重要：stepが0または未定義なら1として扱う
+    const step =
+      awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
     return (awareResult.plan || agentContext.plan).map((item, index) => {
-      if (index < awareResult.step - 1) {
+      if (index < step - 1) {
         return {
           ...item,
           status: PlanTaskStatus.Done,
         };
       }
-      if (index === awareResult.step - 1) {
+      if (index === step - 1) {
         return {
           ...item,
           status: PlanTaskStatus.Doing,
