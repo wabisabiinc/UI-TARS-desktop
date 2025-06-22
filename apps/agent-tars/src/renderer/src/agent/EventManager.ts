@@ -32,6 +32,7 @@ export class EventManager {
     return [...this.events];
   }
 
+  // --- ここにデバッグ用console.logを追加 ---
   private async addEvent<T extends EventType>(
     type: T,
     content: EventContentDescriptor[T],
@@ -44,6 +45,20 @@ export class EventManager {
       timestamp: Date.now(),
     };
     this.events.push(event);
+
+    // ★イベント配列の中身をデバッグ出力（必要に応じてカスタムしてOK）
+    console.log(
+      '[EventManager.events]',
+      this.events.map((ev) => ({
+        type: ev.type,
+        content: ev.content,
+        step: (ev as any)?.content?.step,
+        plan: (ev as any)?.content?.plan,
+        reflection: (ev as any)?.content?.reflection,
+        status: (ev as any)?.content?.status,
+      })),
+    );
+
     willNotifyUpdate && (await this.notifyUpdate());
     return event;
   }
@@ -65,7 +80,7 @@ export class EventManager {
     return this.addEvent(EventType.LoadingStatus, { title }, willNotifyUpdate);
   }
 
-  // ★ reflection/statusを柔軟にcontentに入れるよう引数追加！
+  // PlanUpdateもextra受け取り可能
   public async addPlanUpdate(
     step: number,
     plan: PlanTask[],

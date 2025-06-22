@@ -154,6 +154,7 @@ export class AgentFlow {
     }
   }
 
+  // === ★ここから大幅修正版★ ===
   private async launchAgentLoop(
     executor: Executor,
     aware: Aware,
@@ -161,42 +162,53 @@ export class AgentFlow {
     preparePromise: Promise<void>,
   ) {
     this.loadingStatusTip = 'Thinking';
+    let firstStep = true; // 初回step判定
+
     try {
       while (!this.abortController.signal.aborted && !this.hasFinished) {
         try {
           await this.eventManager.addLoadingStatus(this.loadingStatusTip);
-          console.log(
-            'env info',
-            this.getEnvironmentInfo(this.appContext, agentContext),
-          );
           const awareResult = await aware.run();
           this.loadingStatusTip = 'Thinking';
           await preparePromise;
-          if (this.abortController.signal.aborted) {
+          if (this.abortController.signal.aborted) break;
+
+          // 1. plan配列の正規化
+          const prevStep = agentContext.currentStep;
+          agentContext.plan = this.normalizePlan(awareResult, agentContext);
+
+          // 2. 必ずPlanUpdateイベントをpush
+          await this.eventManager.addPlanUpdate(
+            awareResult.step,
+            agentContext.plan,
+          );
+          this.appContext.setPlanTasks(agentContext.plan);
+
+          // 3. planが空なら終了
+          if (!agentContext.plan || agentContext.plan.length === 0) {
+            this.hasFinished = true;
             break;
           }
 
-          // === ★ここでPlanUpdateイベントを必ずpushする！ ===
-          // reflectionやstatusをPlanUpdateイベントのcontentに必ず含める
-          await this.eventManager.addPlanUpdate(
-            awareResult.step,
-            (awareResult.plan || []).map((t) => ({
-              ...t,
-              status: PlanTaskStatus.Todo, // 必要に応じてstatusを調整
-            })),
-            {
-              reflection: awareResult.reflection,
-              status: awareResult.status,
-            }, // content拡張
-          );
-          await this.eventManager.addAgentStatus(awareResult.status);
+          // 4. currentStep更新
+          agentContext.currentStep = awareResult.step;
 
-          // === ↑ここまで重要！！↑ ===
+          // 5. NewPlanStepイベント（初回 or step進行時にpush）
+          if (firstStep || agentContext.currentStep > prevStep) {
+            await this.eventManager.addNewPlanStep(agentContext.currentStep);
+            firstStep = false;
+            if (agentContext.currentStep > agentContext.plan.length) break;
+          }
 
-          // Reset the plan
-          agentContext.plan = this.normalizePlan(awareResult, agentContext);
-          this.appContext.setPlanTasks(agentContext.plan);
+          // 6. statusイベント
+          if (awareResult.status) {
+            await this.eventManager.addAgentStatus(awareResult.status);
+          }
 
+          await this.eventManager.addLoadingStatus(this.loadingStatusTip);
+          this.appContext.setAgentStatusTip(this.loadingStatusTip);
+
+          // planが全てDoneなら終了
           if (
             awareResult.plan &&
             awareResult.plan.every(
@@ -206,33 +218,12 @@ export class AgentFlow {
             this.hasFinished = true;
             break;
           }
-          if (agentContext.plan.length === 0) {
-            this.hasFinished = true;
-            break;
-          }
-          agentContext.currentStep = awareResult.step;
 
-          if (awareResult.step > agentContext.currentStep) {
-            await this.eventManager.addNewPlanStep(agentContext.currentStep);
-            if (awareResult.step > agentContext.plan.length) {
-              break;
-            }
-          }
-          if (awareResult.status) {
-            await this.eventManager.addAgentStatus(awareResult.status);
-          }
-
-          await this.eventManager.addLoadingStatus(this.loadingStatusTip);
-          this.appContext.setAgentStatusTip(this.loadingStatusTip);
-
-          // 以下（ツール実行や後続処理）は元のまま
+          // === ツール実行以下はそのまま ===
           const toolCallList = (await executor.run(awareResult.status)).filter(
             Boolean,
           );
-
-          if (this.abortController.signal.aborted) {
-            break;
-          }
+          if (this.abortController.signal.aborted) break;
           if (this.interruptController.signal.aborted) {
             this.handleUserInterrupt(aware, executor);
             continue;
@@ -287,7 +278,6 @@ export class AgentFlow {
 
             if (SNAPSHOT_BROWSER_ACTIONS.includes(toolName as ToolCallType)) {
               const screenshotPath = await ipcClient.saveBrowserSnapshot();
-              console.log('screenshotPath', screenshotPath);
               this.eventManager.updateScreenshot(screenshotPath.filepath);
             }
 
