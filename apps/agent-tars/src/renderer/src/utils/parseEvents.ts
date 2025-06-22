@@ -45,7 +45,6 @@ export function extractEventStreamUIMeta(
     Array.isArray((lastPlanUpdate.content as any).plan)
   ) {
     planTasks = (lastPlanUpdate.content as any).plan;
-    // デバッグ: PlanTask配列が空の場合も原因を表示
     if (!planTasks.length) {
       console.warn(
         '[parseEvents] PlanUpdateのplan配列が空! lastPlanUpdate.content:',
@@ -60,6 +59,9 @@ export function extractEventStreamUIMeta(
       lastPlanUpdate?.content,
     );
   }
+  // ここで「絶対に配列」
+  if (!Array.isArray(planTasks)) planTasks = [];
+
   console.log('[parseEvents] planTasks:', planTasks);
 
   // 最新のAgentStatusを取得

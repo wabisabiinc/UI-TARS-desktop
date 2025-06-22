@@ -99,6 +99,9 @@ export class AgentFlow {
         },
       );
       this.eventManager.setUpdateCallback(async (events) => {
+        // ★ここを追加（UIに渡るeventsを確認）
+        console.log('[DEBUG] setUpdateCallback received events:', events);
+
         this.appContext.setEvents((preEvents: EventItem[]) => {
           if (preEvents.find((e) => e.type === EventType.ToolUsed)) {
             this.appContext.setShowCanvas(true);
@@ -205,7 +208,7 @@ export class AgentFlow {
             },
           );
 
-          // ここでPlanUpdateイベントがeventsに入っているか必ず確認！
+          // ★ここでPlanUpdateイベントがeventsに入っているか必ず確認！
           const allEvents = this.eventManager.getAllEvents();
           console.log('★ [AgentFlow] events after PlanUpdate:', allEvents);
 
