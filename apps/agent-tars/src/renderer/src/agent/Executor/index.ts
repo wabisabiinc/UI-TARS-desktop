@@ -71,12 +71,16 @@ You should use the same language as the user input by default.
   }
 
   async run(status: string) {
+    // ログ出力が絶対流れるよう二重化
+    try {
+      window?.console?.log?.('[Executor] run() called', status);
+    } catch {}
     console.log('[Executor] run() called', status);
+
     const environmentInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
-    console.log('[Executor] environmentInfo', environmentInfo);
 
     if (this.abortSignal.aborted) {
       console.log('[Executor] run aborted (pre)');
@@ -84,6 +88,7 @@ You should use the same language as the user input by default.
     }
 
     const streamId = Math.random().toString(36).substring(7);
+
     return new Promise<ToolCall[]>(async (resolve, reject) => {
       const abortHandler = () => {
         ipcClient.abortRequest({ requestId: streamId });
@@ -96,10 +101,10 @@ You should use the same language as the user input by default.
           console.error('Error getting active MCP settings', e);
           return {};
         });
+
       try {
         this.abortSignal.addEventListener('abort', abortHandler);
 
-        // ---- ログ追加 ----
         const payload = {
           messages: [
             Message.systemMessage(this.systemPrompt),
@@ -114,18 +119,52 @@ You should use the same language as the user input by default.
           requestId: streamId,
         };
 
-        console.log('[Executor] before ipcClient.askLLMTool');
+        try {
+          window?.console?.log?.(
+            '[Executor] askLLMTool payload:',
+            JSON.stringify(payload, null, 2),
+          );
+        } catch {}
+        console.log(
+          '[Executor] askLLMTool payload:',
+          JSON.stringify(payload, null, 2),
+        );
+
         const result = await ipcClient.askLLMTool(payload);
-        console.log('[Executor] after ipcClient.askLLMTool:', result);
+
+        try {
+          window?.console?.log?.(
+            '[Executor] askLLMTool result:',
+            JSON.stringify(result, null, 2),
+          );
+        } catch {}
+        console.log(
+          '[Executor] askLLMTool result:',
+          JSON.stringify(result, null, 2),
+        );
 
         const toolCalls = (result.tool_calls || []).filter(Boolean);
-        console.log('[Executor] toolCalls:', toolCalls);
-
-        console.log('[Executor] before interceptToolCalls');
-        const interceptedToolCalls = await interceptToolCalls(toolCalls);
+        try {
+          window?.console?.log?.(
+            '[Executor] LLM tool_calls:',
+            JSON.stringify(toolCalls, null, 2),
+          );
+        } catch {}
         console.log(
-          '[Executor] after interceptToolCalls',
-          interceptedToolCalls,
+          '[Executor] LLM tool_calls:',
+          JSON.stringify(toolCalls, null, 2),
+        );
+
+        const interceptedToolCalls = await interceptToolCalls(toolCalls);
+        try {
+          window?.console?.log?.(
+            '[Executor] Intercepted tool_calls:',
+            JSON.stringify(interceptedToolCalls, null, 2),
+          );
+        } catch {}
+        console.log(
+          '[Executor] Intercepted tool_calls:',
+          JSON.stringify(interceptedToolCalls, null, 2),
         );
 
         resolve(interceptedToolCalls);
@@ -151,25 +190,21 @@ You should use the same language as the user input by default.
 
         try {
           this.abortSignal.addEventListener('abort', abortHandler);
-
-          console.log('[Executor] before interceptToolCalls (executeTools)');
           const interceptedToolCalls = await interceptToolCalls(toolCalls);
-          console.log(
-            '[Executor] after interceptToolCalls (executeTools)',
-            interceptedToolCalls,
-          );
 
           const result = await ipcClient.executeTool({
             toolCalls: interceptedToolCalls,
           });
 
-          console.log('[Executor] Execute result', JSON.stringify(result));
+          try {
+            window?.console?.log?.('Execute result', JSON.stringify(result));
+          } catch {}
+          console.log('Execute result', JSON.stringify(result));
           if (this.abortSignal.aborted) {
             throw new DOMException('Aborted', 'AbortError');
           }
           resolve(result);
         } catch (error) {
-          console.error('[Executor] executeTools error:', error);
           reject(error);
         } finally {
           this.abortSignal.removeEventListener('abort', abortHandler);
