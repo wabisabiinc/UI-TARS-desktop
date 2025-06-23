@@ -12,12 +12,8 @@ export interface AwareResult {
   plan?: PlanTask[];
 }
 
-/**
- * Aware: Ambient World Analysis and Response Engine
- * Simplified: Direct JSON parsing without function calls
- */
 export class Aware {
-  private signal: AbortSignal; // 追加
+  private signal: AbortSignal;
 
   private readonly prompt =
     'You are an AI agent responsible for analyzing the current environment and planning the next actionable step. ' +
@@ -26,27 +22,30 @@ export class Aware {
   constructor(
     private appContext: AppContext,
     private agentContext: AgentContext,
-    abortSignal: AbortSignal, // ←引数名を変更
+    abortSignal: AbortSignal,
   ) {
-    this.signal = abortSignal; // ←プロパティに保持
+    this.signal = abortSignal;
   }
 
-  /** 外部からAbortSignalを更新できるようにする */
   updateSignal(signal: AbortSignal) {
     this.signal = signal;
   }
 
   private static safeParse<T>(text: string): T | null {
-    // コードブロック（```json ... ```）があれば取り除く
-    const cleaned = text
-      .replace(/^\s*```json\s*/i, '') // 先頭の```jsonを除去
-      .replace(/^\s*```\s*/i, '') // 先頭の```だけも除去
-      .replace(/\s*```\s*$/, ''); // 末尾の```を除去
-
+    let cleaned = text.trim();
+    // 先頭・末尾のコードブロックを強制的に除去
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned
+        .replace(/^```json/, '')
+        .replace(/```$/, '')
+        .trim();
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```/, '').replace(/```$/, '').trim();
+    }
     try {
       return JSON.parse(cleaned) as T;
-    } catch {
-      console.warn('JSON.parse failed:', cleaned);
+    } catch (e) {
+      console.warn('[Aware.safeParse] JSON.parse failed:', e, cleaned);
       return null;
     }
   }
@@ -66,26 +65,22 @@ export class Aware {
       return this.getDefaultResult();
     }
 
-    // Gather environment context
     const envInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
     console.log('[Aware] envInfo=', envInfo);
 
-    // Choose model
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
       : import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o';
 
-    // Get available tools for info only
     const available = (await listTools()) || [];
     const toolList = available
       .map((t) => `${t.name}: ${t.description}`)
       .join(', ');
 
-    // Build messages
     const messages = [
       Message.systemMessage(this.prompt),
       Message.systemMessage(`Available tools: ${toolList}`),
@@ -95,7 +90,6 @@ export class Aware {
       ),
     ];
 
-    // ★ API型へ変換
     const messagesForAPI = messages.map((m) => ({
       role: m.role as 'system' | 'user' | 'assistant',
       content: m.content,
@@ -106,10 +100,14 @@ export class Aware {
     const content = raw?.content || '';
     console.log('[Aware] ← askLLMTool content=', content);
 
-    // Parse JSON response
+    // ▼ パース前のログも出す
+    if (!content) {
+      console.warn('[Aware] No content returned from LLM');
+      return this.getDefaultResult();
+    }
+
     const parsed = Aware.safeParse<AwareResult>(content);
 
-    // planがundefinedや配列でない場合も必ず空配列で補正
     if (parsed && Array.isArray(parsed.plan)) {
       return {
         ...parsed,
@@ -122,7 +120,10 @@ export class Aware {
       };
     }
 
-    console.warn('Failed to parse JSON, returning default.');
+    console.warn(
+      '[Aware] Failed to parse JSON, returning default. content=',
+      content,
+    );
     return this.getDefaultResult();
   }
 }
