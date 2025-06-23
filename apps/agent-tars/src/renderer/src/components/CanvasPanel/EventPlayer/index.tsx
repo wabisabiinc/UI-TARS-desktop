@@ -45,6 +45,22 @@ export function EventPlayer() {
   const [, setPlanTasks] = useAtom(planTasksAtom);
   const [eventId] = useAtom(currentEventIdAtom);
 
+  // --- ここからデバッグ用ログ ---
+  useEffect(() => {
+    console.log('[EventPlayer] events:', events);
+
+    // PlanUpdate, ToolUsed だけを抜き出して詳細表示
+    events.forEach((ev, idx) => {
+      if (ev.type === EventType.PlanUpdate || ev.type === EventType.ToolUsed) {
+        console.log(
+          `[EventPlayer][${idx}] type=${ev.type} content=`,
+          ev.content,
+        );
+      }
+    });
+  }, [events]);
+  // --- ここまで ---
+
   const toolEvents = useMemo(() => {
     return events
       .filter((event) => event.type === EventType.ToolUsed)
@@ -198,23 +214,6 @@ export function EventPlayer() {
           onSeek={handleSeek}
         />
       </div>
-
-      {/* Progress Bar */}
-      {/* <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 dark:border-gray-800">
-        <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-blue-500 transition-all duration-300"
-            style={{
-              width: `${
-                (((currentEvent?.timestamp || timeRange.start) -
-                  timeRange.start) /
-                  (timeRange.end - timeRange.start)) *
-                100
-              }%`,
-            }}
-          />
-        </div>
-      </div> */}
     </div>
   );
 }
