@@ -72,11 +72,11 @@ You should use the same language as the user input by default.
 
   async run(status: string) {
     console.log('[Executor] run() called', status);
-
     const environmentInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
+    console.log('[Executor] environmentInfo', environmentInfo);
 
     if (this.abortSignal.aborted) {
       console.log('[Executor] run aborted (pre)');
@@ -99,7 +99,7 @@ You should use the same language as the user input by default.
       try {
         this.abortSignal.addEventListener('abort', abortHandler);
 
-        // ログ：送るpayload全体
+        // ---- ログ追加 ----
         const payload = {
           messages: [
             Message.systemMessage(this.systemPrompt),
@@ -113,30 +113,19 @@ You should use the same language as the user input by default.
           ],
           requestId: streamId,
         };
-        console.log(
-          '[Executor] askLLMTool payload:',
-          JSON.stringify(payload, null, 2),
-        );
 
+        console.log('[Executor] before ipcClient.askLLMTool');
         const result = await ipcClient.askLLMTool(payload);
-
-        // ログ：OpenAI側のレスポンス全部
-        console.log(
-          '[Executor] askLLMTool result:',
-          JSON.stringify(result, null, 2),
-        );
+        console.log('[Executor] after ipcClient.askLLMTool:', result);
 
         const toolCalls = (result.tool_calls || []).filter(Boolean);
-        console.log(
-          '[Executor] LLM tool_calls:',
-          JSON.stringify(toolCalls, null, 2),
-        );
+        console.log('[Executor] toolCalls:', toolCalls);
 
-        // Intercept tool calls to check file permissions - this will block if permission is needed
+        console.log('[Executor] before interceptToolCalls');
         const interceptedToolCalls = await interceptToolCalls(toolCalls);
         console.log(
-          '[Executor] Intercepted tool_calls:',
-          JSON.stringify(interceptedToolCalls, null, 2),
+          '[Executor] after interceptToolCalls',
+          interceptedToolCalls,
         );
 
         resolve(interceptedToolCalls);
@@ -163,19 +152,24 @@ You should use the same language as the user input by default.
         try {
           this.abortSignal.addEventListener('abort', abortHandler);
 
-          // Intercept tool calls to check file permissions - this will block if permission is needed
+          console.log('[Executor] before interceptToolCalls (executeTools)');
           const interceptedToolCalls = await interceptToolCalls(toolCalls);
+          console.log(
+            '[Executor] after interceptToolCalls (executeTools)',
+            interceptedToolCalls,
+          );
 
           const result = await ipcClient.executeTool({
             toolCalls: interceptedToolCalls,
           });
 
-          console.log('Execute result', JSON.stringify(result));
+          console.log('[Executor] Execute result', JSON.stringify(result));
           if (this.abortSignal.aborted) {
             throw new DOMException('Aborted', 'AbortError');
           }
           resolve(result);
         } catch (error) {
+          console.error('[Executor] executeTools error:', error);
           reject(error);
         } finally {
           this.abortSignal.removeEventListener('abort', abortHandler);
