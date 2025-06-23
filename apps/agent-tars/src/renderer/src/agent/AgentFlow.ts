@@ -255,10 +255,13 @@ export class AgentFlow {
             break;
           }
 
+          // --- ここからログを明示的に追加 ---
+          console.log('[AgentFlow] before executor.run()', awareResult.status);
           const toolCallList = (await executor.run(awareResult.status)).filter(
             Boolean,
           );
           console.log('[AgentFlow] toolCallList', toolCallList);
+          // --- ここまでログ追加 ---
 
           if (this.abortController.signal.aborted) break;
           if (this.interruptController.signal.aborted) {

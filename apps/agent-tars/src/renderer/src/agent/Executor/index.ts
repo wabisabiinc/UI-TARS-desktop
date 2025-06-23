@@ -160,6 +160,7 @@ You should use the same language as the user input by default.
           }
           resolve(result);
         } catch (error) {
+          console.error('[Executor] run() error', error); // ★ここ追加
           reject(error);
         } finally {
           this.abortSignal.removeEventListener('abort', abortHandler);
