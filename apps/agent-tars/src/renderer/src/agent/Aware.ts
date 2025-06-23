@@ -12,6 +12,10 @@ export interface AwareResult {
   plan?: PlanTask[];
 }
 
+/**
+ * Aware: Ambient World Analysis and Response Engine
+ * Robust JSON extraction & parsing
+ */
 export class Aware {
   private signal: AbortSignal;
 
@@ -27,21 +31,24 @@ export class Aware {
     this.signal = abortSignal;
   }
 
+  /** 外部からAbortSignalを更新できるようにする */
   updateSignal(signal: AbortSignal) {
     this.signal = signal;
   }
 
+  // ★ より強力なJSON抽出・パース関数
   private static safeParse<T>(text: string): T | null {
-    let cleaned = text.trim();
-    // 先頭・末尾のコードブロックを強制的に除去
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned
-        .replace(/^```json/, '')
-        .replace(/```$/, '')
-        .trim();
-    } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```/, '').replace(/```$/, '').trim();
+    // 1. ```json ... ``` コードブロックを抜き出し
+    let match =
+      text.match(/```json([\s\S]*?)```/i) ||
+      text.match(/```([\s\S]*?)```/i) ||
+      text.match(/{[\s\S]*}/);
+    if (!match) {
+      console.warn('safeParse: no JSON block found', text);
+      return null;
     }
+    // match[1]があれば優先、それ以外はmatch[0]
+    let cleaned = match[1] || match[0];
     try {
       return JSON.parse(cleaned) as T;
     } catch (e) {
@@ -65,22 +72,26 @@ export class Aware {
       return this.getDefaultResult();
     }
 
+    // Gather environment context
     const envInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
     console.log('[Aware] envInfo=', envInfo);
 
+    // Choose model
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
       : import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o';
 
+    // Get available tools for info only
     const available = (await listTools()) || [];
     const toolList = available
       .map((t) => `${t.name}: ${t.description}`)
       .join(', ');
 
+    // Build messages
     const messages = [
       Message.systemMessage(this.prompt),
       Message.systemMessage(`Available tools: ${toolList}`),
@@ -90,6 +101,7 @@ export class Aware {
       ),
     ];
 
+    // API用メッセージ変換
     const messagesForAPI = messages.map((m) => ({
       role: m.role as 'system' | 'user' | 'assistant',
       content: m.content,
@@ -100,14 +112,10 @@ export class Aware {
     const content = raw?.content || '';
     console.log('[Aware] ← askLLMTool content=', content);
 
-    // ▼ パース前のログも出す
-    if (!content) {
-      console.warn('[Aware] No content returned from LLM');
-      return this.getDefaultResult();
-    }
-
+    // JSON抽出してパース
     const parsed = Aware.safeParse<AwareResult>(content);
 
+    // planがundefinedや配列でない場合も必ず空配列で補正
     if (parsed && Array.isArray(parsed.plan)) {
       return {
         ...parsed,
@@ -120,10 +128,7 @@ export class Aware {
       };
     }
 
-    console.warn(
-      '[Aware] Failed to parse JSON, returning default. content=',
-      content,
-    );
+    console.warn('Failed to parse JSON, returning default.');
     return this.getDefaultResult();
   }
 }
