@@ -197,7 +197,7 @@ export class AgentFlow {
           const prevStep = agentContext.currentStep;
           agentContext.plan = normalizedPlan;
 
-          // ★ここでplanをしっかりログ出力
+          // ここでplanをしっかりログ出力
           console.log('[AgentFlow] Before addPlanUpdate:', agentContext.plan);
 
           await this.eventManager.addPlanUpdate(
