@@ -112,6 +112,7 @@ You should use the same language as the user input by default.
         });
 
         const toolCalls = (result.tool_calls || []).filter(Boolean);
+        console.log('[Executor] result:', result); // ←追加
         console.log('[Executor] LLM tool_calls:', JSON.stringify(toolCalls)); // ★追加
 
         // Intercept tool calls to check file permissions - this will block if permission is needed
