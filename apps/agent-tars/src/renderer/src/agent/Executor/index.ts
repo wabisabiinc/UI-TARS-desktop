@@ -71,7 +71,7 @@ You should use the same language as the user input by default.
   }
 
   async run(status: string) {
-    console.log('[Executor] run() called', status); // ←追加
+    console.log('[Executor] run() called', status);
 
     const environmentInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
@@ -79,6 +79,7 @@ You should use the same language as the user input by default.
     );
 
     if (this.abortSignal.aborted) {
+      console.log('[Executor] run aborted (pre)');
       return [];
     }
 
@@ -98,7 +99,8 @@ You should use the same language as the user input by default.
       try {
         this.abortSignal.addEventListener('abort', abortHandler);
 
-        const result = await ipcClient.askLLMTool({
+        // ログ：送るpayload全体
+        const payload = {
           messages: [
             Message.systemMessage(this.systemPrompt),
             Message.userMessage(environmentInfo),
@@ -107,25 +109,39 @@ You should use the same language as the user input by default.
           tools: [idleTool, chatMessageTool],
           mcpServerKeys: [
             ...Object.values(MCPServerName),
-            // user defined mcp servers
             ...Object.keys(activeMcpSettings),
           ],
           requestId: streamId,
-        });
+        };
+        console.log(
+          '[Executor] askLLMTool payload:',
+          JSON.stringify(payload, null, 2),
+        );
+
+        const result = await ipcClient.askLLMTool(payload);
+
+        // ログ：OpenAI側のレスポンス全部
+        console.log(
+          '[Executor] askLLMTool result:',
+          JSON.stringify(result, null, 2),
+        );
 
         const toolCalls = (result.tool_calls || []).filter(Boolean);
-        console.log('[Executor] result:', result); // ←追加
-        console.log('[Executor] LLM tool_calls:', JSON.stringify(toolCalls)); // ←追加
+        console.log(
+          '[Executor] LLM tool_calls:',
+          JSON.stringify(toolCalls, null, 2),
+        );
 
         // Intercept tool calls to check file permissions - this will block if permission is needed
         const interceptedToolCalls = await interceptToolCalls(toolCalls);
         console.log(
           '[Executor] Intercepted tool_calls:',
-          JSON.stringify(interceptedToolCalls),
-        ); // ←追加
+          JSON.stringify(interceptedToolCalls, null, 2),
+        );
 
         resolve(interceptedToolCalls);
       } catch (error) {
+        console.error('[Executor] run error:', error);
         reject(error);
       } finally {
         this.abortSignal.removeEventListener('abort', abortHandler);
@@ -160,7 +176,6 @@ You should use the same language as the user input by default.
           }
           resolve(result);
         } catch (error) {
-          console.error('[Executor] run() error', error); // ★ここ追加
           reject(error);
         } finally {
           this.abortSignal.removeEventListener('abort', abortHandler);
