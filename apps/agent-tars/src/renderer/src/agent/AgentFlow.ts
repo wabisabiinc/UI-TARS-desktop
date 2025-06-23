@@ -255,13 +255,25 @@ export class AgentFlow {
             break;
           }
 
-          // --- ここからログを明示的に追加 ---
-          console.log('[AgentFlow] before executor.run()', awareResult.status);
-          const toolCallList = (await executor.run(awareResult.status)).filter(
-            Boolean,
-          );
-          console.log('[AgentFlow] toolCallList', toolCallList);
-          // --- ここまでログ追加 ---
+          // --- ここから強制デバッグ ---
+          console.log('[DEBUG] executorインスタンス:', executor);
+          console.log('[DEBUG] executor.run typeof:', typeof executor.run);
+
+          let toolCallList: any[] = [];
+          try {
+            console.log(
+              '[AgentFlow] before executor.run()',
+              awareResult.status,
+            );
+            toolCallList = (await executor.run(awareResult.status)).filter(
+              Boolean,
+            );
+            console.log('[AgentFlow] toolCallList:', toolCallList);
+          } catch (runErr) {
+            console.error('[AgentFlow] executor.runで例外:', runErr);
+            throw runErr;
+          }
+          // --- ここまでデバッグ ---
 
           if (this.abortController.signal.aborted) break;
           if (this.interruptController.signal.aborted) {

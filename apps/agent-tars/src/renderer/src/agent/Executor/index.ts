@@ -12,20 +12,23 @@ export class Executor {
     private appContext: AppContext,
     private agentContext: AgentContext,
     private abortSignal: AbortSignal,
-  ) {}
+  ) {
+    // ★絶対に1回は出るログ
+    console.log('[DEBUG] Executor constructor called!', {
+      appContext,
+      agentContext,
+    });
+  }
 
-  private systemPrompt = `You are a tool use expert. ...省略（ここは現状と同じ）... `;
+  private systemPrompt = `You are a tool use expert. ... 省略 ...`;
 
   public updateSignal(abortSignal: AbortSignal) {
     this.abortSignal = abortSignal;
   }
 
   async run(status: string) {
-    // --- 強制デバッグログ ---
-    try {
-      window?.console?.log?.('[Executor] run() called', status);
-    } catch {}
-    console.log('[Executor] run() called', status);
+    // ★このログが出れば「run呼び出し」は100％成功
+    console.log('[DEBUG] Executor.run called with status:', status);
 
     const environmentInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
@@ -69,52 +72,19 @@ export class Executor {
           requestId: streamId,
         };
 
-        try {
-          window?.console?.log?.(
-            '[Executor] askLLMTool payload:',
-            JSON.stringify(payload, null, 2),
-          );
-        } catch {}
-        console.log(
-          '[Executor] askLLMTool payload:',
-          JSON.stringify(payload, null, 2),
-        );
+        console.log('[DEBUG] Executor.askLLMTool payload:', payload);
 
         const result = await ipcClient.askLLMTool(payload);
 
-        try {
-          window?.console?.log?.(
-            '[Executor] askLLMTool result:',
-            JSON.stringify(result, null, 2),
-          );
-        } catch {}
-        console.log(
-          '[Executor] askLLMTool result:',
-          JSON.stringify(result, null, 2),
-        );
+        console.log('[DEBUG] Executor.askLLMTool result:', result);
 
         const toolCalls = (result.tool_calls || []).filter(Boolean);
-        try {
-          window?.console?.log?.(
-            '[Executor] LLM tool_calls:',
-            JSON.stringify(toolCalls, null, 2),
-          );
-        } catch {}
-        console.log(
-          '[Executor] LLM tool_calls:',
-          JSON.stringify(toolCalls, null, 2),
-        );
+        console.log('[DEBUG] Executor.LLM tool_calls:', toolCalls);
 
         const interceptedToolCalls = await interceptToolCalls(toolCalls);
-        try {
-          window?.console?.log?.(
-            '[Executor] Intercepted tool_calls:',
-            JSON.stringify(interceptedToolCalls, null, 2),
-          );
-        } catch {}
         console.log(
-          '[Executor] Intercepted tool_calls:',
-          JSON.stringify(interceptedToolCalls, null, 2),
+          '[DEBUG] Executor.Intercepted tool_calls:',
+          interceptedToolCalls,
         );
 
         resolve(interceptedToolCalls);
@@ -146,10 +116,7 @@ export class Executor {
             toolCalls: interceptedToolCalls,
           });
 
-          try {
-            window?.console?.log?.('Execute result', JSON.stringify(result));
-          } catch {}
-          console.log('Execute result', JSON.stringify(result));
+          console.log('[DEBUG] Executor.Execute result:', result);
           if (this.abortSignal.aborted) {
             throw new DOMException('Aborted', 'AbortError');
           }
