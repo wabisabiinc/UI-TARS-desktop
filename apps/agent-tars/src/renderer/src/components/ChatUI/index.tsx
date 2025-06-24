@@ -13,7 +13,7 @@ import {
   currentAgentFlowIdRefAtom,
   eventsAtom,
   globalEventEmitter,
-  planTasksAtom, // ★必要なら追加
+  planTasksAtom,
 } from '@renderer/state/chat';
 import { BeforeInputContainer } from './BeforeInputContainer';
 import { AgentStatusTip } from './AgentStatusTip';
@@ -49,20 +49,30 @@ export function OpenAgentChatUI() {
   const isDarkMode = useThemeMode();
   const { initMessages, setMessages, messages } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
-  const [events] = useAtom(eventsAtom); // ★追加：現在のevents
-  const [planTasks] = useAtom(planTasksAtom); // ★追加：planTasks（もしplanTasksAtomがあれば。なければ消してOK）
+  const [events] = useAtom(eventsAtom);
+  const [planTasks] = useAtom(planTasksAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
 
-  // ★追加：UIが受け取るevents/planTasksの監視
+  // planTasksの変化で「Thinking」解除！
+  useEffect(() => {
+    if (
+      isSending &&
+      planTasks &&
+      Array.isArray(planTasks) &&
+      planTasks.length > 0
+    ) {
+      setIsSending(false);
+    }
+    // デバッグログ
+    console.log('[ChatUI] UIで受け取ったplanTasks:', planTasks);
+  }, [planTasks]); // planTasksが変わるたびに反応
+
   useEffect(() => {
     console.log('[ChatUI] UIで受け取ったevents:', events);
   }, [events]);
-  useEffect(() => {
-    console.log('[ChatUI] UIで受け取ったplanTasks:', planTasks);
-  }, [planTasks]);
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
@@ -74,10 +84,11 @@ export function OpenAgentChatUI() {
         }
         setIsSending(true);
         await addUserMessage(inputText, inputFiles);
-        // Launch!
         await launchAgentFlow(inputText, inputFiles);
+        // ★ここでsetIsSending(false)しない（planTasks反映で解除するため）
+      } catch (e) {
+        setIsSending(false); // 例外時は強制解除
       } finally {
-        setIsSending(false);
         const inputEle = chatUIRef.current?.getInputTextArea();
         if (inputEle) {
           inputEle.disabled = false;
@@ -104,6 +115,31 @@ export function OpenAgentChatUI() {
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
+
+  // ★★ ここから「planTasks」の表示部分を追加！★★
+  const renderPlanTasks = () => {
+    if (!planTasks || planTasks.length === 0) return null;
+    return (
+      <div
+        style={{
+          background: '#f6f6fa',
+          margin: '8px 0',
+          padding: '12px',
+          borderRadius: 8,
+        }}
+      >
+        <b>Plan:</b>
+        <ol style={{ margin: '8px 0 0 24px', padding: 0 }}>
+          {planTasks.map((task, idx) => (
+            <li key={task.id || idx}>
+              <span>{task.title || '(no title)'}</span>
+              {/* 必要ならtask.statusも表示可能 */}
+            </li>
+          ))}
+        </ol>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -152,15 +188,14 @@ export function OpenAgentChatUI() {
             <>
               <MenuHeader />
               {isInitialized && messages.length === 0 && <WelcomeScreen />}
+              {renderPlanTasks()} {/* ←ここにPlanを表示 */}
             </>
           ),
           beforeInputContainer: <BeforeInputContainer />,
           customFeatures: (
-            <>
-              <div className="flex gap-2">
-                {isSending ? <AgentStatusTip /> : null}
-              </div>
-            </>
+            <div className="flex gap-2">
+              {isSending ? <AgentStatusTip /> : null}
+            </div>
           ),
         }}
         classNames={{
