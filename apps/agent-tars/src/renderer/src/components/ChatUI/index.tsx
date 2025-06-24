@@ -14,6 +14,7 @@ import {
   eventsAtom,
   globalEventEmitter,
   planTasksAtom,
+  agentStatusTipAtom,
 } from '@renderer/state/chat';
 import { BeforeInputContainer } from './BeforeInputContainer';
 import { AgentStatusTip } from './AgentStatusTip';
@@ -51,24 +52,33 @@ export function OpenAgentChatUI() {
   const [, setEvents] = useAtom(eventsAtom);
   const [events] = useAtom(eventsAtom);
   const [planTasks] = useAtom(planTasksAtom);
+  const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
 
-  // planTasksの変化で「Thinking」解除！
+  // planTasksの変化、またはagentStatusTipの変化でThinking解除
   useEffect(() => {
     if (
       isSending &&
-      planTasks &&
-      Array.isArray(planTasks) &&
-      planTasks.length > 0
+      ((planTasks && Array.isArray(planTasks) && planTasks.length > 0) ||
+        agentStatusTip === 'No plan' ||
+        agentStatusTip === 'Failed' ||
+        agentStatusTip === 'Error' ||
+        agentStatusTip === '完了')
     ) {
       setIsSending(false);
+      console.log('[DEBUG] Thinkingを解除しました:', planTasks, agentStatusTip);
     }
-    // デバッグログ
-    console.log('[ChatUI] UIで受け取ったplanTasks:', planTasks);
-  }, [planTasks]); // planTasksが変わるたびに反応
+    // デバッグ
+    console.log(
+      '[ChatUI] UIで受け取ったplanTasks:',
+      planTasks,
+      'agentStatusTip:',
+      agentStatusTip,
+    );
+  }, [planTasks, agentStatusTip, isSending]);
 
   useEffect(() => {
     console.log('[ChatUI] UIで受け取ったevents:', events);
@@ -141,6 +151,24 @@ export function OpenAgentChatUI() {
     );
   };
 
+  // エラー表示例（任意）
+  const renderError = () => {
+    if (
+      !isSending &&
+      planTasks.length === 0 &&
+      (agentStatusTip === 'No plan' ||
+        agentStatusTip === 'Failed' ||
+        agentStatusTip === 'Error')
+    ) {
+      return (
+        <div style={{ color: 'red', padding: 8 }}>
+          プランの生成に失敗しました。もう一度お試しください。
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <>
       <BaseChatUI
@@ -189,6 +217,7 @@ export function OpenAgentChatUI() {
               <MenuHeader />
               {isInitialized && messages.length === 0 && <WelcomeScreen />}
               {renderPlanTasks()} {/* ←ここにPlanを表示 */}
+              {renderError()} {/* ←ここにエラー表示（任意） */}
             </>
           ),
           beforeInputContainer: <BeforeInputContainer />,
