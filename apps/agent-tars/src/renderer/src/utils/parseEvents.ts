@@ -62,7 +62,7 @@ export function extractEventStreamUIMeta(
   // ここで「絶対に配列」
   if (!Array.isArray(planTasks)) planTasks = [];
 
-  console.log('[parseEvents] planTasks:', planTasks);
+  console.log('[parseEvents] planTasks:', Array.isArray(planTasks));
 
   // 最新のAgentStatusを取得
   const lastAgentStatus = [...events]

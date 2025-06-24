@@ -84,6 +84,11 @@ export class EventManager {
   ): Promise<EventItem> {
     try {
       // ★ PlanUpdate発火を必ず記録
+      console.log(
+        '[EventManager.addPlanUpdate] 受け取ったplan:',
+        plan,
+        Array.isArray(plan),
+      );
       console.log('[EventManager] addPlanUpdate called', { step, plan, extra });
       return await this.addEvent(EventType.PlanUpdate, {
         plan: plan ?? [],

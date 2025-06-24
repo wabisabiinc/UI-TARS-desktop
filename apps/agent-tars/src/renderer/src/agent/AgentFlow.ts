@@ -192,13 +192,20 @@ export class AgentFlow {
           );
 
           const normalizedPlan = this.normalizePlan(awareResult, agentContext);
-          console.log('[AgentFlow] normalizedPlan', normalizedPlan);
+          console.log(
+            '[AgentFlow] normalizedPlan',
+            Array.isArray(normalizedPlan),
+          );
 
           const prevStep = agentContext.currentStep;
           agentContext.plan = normalizedPlan;
 
           // ★★★★★ ここでtry-catch＋強制timeout追加 ★★★★★
-          console.log('[AgentFlow] Before addPlanUpdate:', agentContext.plan);
+          console.log(
+            '[AgentFlow] Before addPlanUpdate:',
+            agentContext.plan,
+            Array,
+          );
           let addPlanUpdateTimeout: any = null;
           try {
             // 5秒経ってもPromise返らなかったら警告出す
