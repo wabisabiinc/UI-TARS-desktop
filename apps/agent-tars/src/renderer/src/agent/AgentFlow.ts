@@ -233,7 +233,7 @@ export class AgentFlow {
           // planがUIに渡るか必ずログ
           console.log('[AgentFlow] setPlanTasksに渡す値:', agentContext.plan);
           this.appContext.setEvents(allEvents);
-          this.appContext.setPlanTasks(agentContext.plan);
+          this.appContext.setPlanTasks([...agentContext.plan]);
 
           if (!agentContext.plan || agentContext.plan.length === 0) {
             console.warn(

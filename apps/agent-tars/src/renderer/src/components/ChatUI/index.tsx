@@ -58,7 +58,7 @@ export function OpenAgentChatUI() {
     appId: DEFAULT_APP_ID,
   });
 
-  // planTasksの変化、またはagentStatusTipの変化でThinking解除
+  // planTasksまたはagentStatusTipの変化でThinking解除
   useEffect(() => {
     if (
       isSending &&
@@ -71,7 +71,6 @@ export function OpenAgentChatUI() {
       setIsSending(false);
       console.log('[DEBUG] Thinkingを解除しました:', planTasks, agentStatusTip);
     }
-    // デバッグ
     console.log(
       '[ChatUI] UIで受け取ったplanTasks:',
       planTasks,
@@ -84,6 +83,7 @@ export function OpenAgentChatUI() {
     console.log('[ChatUI] UIで受け取ったevents:', events);
   }, [events]);
 
+  // ユーザーメッセージ送信時のロジック
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       try {
@@ -95,7 +95,7 @@ export function OpenAgentChatUI() {
         setIsSending(true);
         await addUserMessage(inputText, inputFiles);
         await launchAgentFlow(inputText, inputFiles);
-        // ★ここでsetIsSending(false)しない（planTasks反映で解除するため）
+        // 解除はplanTasks/agentStatusTipの変化で行う
       } catch (e) {
         setIsSending(false); // 例外時は強制解除
       } finally {
@@ -126,7 +126,7 @@ export function OpenAgentChatUI() {
     return <WelcomeScreen />;
   }
 
-  // ★★ ここから「planTasks」の表示部分を追加！★★
+  // Planの表示
   const renderPlanTasks = () => {
     if (!planTasks || planTasks.length === 0) return null;
     return (
@@ -151,7 +151,7 @@ export function OpenAgentChatUI() {
     );
   };
 
-  // エラー表示例（任意）
+  // エラー時の表示（任意）
   const renderError = () => {
     if (
       !isSending &&
@@ -216,8 +216,8 @@ export function OpenAgentChatUI() {
             <>
               <MenuHeader />
               {isInitialized && messages.length === 0 && <WelcomeScreen />}
-              {renderPlanTasks()} {/* ←ここにPlanを表示 */}
-              {renderError()} {/* ←ここにエラー表示（任意） */}
+              {renderPlanTasks()}
+              {renderError()}
             </>
           ),
           beforeInputContainer: <BeforeInputContainer />,
