@@ -197,17 +197,30 @@ export class AgentFlow {
           const prevStep = agentContext.currentStep;
           agentContext.plan = normalizedPlan;
 
-          // ここでplanをしっかりログ出力
+          // ★★★★★ ここでtry-catch＋強制timeout追加 ★★★★★
           console.log('[AgentFlow] Before addPlanUpdate:', agentContext.plan);
+          let addPlanUpdateTimeout: any = null;
+          try {
+            // 5秒経ってもPromise返らなかったら警告出す
+            addPlanUpdateTimeout = setTimeout(() => {
+              console.error('[AgentFlow] addPlanUpdate timeout!!!');
+            }, 5000);
 
-          await this.eventManager.addPlanUpdate(
-            awareResult.step && awareResult.step > 0 ? awareResult.step : 1,
-            Array.isArray(agentContext.plan) ? agentContext.plan : [],
-            {
-              reflection: awareResult.reflection,
-              status: awareResult.status,
-            },
-          );
+            await this.eventManager.addPlanUpdate(
+              awareResult.step && awareResult.step > 0 ? awareResult.step : 1,
+              Array.isArray(agentContext.plan) ? agentContext.plan : [],
+              {
+                reflection: awareResult.reflection,
+                status: awareResult.status,
+              },
+            );
+            clearTimeout(addPlanUpdateTimeout);
+            console.log('[AgentFlow] addPlanUpdate completed!');
+          } catch (addPlanUpdateErr) {
+            clearTimeout(addPlanUpdateTimeout);
+            console.error('[AgentFlow] addPlanUpdate ERROR:', addPlanUpdateErr);
+            throw addPlanUpdateErr;
+          }
 
           const allEvents = this.eventManager.getAllEvents();
           console.log('[AgentFlow] events after PlanUpdate:', allEvents);

@@ -32,29 +32,35 @@ export class EventManager {
     return [...this.events];
   }
 
+  // ---- デバッグ強化 ----
   private async addEvent<T extends EventType>(
     type: T,
     content: EventContentDescriptor[T],
     willNotifyUpdate = true,
   ): Promise<EventItem> {
-    const event: EventItem = {
-      id: uuidv4(),
-      type,
-      content: content as EventContentDescriptor[keyof EventContentDescriptor],
-      timestamp: Date.now(),
-    };
+    try {
+      const event: EventItem = {
+        id: uuidv4(),
+        type,
+        content:
+          content as EventContentDescriptor[keyof EventContentDescriptor],
+        timestamp: Date.now(),
+      };
+      this.events.push(event);
 
-    this.events.push(event);
+      // ★ ここで全てのイベントをデバッグ
+      console.log('[EventManager.addEvent]', {
+        type,
+        content,
+        events: this.events,
+      });
 
-    // ★ ここで全てのイベントをデバッグ
-    console.log('[EventManager.addEvent]', {
-      type,
-      content,
-      events: this.events,
-    });
-
-    willNotifyUpdate && (await this.notifyUpdate());
-    return event;
+      willNotifyUpdate && (await this.notifyUpdate());
+      return event;
+    } catch (err) {
+      console.error('[EventManager.addEvent ERROR]', err);
+      throw err;
+    }
   }
 
   public async addChatText(
@@ -76,13 +82,18 @@ export class EventManager {
     plan: PlanTask[],
     extra?: { reflection?: string; status?: string },
   ): Promise<EventItem> {
-    // ★ PlanUpdate発火を必ず記録
-    console.log('[EventManager] addPlanUpdate called', { step, plan, extra });
-    return this.addEvent(EventType.PlanUpdate, {
-      plan: plan ?? [],
-      step,
-      ...(extra || {}),
-    });
+    try {
+      // ★ PlanUpdate発火を必ず記録
+      console.log('[EventManager] addPlanUpdate called', { step, plan, extra });
+      return await this.addEvent(EventType.PlanUpdate, {
+        plan: plan ?? [],
+        step,
+        ...(extra || {}),
+      });
+    } catch (err) {
+      console.error('[EventManager] addPlanUpdate ERROR:', err);
+      throw err;
+    }
   }
 
   public async addNewPlanStep(step: number): Promise<EventItem> {
@@ -136,8 +147,12 @@ export class EventManager {
   }
 
   private notifyUpdate(): void {
-    if (this.onEventsUpdate) {
-      this.onEventsUpdate(this.getAllEvents());
+    try {
+      if (this.onEventsUpdate) {
+        this.onEventsUpdate(this.getAllEvents());
+      }
+    } catch (err) {
+      console.error('[EventManager] notifyUpdate ERROR:', err);
     }
   }
 
