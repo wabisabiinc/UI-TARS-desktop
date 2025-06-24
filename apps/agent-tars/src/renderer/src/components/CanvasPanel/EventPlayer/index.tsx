@@ -117,7 +117,7 @@ export function EventPlayer() {
         .slice(0, currentEventIndex)
         .reverse()
         .find((e) => e.type === EventType.PlanUpdate);
-      setPlanTasks(lastPlanUpdateEvent?.content?.planTasks || []);
+      setPlanTasks(lastPlanUpdateEvent?.content?.plan || []);
       setCurrentEvent(event);
     },
     [findEventByTimestamp],
