@@ -12,7 +12,7 @@ import { ChatModelAuthError } from './errors';
 
 const logger = createLogger('PlannerAgent');
 
-// === 1. Zodスキーマ ===
+// === 1. Zodスキーマ（planにはstatus必須！） ===
 export const plannerOutputSchema = z.object({
   thought: z.string(),
   action: z.string(),
@@ -21,9 +21,10 @@ export const plannerOutputSchema = z.object({
       z.object({
         id: z.string(),
         title: z.string(),
+        status: z.enum(['todo', 'doing', 'done']), // ← 追加: status必須
       }),
     )
-    .optional(), // ← planは任意。必要な場合は必須化OK
+    .optional(),
 });
 
 export type PlannerOutput = z.infer<typeof plannerOutputSchema>;
@@ -37,15 +38,17 @@ const SYSTEM_PROMPT = `
   "thought": "今の考えや状況整理を簡潔に記述",
   "action": "ユーザーへの返答や次に取るべき具体的なアクションを記述",
   "plan": [
-    { "id": "1", "title": "日本の隠れた名所をリサーチする" },
-    { "id": "2", "title": "地域やテーマで分類する" },
-    { "id": "3", "title": "おすすめスポットを出力する" }
+    { "id": "1", "title": "日本の隠れた名所をリサーチする", "status": "doing" },
+    { "id": "2", "title": "地域やテーマで分類する", "status": "todo" },
+    { "id": "3", "title": "おすすめスポットを出力する", "status": "todo" }
   ]
 }
 
-thought と action は必須、plan は必要に応じて出力してください。
+thought と action は必須、planは必要に応じて出力してください。
+各plan要素には status("todo"|"doing"|"done") を必ずつけてください。
 `;
 
+// === 3. PlannerAgent本体 ===
 export class PlannerAgent extends BaseAgent<
   typeof plannerOutputSchema,
   PlannerOutput
@@ -72,7 +75,7 @@ export class PlannerAgent extends BaseAgent<
         ...messages.slice(1),
       ];
 
-      // === 3. モデル呼び出し・AI出力取得 ===
+      // === 4. モデル呼び出し・AI出力取得 ===
       const modelOutput = await this.invoke(plannerMessages);
 
       // planが未生成なら仮データで埋める（テスト用・実運用では不要）
@@ -82,9 +85,13 @@ export class PlannerAgent extends BaseAgent<
         modelOutput.plan.length > 0
           ? modelOutput.plan
           : [
-              { id: '1', title: '日本の隠れた名所をリサーチする' },
-              { id: '2', title: '地域やテーマで分類する' },
-              { id: '3', title: 'おすすめスポットを出力する' },
+              {
+                id: '1',
+                title: '日本の隠れた名所をリサーチする',
+                status: 'doing',
+              },
+              { id: '2', title: '地域やテーマで分類する', status: 'todo' },
+              { id: '3', title: 'おすすめスポットを出力する', status: 'todo' },
             ];
 
       if (!modelOutput || !modelOutput.thought || !modelOutput.action) {
@@ -96,7 +103,7 @@ export class PlannerAgent extends BaseAgent<
       this.context.emitEvent(
         Actors.PLANNER,
         ExecutionState.STEP_OK,
-        (modelOutput.action ?? '') + ' [Thought/Action/Plan形式]',
+        (modelOutput.action ?? '') + ' [Thought/Action/Plan/status形式]',
       );
 
       return {
