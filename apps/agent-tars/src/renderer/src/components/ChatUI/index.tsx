@@ -95,7 +95,6 @@ export function OpenAgentChatUI() {
         setIsSending(true);
         await addUserMessage(inputText, inputFiles);
         await launchAgentFlow(inputText, inputFiles);
-        // 解除はplanTasks/agentStatusTipの変化で行う
       } catch (e) {
         setIsSending(false); // 例外時は強制解除
       } finally {
