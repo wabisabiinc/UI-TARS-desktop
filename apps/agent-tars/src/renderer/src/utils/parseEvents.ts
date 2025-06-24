@@ -23,9 +23,27 @@ export interface EventStreamUIMeta {
   isLoading: boolean;
 }
 
+// ★★★ ここを追加：contentがstringならobject化 ★★★
+function normalizeEvents(events: EventItem[]): EventItem[] {
+  return events.map((event) => {
+    if (typeof event.content === 'string') {
+      try {
+        return { ...event, content: JSON.parse(event.content) };
+      } catch {
+        // 文字列が純粋なテキストの場合はそのまま
+        return event;
+      }
+    }
+    return event;
+  });
+}
+
 export function extractEventStreamUIMeta(
   events: EventItem[],
 ): EventStreamUIMeta {
+  // ★ normalizeを先頭で適用
+  events = normalizeEvents(events);
+
   console.log(
     '[parseEvents] 受信events:',
     events.map((ev) => ({ type: ev.type, content: ev.content })),
