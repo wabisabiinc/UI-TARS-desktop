@@ -114,6 +114,7 @@ export class Aware {
 
     // JSON抽出してパース
     const parsed = Aware.safeParse<AwareResult>(content);
+    console.log('[Aware] parsed LLM JSON:', parsed);
 
     // planがundefinedや配列でない場合も必ず空配列で補正
     if (parsed && Array.isArray(parsed.plan)) {
