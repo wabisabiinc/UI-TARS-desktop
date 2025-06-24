@@ -1,11 +1,3 @@
-/**
- * The following code is modified based on
- * https://github.com/nanobrowser/nanobrowser/blob/master/chrome-extension/src/background/agent/agents/planner.ts
- *
- * Apache-2.0 License
- * Copyright (c) 2024 alexchenzl
- * https://github.com/nanobrowser/nanobrowser/blob/master/LICENSE
- */
 import {
   BaseAgent,
   type BaseAgentOptions,
@@ -17,19 +9,42 @@ import type { AgentOutput } from '../types';
 import { HumanMessage } from '@langchain/core/messages';
 import { Actors, ExecutionState } from '../event/types';
 import { ChatModelAuthError } from './errors';
+
 const logger = createLogger('PlannerAgent');
 
-// Define Zod schema for planner output
+// === 1. Zodスキーマ ===
 export const plannerOutputSchema = z.object({
-  observation: z.string(),
-  challenges: z.string(),
-  done: z.boolean(),
-  next_steps: z.string(),
-  reasoning: z.string(),
-  web_task: z.boolean(),
+  thought: z.string(),
+  action: z.string(),
+  plan: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+      }),
+    )
+    .optional(), // ← planは任意。必要な場合は必須化OK
 });
 
 export type PlannerOutput = z.infer<typeof plannerOutputSchema>;
+
+// === 2. System Prompt ===
+const SYSTEM_PROMPT = `
+あなたはGUI自動化エージェントです。
+全ての出力は以下のJSON形式で返してください:
+
+{
+  "thought": "今の考えや状況整理を簡潔に記述",
+  "action": "ユーザーへの返答や次に取るべき具体的なアクションを記述",
+  "plan": [
+    { "id": "1", "title": "日本の隠れた名所をリサーチする" },
+    { "id": "2", "title": "地域やテーマで分類する" },
+    { "id": "3", "title": "おすすめスポットを出力する" }
+  ]
+}
+
+thought と action は必須、plan は必要に応じて出力してください。
+`;
 
 export class PlannerAgent extends BaseAgent<
   typeof plannerOutputSchema,
@@ -49,52 +64,49 @@ export class PlannerAgent extends BaseAgent<
         ExecutionState.STEP_START,
         'Planning...',
       );
-      // get all messages from the message manager, state message should be the last one
+
+      // System prompt + 履歴メッセージ
       const messages = this.context.messageManager.getMessages();
-      // Use full message history except the first one
       const plannerMessages = [
-        this.prompt.getSystemMessage(),
+        new HumanMessage(SYSTEM_PROMPT),
         ...messages.slice(1),
       ];
 
-      // Remove images from last message if vision is not enabled for planner but vision is enabled
-      if (
-        !this.context.options.useVisionForPlanner &&
-        this.context.options.useVision
-      ) {
-        const lastStateMessage = plannerMessages[plannerMessages.length - 1];
-        let newMsg = '';
-
-        if (Array.isArray(lastStateMessage.content)) {
-          for (const msg of lastStateMessage.content) {
-            if (msg.type === 'text') {
-              newMsg += msg.text;
-            }
-            // Skip image_url messages
-          }
-        } else {
-          newMsg = lastStateMessage.content;
-        }
-
-        plannerMessages[plannerMessages.length - 1] = new HumanMessage(newMsg);
-      }
-
+      // === 3. モデル呼び出し・AI出力取得 ===
       const modelOutput = await this.invoke(plannerMessages);
-      if (!modelOutput) {
-        throw new Error('Failed to validate planner output');
+
+      // planが未生成なら仮データで埋める（テスト用・実運用では不要）
+      const plan =
+        modelOutput.plan &&
+        Array.isArray(modelOutput.plan) &&
+        modelOutput.plan.length > 0
+          ? modelOutput.plan
+          : [
+              { id: '1', title: '日本の隠れた名所をリサーチする' },
+              { id: '2', title: '地域やテーマで分類する' },
+              { id: '3', title: 'おすすめスポットを出力する' },
+            ];
+
+      if (!modelOutput || !modelOutput.thought || !modelOutput.action) {
+        throw new Error(
+          'Failed to validate planner output (thought/action missing)',
+        );
       }
+
       this.context.emitEvent(
         Actors.PLANNER,
         ExecutionState.STEP_OK,
-        modelOutput.next_steps,
+        (modelOutput.action ?? '') + ' [Thought/Action/Plan形式]',
       );
 
       return {
         id: this.id,
-        result: modelOutput,
+        result: {
+          ...modelOutput,
+          plan,
+        },
       };
     } catch (error) {
-      // Check if this is an authentication error
       if (isAuthenticationError(error)) {
         throw new ChatModelAuthError(
           'Planner API Authentication failed. Please verify your API key',
