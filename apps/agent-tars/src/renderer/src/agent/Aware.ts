@@ -36,20 +36,27 @@ export class Aware {
     this.signal = signal;
   }
 
-  // ★ より強力なJSON抽出・パース関数
+  // より強力なJSON抽出・パース関数
   private static safeParse<T>(text: string): T | null {
-    // 1. ```json ... ``` コードブロックを抜き出し
+    // 1. ```json ... ``` コードブロック優先で抜き出し
     let match =
-      text.match(/```json([\s\S]*?)```/i) ||
+      text.match(/```json\s*([\s\S]*?)```/i) ||
       text.match(/```([\s\S]*?)```/i) ||
       text.match(/{[\s\S]*}/);
-    if (!match) {
-      console.warn('safeParse: no JSON block found', text);
-      return null;
+    let cleaned = match ? match[1] || match[0] : '';
+    if (!cleaned) {
+      // 最後の手段として全体から{}だけ拾う
+      const curlyMatch = text.match(/{[\s\S]*}/);
+      if (curlyMatch) {
+        cleaned = curlyMatch[0];
+      } else {
+        console.warn('safeParse: no JSON block found', text);
+        return null;
+      }
     }
-    // match[1]があれば優先、それ以外はmatch[0]
-    let cleaned = match[1] || match[0];
     try {
+      // 余計なバックスラッシュや改行、エスケープを吸収
+      cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\"/g, '"');
       return JSON.parse(cleaned) as T;
     } catch (e) {
       console.warn('[Aware.safeParse] JSON.parse failed:', e, cleaned);
@@ -115,6 +122,11 @@ export class Aware {
     // JSON抽出してパース
     const parsed = Aware.safeParse<AwareResult>(content);
     console.log('[Aware] parsed LLM JSON:', parsed);
+    if (parsed && parsed.plan && !Array.isArray(parsed.plan)) {
+      // planがオブジェクトや文字列の場合は空配列に矯正
+      parsed.plan = [];
+    }
+    console.log('[Aware] parsed.plan:', parsed?.plan);
 
     // planがundefinedや配列でない場合も必ず空配列で補正
     if (parsed && Array.isArray(parsed.plan)) {
