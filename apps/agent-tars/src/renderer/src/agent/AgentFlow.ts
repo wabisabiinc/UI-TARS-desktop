@@ -202,7 +202,7 @@ export class AgentFlow {
 
           await this.eventManager.addPlanUpdate(
             awareResult.step && awareResult.step > 0 ? awareResult.step : 1,
-            agentContext.plan,
+            Array.isArray(agentContext.plan) ? agentContext.plan : [],
             {
               reflection: awareResult.reflection,
               status: awareResult.status,
