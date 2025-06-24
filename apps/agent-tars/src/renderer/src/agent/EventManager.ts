@@ -43,45 +43,18 @@ export class EventManager {
       content: content as EventContentDescriptor[keyof EventContentDescriptor],
       timestamp: Date.now(),
     };
+
     this.events.push(event);
 
-    // デバッグ：イベントログ
-    console.log(
-      '[EventManager.events]',
-      this.events.map((ev) => ({
-        type: ev.type,
-        content: ev.content,
-        step: (ev as any)?.content?.step,
-        plan: (ev as any)?.content?.plan,
-        reflection: (ev as any)?.content?.reflection,
-        status: (ev as any)?.content?.status,
-      })),
-    );
-
-    willNotifyUpdate && this.notifyUpdate();
-    return event;
-  }
-
-  public async addPlanUpdate(
-    step: number,
-    plan: PlanTask[] | undefined,
-    extra?: { reflection?: string; status?: string },
-  ): Promise<EventItem> {
-    // planが配列でなければ空配列に補正
-    const safePlan = Array.isArray(plan) ? plan : [];
-    console.log(
-      '[EventManager.addPlanUpdate] step:',
-      step,
-      'plan:',
-      safePlan,
-      'extra:',
-      extra,
-    );
-    return this.addEvent(EventType.PlanUpdate, {
-      plan: safePlan,
-      step,
-      ...(extra || {}),
+    // ★ ここで全てのイベントをデバッグ
+    console.log('[EventManager.addEvent]', {
+      type,
+      content,
+      events: this.events,
     });
+
+    willNotifyUpdate && (await this.notifyUpdate());
+    return event;
   }
 
   public async addChatText(
@@ -90,24 +63,44 @@ export class EventManager {
   ): Promise<EventItem> {
     return this.addEvent(EventType.ChatText, { text: content, attachments });
   }
+
   public async addLoadingStatus(
     title: string,
     willNotifyUpdate = true,
   ): Promise<EventItem> {
     return this.addEvent(EventType.LoadingStatus, { title }, willNotifyUpdate);
   }
+
+  public async addPlanUpdate(
+    step: number,
+    plan: PlanTask[],
+    extra?: { reflection?: string; status?: string },
+  ): Promise<EventItem> {
+    // ★ PlanUpdate発火を必ず記録
+    console.log('[EventManager] addPlanUpdate called', { step, plan, extra });
+    return this.addEvent(EventType.PlanUpdate, {
+      plan: plan ?? [],
+      step,
+      ...(extra || {}),
+    });
+  }
+
   public async addNewPlanStep(step: number): Promise<EventItem> {
     return this.addEvent(EventType.NewPlanStep, { step });
   }
+
   public async addAgentStatus(status: string): Promise<EventItem> {
     return this.addEvent(EventType.AgentStatus, status);
   }
+
   public async addObservation(content: any): Promise<EventItem> {
     return this.addEvent(EventType.Observation, content);
   }
+
   public updateEvent(eventId: string, updates: Partial<EventItem>): boolean {
     const eventIndex = this.events.findIndex((event) => event.id === eventId);
     if (eventIndex === -1) return false;
+
     this.events[eventIndex] = {
       ...this.events[eventIndex],
       ...updates,
@@ -116,6 +109,7 @@ export class EventManager {
     this.notifyUpdate();
     return true;
   }
+
   public updateToolStatus(eventId: string, status: ActionStatus): boolean {
     const event = this.events.find((e) => e.id === eventId);
     if (!event || event.type !== EventType.ToolUsed) return false;
@@ -124,30 +118,37 @@ export class EventManager {
       content: { ...content, status } as any,
     });
   }
+
   public findEventsByType<T extends EventType>(type: T): EventItem[] {
     return this.events.filter((event) => event.type === type);
   }
+
   public findLatestEventByType<T extends EventType>(
     type: T,
   ): EventItem | undefined {
     const events = this.findEventsByType(type);
     return events.length > 0 ? events[events.length - 1] : undefined;
   }
+
   public clearEvents(): void {
     this.events = [];
     this.notifyUpdate();
   }
+
   private notifyUpdate(): void {
     if (this.onEventsUpdate) {
       this.onEventsUpdate(this.getAllEvents());
     }
   }
+
   public async addUserInterruptionInput(text: string): Promise<EventItem> {
     return this.addEvent(EventType.UserInterruption, { text });
   }
+
   public async addEndEvent(message: string): Promise<EventItem> {
     return this.addEvent(EventType.End, { message });
   }
+
   public async addToolCallStart(
     toolName: string,
     params: string,
@@ -164,6 +165,7 @@ export class EventManager {
       value,
     });
   }
+
   public async handleToolExecution({
     toolName,
     toolCallId,
@@ -189,6 +191,7 @@ export class EventManager {
     });
     await this.addObservation(JSON.stringify(result));
   }
+
   public async updateFileContentForEdit(originalContent: string) {
     const latestEditEvent = [...this.events]
       .reverse()
@@ -205,6 +208,7 @@ export class EventManager {
     };
     await this.notifyUpdate();
   }
+
   public async updateScreenshot(screenshotFilePath: string) {
     const latestBrowserNavigateEvent = [...this.events]
       .reverse()
@@ -226,6 +230,7 @@ export class EventManager {
     };
     await this.notifyUpdate();
   }
+
   public async addToolExecutionLoading(toolCall: ToolCall): Promise<EventItem> {
     const { description } = getLoadingTipFromToolCall(
       toolCall.function.name,
@@ -234,9 +239,11 @@ export class EventManager {
     );
     return this.addLoadingStatus(description);
   }
+
   public async addUserMessageEvent(message: string): Promise<EventItem> {
     return this.addEvent(EventType.UserMessage, message);
   }
+
   public normalizeEventsForPrompt(): string {
     const recentEvents = [...this.historyEvents, ...this.events]
       .filter((item) => item.type !== EventType.LoadingStatus)
@@ -264,6 +271,7 @@ export class EventManager {
       })
       .join('\n');
   }
+
   private normalizeEvent(event: EventItem): {
     type: EventType;
     content: Partial<EventContentDescriptor[keyof EventContentDescriptor]>;
@@ -329,6 +337,7 @@ export class EventManager {
         return base;
     }
   }
+
   public async updateToolExecutionLoadingMessage(
     _toolCall: ToolCall,
     message: string,
