@@ -181,19 +181,8 @@ export class Executor {
               JSON.stringify(planOutput.result),
               this.context.messageManager.length() - 1,
             );
-            if (planOutput.result.done) {
-              // task is complete, skip navigation
-              done = true;
-              this.validator.setPlan(planOutput.result.next_steps);
-            } else {
-              // task is not complete, let's navigate
-              this.validator.setPlan(null);
-              done = false;
-            }
-
-            if (!planOutput.result.web_task && planOutput.result.done) {
-              break;
-            }
+            // 旧API（done, next_steps, web_task）に依存する判定は削除
+            // ここで必要ならplan/thought/actionで自前判定を書くこと
           }
         }
 
