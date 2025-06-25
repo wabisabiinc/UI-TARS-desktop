@@ -223,7 +223,10 @@ export class AgentFlow {
           }
 
           const allEvents = this.eventManager.getAllEvents();
-          console.log('[AgentFlow] events after PlanUpdate:', allEvents);
+          console.log(
+            '[DEBUG] AgentFlow.ts allEvents:',
+            JSON.stringify(allEvents, null, 2),
+          );
 
           const latestPlanUpdate = allEvents.filter(
             (e) => e.type === EventType.PlanUpdate,

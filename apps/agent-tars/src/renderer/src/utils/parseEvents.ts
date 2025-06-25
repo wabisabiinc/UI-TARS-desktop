@@ -35,7 +35,10 @@ export function extractEventStreamUIMeta(
   const lastPlanUpdate = [...events]
     .reverse()
     .find((event) => event.type === EventType.PlanUpdate);
-  console.log('[parseEvents] lastPlanUpdate:', lastPlanUpdate);
+  console.log(
+    '[DEBUG] parseEvents lastPlanUpdate:',
+    JSON.stringify(lastPlanUpdate, null, 2),
+  );
 
   // ★ PlanUpdateイベントのplan内容デバッグ
   if (lastPlanUpdate) {
