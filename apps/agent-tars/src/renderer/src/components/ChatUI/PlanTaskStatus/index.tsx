@@ -1,14 +1,30 @@
 import { planTasksAtom } from '@renderer/state/chat';
 import { useAtom } from 'jotai';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlanTaskStatus as TaskStatus } from '@renderer/type/agent';
 import { Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { FiClock, FiCheck, FiX } from 'react-icons/fi';
 
 export function PlanTaskStatus() {
-  const [planTasks] = useAtom(planTasksAtom);
+  // ★setPlanTasks も使う
+  const [planTasks, setPlanTasks] = useAtom(planTasksAtom);
   const [isOpen, setIsOpen] = useState(false);
+
+  // ★2秒後にテストデータを注入
+  useEffect(() => {
+    setTimeout(() => {
+      setPlanTasks([
+        { id: 'test1', title: 'テストタスク1', status: TaskStatus.Doing },
+        { id: 'test2', title: 'テストタスク2', status: TaskStatus.Done },
+      ]);
+    }, 2000);
+  }, [setPlanTasks]);
+
+  useEffect(() => {
+    console.log('[PlanTaskStatus] planTasks変更:', planTasks);
+  }, [planTasks]);
+
   const completedTasks =
     planTasks?.filter((task) => task.status === TaskStatus.Done).length || 0;
 
