@@ -46,6 +46,8 @@ export class AgentFlow {
 
   async run() {
     console.log('[AgentFlow] run() called');
+
+    // **初期化時だけsetPlanTasks([]) ← 2重・競合初期化を絶対に避ける**
     this.appContext.setPlanTasks([]);
     const chatUtils = this.appContext.chatUtils;
     const { setAgentStatusTip } = this.appContext;
@@ -54,9 +56,7 @@ export class AgentFlow {
       ChatMessageUtil.assistantOmegaMessage({
         events: this.eventManager.getAllEvents(),
       }),
-      {
-        shouldSyncStorage: true,
-      },
+      { shouldSyncStorage: true },
     );
     setAgentStatusTip('Thinking');
 
@@ -97,9 +97,7 @@ export class AgentFlow {
         ChatMessageUtil.assistantOmegaMessage({
           events: this.eventManager.getAllEvents(),
         }),
-        {
-          shouldSyncStorage: true,
-        },
+        { shouldSyncStorage: true },
       );
       this.eventManager.setUpdateCallback(async (events) => {
         console.log('[AgentFlow] setUpdateCallback received events:', events);
@@ -191,6 +189,7 @@ export class AgentFlow {
             awareResult.step,
           );
 
+          // **plan生成直後のみUIへセット・競合しないよう分岐を厳密に**
           const normalizedPlan = this.normalizePlan(awareResult, agentContext);
           console.log('[AgentFlow] normalizedPlan', normalizedPlan);
 
@@ -233,19 +232,21 @@ export class AgentFlow {
           );
           console.log('[AgentFlow] latestPlanUpdate:', latestPlanUpdate);
 
-          // planがUIに渡るか必ずログ
-          console.log('[AgentFlow] setPlanTasksに渡す値:', agentContext.plan);
-          this.appContext.setEvents(allEvents);
-          this.appContext.setPlanTasks([...agentContext.plan]);
-
+          // **planTasksAtomへの反映はここだけ・空の場合のみ警告出して終了**
           if (!agentContext.plan || agentContext.plan.length === 0) {
             console.warn(
               '[AgentFlow] plan is empty: LLM response invalid or parse failure',
             );
+            this.appContext.setPlanTasks([]); // 空で反映
             await this.eventManager.addAgentStatus('No plan generated (error)');
             this.hasFinished = true;
             break;
+          } else {
+            console.log('[AgentFlow] setPlanTasksに渡す値:', agentContext.plan);
+            this.appContext.setPlanTasks([...agentContext.plan]);
           }
+
+          this.appContext.setEvents(allEvents);
 
           agentContext.currentStep =
             awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
