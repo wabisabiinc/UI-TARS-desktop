@@ -24,6 +24,9 @@ import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
 
+// ↓ここを追加！
+import { extractEventStreamUIMeta } from '@renderer/utils/parseEvents';
+
 declare global {
   interface Window {
     __OMEGA_REPORT_DATA__?: {
@@ -52,11 +55,20 @@ export function OpenAgentChatUI() {
   const [, setEvents] = useAtom(eventsAtom);
   const [events] = useAtom(eventsAtom);
   const [planTasks] = useAtom(planTasksAtom);
+  const [, setPlanTasks] = useAtom(planTasksAtom); // 追加済みならOK
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
+
+  // === 追加ここから ===
+  // eventsAtomの変化を検知し、planTasksAtomを最新化
+  useEffect(() => {
+    const { planTasks } = extractEventStreamUIMeta(events);
+    setPlanTasks(planTasks);
+  }, [events, setPlanTasks]);
+  // === 追加ここまで ===
 
   // planTasksまたはagentStatusTipの変化でThinking解除
   useEffect(() => {
