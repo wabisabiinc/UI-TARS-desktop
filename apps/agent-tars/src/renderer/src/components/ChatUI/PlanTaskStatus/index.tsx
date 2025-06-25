@@ -1,21 +1,32 @@
 import { planTasksAtom } from '@renderer/state/chat';
 import { useAtom } from 'jotai';
-import { useState, useEffect } from 'react';
-import { PlanTaskStatus as TaskStatus } from '@renderer/type/agent';
+import { useState, useEffect, useMemo } from 'react';
+import { PlanTaskStatus as TaskStatus, PlanTask } from '@renderer/type/agent';
 import { Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { FiClock, FiCheck, FiX } from 'react-icons/fi';
 
 export function PlanTaskStatus() {
-  const [planTasks] = useAtom(planTasksAtom);
+  const [planTasksRaw] = useAtom(planTasksAtom);
   const [isOpen, setIsOpen] = useState(false);
+
+  // 必ず配列型にするガード
+  const planTasks: PlanTask[] = useMemo(() => {
+    if (!Array.isArray(planTasksRaw)) return [];
+    // 不正なオブジェクト防御
+    return planTasksRaw.filter(
+      (task) =>
+        task && typeof task === 'object' && typeof task.title === 'string',
+    );
+  }, [planTasksRaw]);
 
   useEffect(() => {
     console.log('[PlanTaskStatus] planTasks:', planTasks);
   }, [planTasks]);
 
-  const completedTasks =
-    planTasks?.filter((task) => task.status === TaskStatus.Done).length || 0;
+  const completedTasks = planTasks.filter(
+    (task) => task.status === TaskStatus.Done,
+  ).length;
 
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
@@ -30,7 +41,8 @@ export function PlanTaskStatus() {
     }
   };
 
-  if (!planTasks?.length) return null;
+  // planTasksが空や不正な場合は非表示
+  if (!planTasks.length) return null;
 
   return (
     <Popover
@@ -64,7 +76,7 @@ export function PlanTaskStatus() {
           <div className="p-2">
             {planTasks.map((task, index) => (
               <motion.div
-                key={task.id}
+                key={task.id || index}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}

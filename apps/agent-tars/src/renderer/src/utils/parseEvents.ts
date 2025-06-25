@@ -18,11 +18,12 @@ export interface EventStreamUIMeta {
   planTasks: PlanTask[];
   agentStatus: string;
   currentStepIndex: number;
-  currentEvent: EventItem;
+  currentEvent: EventItem | undefined;
   eventGroups: UIGroup[];
   isLoading: boolean;
 }
 
+// 「planTasksは必ず配列」「titleがstringのもののみ」「変な値は空配列で防御」
 export function extractEventStreamUIMeta(
   events: EventItem[],
 ): EventStreamUIMeta {
@@ -57,7 +58,7 @@ export function extractEventStreamUIMeta(
     }
   }
 
-  // どんな場合も必ず planTasks を配列型に
+  // planTasks: 必ず配列、title:stringなobjectだけを通す
   let planTasks: PlanTask[] = [];
   if (
     lastPlanUpdate &&
@@ -72,26 +73,19 @@ export function extractEventStreamUIMeta(
       );
     }
   } else {
-    // throwしない。空配列にしてUIクラッシュを防ぐ
     planTasks = [];
-    console.warn(
-      '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない（空配列で初期化）:',
-      lastPlanUpdate?.content,
-    );
+    if (lastPlanUpdate) {
+      console.warn(
+        '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない（空配列で初期化）:',
+        lastPlanUpdate?.content,
+      );
+    }
   }
-  // ここで「絶対に配列」
+  // 絶対配列＆不正データ防御
   if (!Array.isArray(planTasks)) planTasks = [];
-
-  // ★ planTasksの中身を再度チェックし、配列以外の場合も空配列
-  if (!Array.isArray(planTasks)) {
-    console.warn('[parseEvents] planTasks is not array, force []:', planTasks);
-    planTasks = [];
-  } else {
-    // planTasksがobjectやnullなど変な値ならここで弾く
-    planTasks = planTasks.filter(
-      (t) => t && typeof t === 'object' && typeof t.title === 'string',
-    );
-  }
+  planTasks = planTasks.filter(
+    (t) => t && typeof t === 'object' && typeof t.title === 'string',
+  );
 
   console.log('[parseEvents] planTasks:', Array.isArray(planTasks), planTasks);
 
@@ -110,7 +104,7 @@ export function extractEventStreamUIMeta(
     : 1;
 
   // 最後のイベント
-  const lastEvent = events[events.length - 1];
+  const lastEvent = events.length > 0 ? events[events.length - 1] : undefined;
   const isLoading = lastEvent?.type === EventType.LoadingStatus;
   const eventGroups = groupEventsByStep(events);
 
@@ -124,6 +118,7 @@ export function extractEventStreamUIMeta(
   };
 }
 
+// UIのグループ化も安全ガードつきでそのまま
 export function groupEventsByStep(events: EventItem[]): UIGroup[] {
   const groups: UIGroup[] = [];
   let currentStepEvents: EventItem[] = [];
