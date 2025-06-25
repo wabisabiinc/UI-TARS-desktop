@@ -18,6 +18,11 @@ export class EventManager {
   constructor(historyEvents: EventItem[] = []) {
     this.historyEvents = historyEvents;
     this.events = [];
+    // ★ ここでも初期化状態を確認
+    console.log('[EventManager.constructor] 初期化', {
+      historyEvents,
+      events: this.events,
+    });
   }
 
   public getHistoryEvents(): EventItem[] {
@@ -39,6 +44,9 @@ export class EventManager {
     willNotifyUpdate = true,
   ): Promise<EventItem> {
     try {
+      console.log('[addEvent/start] type:', type, 'content:', content);
+      console.log('[addEvent/start] 追加前events:', this.events);
+
       const event: EventItem = {
         id: uuidv4(),
         type,
@@ -48,17 +56,12 @@ export class EventManager {
       };
       this.events.push(event);
 
-      // ★ ここで全てのイベントをデバッグ
-      console.log('[EventManager.addEvent]', {
-        type,
-        content,
-        events: this.events,
-      });
-
+      console.log('[addEvent/after push] events:', this.events);
       willNotifyUpdate && (await this.notifyUpdate());
       return event;
     } catch (err) {
-      console.error('[EventManager.addEvent ERROR]', err);
+      console.error('[addEvent/ERROR]', err);
+      console.error('[addEvent/ERROR] events:', this.events);
       throw err;
     }
   }
@@ -84,12 +87,10 @@ export class EventManager {
   ): Promise<EventItem> {
     try {
       // ★ PlanUpdate発火を必ず記録
-      console.log(
-        '[EventManager.addPlanUpdate] 受け取ったplan:',
-        plan,
-        Array.isArray(plan),
-      );
+      console.log('[addPlanUpdate/start] 現在のevents:', this.events);
+      console.log('[addPlanUpdate/start] 追加予定のplan:', plan);
       console.log('[EventManager] addPlanUpdate called', { step, plan, extra });
+
       const event = await this.addEvent(EventType.PlanUpdate, {
         plan: plan ?? [],
         step,
@@ -97,14 +98,12 @@ export class EventManager {
       });
 
       // ★★★ ここで全イベント配列の内容を確認
-      console.log(
-        '[EventManager.addPlanUpdate後のevents]',
-        JSON.stringify(this.events, null, 2),
-      );
-
+      console.log('[addPlanUpdate/after addEvent] newEvent:', event);
+      console.log('[addPlanUpdate/after addEvent] events:', this.events);
       return event;
     } catch (err) {
-      console.error('[EventManager] addPlanUpdate ERROR:', err);
+      console.error('[addPlanUpdate/ERROR]', err);
+      console.error('[addPlanUpdate/ERROR] events:', this.events);
       throw err;
     }
   }
