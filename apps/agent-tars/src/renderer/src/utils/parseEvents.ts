@@ -37,7 +37,24 @@ export function extractEventStreamUIMeta(
     .find((event) => event.type === EventType.PlanUpdate);
   console.log('[parseEvents] lastPlanUpdate:', lastPlanUpdate);
 
-  // ★ どんな場合も必ず planTasks を配列型に
+  // ★ PlanUpdateイベントのplan内容デバッグ
+  if (lastPlanUpdate) {
+    console.log(
+      '[parseEvents] lastPlanUpdate.content:',
+      lastPlanUpdate.content,
+    );
+    if (
+      lastPlanUpdate.content &&
+      Array.isArray((lastPlanUpdate.content as any).plan)
+    ) {
+      console.log(
+        '[parseEvents] lastPlanUpdate.plan:',
+        (lastPlanUpdate.content as any).plan,
+      );
+    }
+  }
+
+  // どんな場合も必ず planTasks を配列型に
   let planTasks: PlanTask[] = [];
   if (
     lastPlanUpdate &&
@@ -52,7 +69,7 @@ export function extractEventStreamUIMeta(
       );
     }
   } else {
-    // ★ throwしない。空配列にしてUIクラッシュを防ぐ
+    // throwしない。空配列にしてUIクラッシュを防ぐ
     planTasks = [];
     console.warn(
       '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない（空配列で初期化）:',
@@ -62,7 +79,18 @@ export function extractEventStreamUIMeta(
   // ここで「絶対に配列」
   if (!Array.isArray(planTasks)) planTasks = [];
 
-  console.log('[parseEvents] planTasks:', Array.isArray(planTasks));
+  // ★ planTasksの中身を再度チェックし、配列以外の場合も空配列
+  if (!Array.isArray(planTasks)) {
+    console.warn('[parseEvents] planTasks is not array, force []:', planTasks);
+    planTasks = [];
+  } else {
+    // planTasksがobjectやnullなど変な値ならここで弾く
+    planTasks = planTasks.filter(
+      (t) => t && typeof t === 'object' && typeof t.title === 'string',
+    );
+  }
+
+  console.log('[parseEvents] planTasks:', Array.isArray(planTasks), planTasks);
 
   // 最新のAgentStatusを取得
   const lastAgentStatus = [...events]
