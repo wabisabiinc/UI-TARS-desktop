@@ -90,11 +90,19 @@ export class EventManager {
         Array.isArray(plan),
       );
       console.log('[EventManager] addPlanUpdate called', { step, plan, extra });
-      return await this.addEvent(EventType.PlanUpdate, {
+      const event = await this.addEvent(EventType.PlanUpdate, {
         plan: plan ?? [],
         step,
         ...(extra || {}),
       });
+
+      // ★★★ ここで全イベント配列の内容を確認
+      console.log(
+        '[EventManager.addPlanUpdate後のevents]',
+        JSON.stringify(this.events, null, 2),
+      );
+
+      return event;
     } catch (err) {
       console.error('[EventManager] addPlanUpdate ERROR:', err);
       throw err;
