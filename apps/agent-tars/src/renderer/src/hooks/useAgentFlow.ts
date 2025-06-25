@@ -82,7 +82,10 @@ export function useAgentFlow() {
         setEvents,
         setEventId,
         setAgentStatusTip,
-        setPlanTasks,
+        setPlanTasks: (tasks) => {
+          console.log('[useAgentFlow] setPlanTasks:', tasks);
+          setPlanTasks(tasks);
+        },
         setShowCanvas,
         agentFlowId,
         request: {

@@ -7,22 +7,11 @@ import { motion } from 'framer-motion';
 import { FiClock, FiCheck, FiX } from 'react-icons/fi';
 
 export function PlanTaskStatus() {
-  // ★setPlanTasks も使う
-  const [planTasks, setPlanTasks] = useAtom(planTasksAtom);
+  const [planTasks] = useAtom(planTasksAtom);
   const [isOpen, setIsOpen] = useState(false);
 
-  // ★2秒後にテストデータを注入
   useEffect(() => {
-    setTimeout(() => {
-      setPlanTasks([
-        { id: 'test1', title: 'テストタスク1', status: TaskStatus.Doing },
-        { id: 'test2', title: 'テストタスク2', status: TaskStatus.Done },
-      ]);
-    }, 2000);
-  }, [setPlanTasks]);
-
-  useEffect(() => {
-    console.log('[PlanTaskStatus] planTasks変更:', planTasks);
+    console.log('[PlanTaskStatus] planTasks:', planTasks);
   }, [planTasks]);
 
   const completedTasks =
@@ -65,7 +54,6 @@ export function PlanTaskStatus() {
           </div>
         </div>
       </PopoverTrigger>
-
       <PopoverContent className="p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-blue-100/50 dark:border-blue-500/30">
         <div className="w-[320px] max-h-[400px] overflow-y-auto">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
