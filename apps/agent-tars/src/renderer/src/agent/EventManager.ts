@@ -18,7 +18,7 @@ export class EventManager {
   constructor(historyEvents: EventItem[] = []) {
     this.historyEvents = historyEvents;
     this.events = [];
-    // ★ ここでも初期化状態を確認
+    // ★ 初期化状態ログ
     console.log('[EventManager.constructor] 初期化', {
       historyEvents,
       events: this.events,
