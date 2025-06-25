@@ -23,52 +23,34 @@ import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
-
-// ↓ここを追加！
 import { extractEventStreamUIMeta } from '@renderer/utils/parseEvents';
-
-declare global {
-  interface Window {
-    __OMEGA_REPORT_DATA__?: {
-      messages: MessageItem[];
-      artifacts: {
-        [key: string]: {
-          content: string;
-        };
-      };
-    };
-  }
-}
 
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const addUserMessage = useAddUserMessage();
   const launchAgentFlow = useAgentFlow();
-  const chatUIRef = useRef<{
-    getInputTextArea: () => HTMLTextAreaElement | null;
-    triggerCommand: (command: string) => void;
-    focusInput: () => void;
-  }>(null);
+  const chatUIRef = useRef(null);
   const isDarkMode = useThemeMode();
   const { initMessages, setMessages, messages } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
   const [events] = useAtom(eventsAtom);
   const [planTasks] = useAtom(planTasksAtom);
-  const [, setPlanTasks] = useAtom(planTasksAtom); // 追加済みならOK
+  const [, setPlanTasks] = useAtom(planTasksAtom);
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
-  const { currentSessionId } = useChatSessions({
-    appId: DEFAULT_APP_ID,
-  });
+  const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // === 追加ここから ===
-  // eventsAtomの変化を検知し、planTasksAtomを最新化
+  // --- planTasksの同期ロジック ---
   useEffect(() => {
     const { planTasks } = extractEventStreamUIMeta(events);
-    setPlanTasks(planTasks);
+    setPlanTasks((prev) => {
+      if (JSON.stringify(prev) !== JSON.stringify(planTasks)) {
+        return planTasks;
+      }
+      return prev;
+    });
   }, [events, setPlanTasks]);
-  // === 追加ここまで ===
 
   // planTasksまたはagentStatusTipの変化でThinking解除
   useEffect(() => {
@@ -95,11 +77,10 @@ export function OpenAgentChatUI() {
     console.log('[ChatUI] UIで受け取ったevents:', events);
   }, [events]);
 
-  // ユーザーメッセージ送信時のロジック
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       try {
-        const inputEle = chatUIRef.current?.getInputTextArea();
+        const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = true;
           inputEle.style.cursor = 'not-allowed';
@@ -108,9 +89,9 @@ export function OpenAgentChatUI() {
         await addUserMessage(inputText, inputFiles);
         await launchAgentFlow(inputText, inputFiles);
       } catch (e) {
-        setIsSending(false); // 例外時は強制解除
+        setIsSending(false);
       } finally {
-        const inputEle = chatUIRef.current?.getInputTextArea();
+        const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = false;
           inputEle.style.cursor = 'auto';
@@ -154,7 +135,6 @@ export function OpenAgentChatUI() {
           {planTasks.map((task, idx) => (
             <li key={task.id || idx}>
               <span>{task.title || '(no title)'}</span>
-              {/* 必要ならtask.statusも表示可能 */}
             </li>
           ))}
         </ol>
@@ -162,7 +142,7 @@ export function OpenAgentChatUI() {
     );
   };
 
-  // エラー時の表示（任意）
+  // エラー時の表示
   const renderError = () => {
     if (
       !isSending &&
@@ -184,31 +164,21 @@ export function OpenAgentChatUI() {
     <>
       <BaseChatUI
         styles={{
-          container: {
-            height: 'calc(100vh)',
-            width: '100%',
-          },
-          inputContainer: {
-            display: isReportHtmlMode ? 'none' : 'flex',
-          },
+          container: { height: 'calc(100vh)', width: '100%' },
+          inputContainer: { display: isReportHtmlMode ? 'none' : 'flex' },
         }}
         disableInput={isReportHtmlMode}
         ref={chatUIRef}
-        customMessageRender={(message) => {
-          return renderMessageUI({
-            message: message as unknown as MessageItem,
-          });
-        }}
+        customMessageRender={(message) =>
+          renderMessageUI({ message: message as unknown as MessageItem })
+        }
         isDark={isDarkMode.value}
         onMessageSend={sendMessage}
         storageDbName={STORAGE_DB_NAME}
-        features={{
-          clearConversationHistory: true,
-          uploadFiles: false,
-        }}
+        features={{ clearConversationHistory: true, uploadFiles: false }}
         onMessageAbort={() => {
           setIsSending(false);
-          const inputEle = chatUIRef.current?.getInputTextArea();
+          const inputEle = chatUIRef.current?.getInputTextArea?.();
           if (inputEle) {
             inputEle.disabled = false;
             inputEle.style.cursor = 'auto';
@@ -238,9 +208,7 @@ export function OpenAgentChatUI() {
             </div>
           ),
         }}
-        classNames={{
-          messageList: 'scrollbar',
-        }}
+        classNames={{ messageList: 'scrollbar' }}
         conversationId={currentSessionId || 'default'}
         inputPlaceholder={
           isSending
