@@ -122,25 +122,29 @@ export class Aware {
     // JSON抽出してパース
     const parsed = Aware.safeParse<AwareResult>(content);
     console.log('[Aware] parsed LLM JSON:', parsed);
-    if (parsed && parsed.plan && !Array.isArray(parsed.plan)) {
-      // planがオブジェクトや文字列の場合は空配列に矯正
-      parsed.plan = [];
-    }
-    console.log('[Aware] parsed.plan:', parsed?.plan);
 
-    // planがundefinedや配列でない場合も必ず空配列で補正
+    // planプロパティを徹底補正
+    let plan: PlanTask[] = [];
     if (parsed && Array.isArray(parsed.plan)) {
+      plan = parsed.plan;
+    } else if (parsed && parsed.plan && typeof parsed.plan === 'object') {
+      // 配列でなくobjectなら1件だけとして配列化
+      plan = [parsed.plan as any];
+    } else {
+      plan = [];
+    }
+    // planが要件を満たしているか型チェック
+    plan = plan.filter(
+      (t) => t && typeof t === 'object' && typeof t.title === 'string',
+    );
+    console.log('[Aware] 最終plan（返却前）:', plan);
+
+    if (parsed) {
       return {
         ...parsed,
-        plan: parsed.plan,
-      };
-    } else if (parsed) {
-      return {
-        ...parsed,
-        plan: [],
+        plan,
       };
     }
-
     console.warn('Failed to parse JSON, returning default.');
     return this.getDefaultResult();
   }
