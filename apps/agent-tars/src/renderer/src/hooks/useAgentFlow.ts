@@ -58,7 +58,7 @@ export function useAgentFlow() {
       const result = await ipcClient.askLLMText({
         messages: [
           Message.systemMessage(
-            `You are conversation summary expert.Please give a title for the coversation topic, the topic should be no more than 20 words.You can only output the topic content, don't output any other words.Use the same with as the language of the user input.The language should be the same as the user input.`,
+            `You are conversation summary expert. Please give a title for the coversation topic, the topic should be no more than 20 words. You can only output the topic content, don't output any other words. Use the same with as the language of the user input. The language should be the same as the user input.`,
           ),
           Message.userMessage(
             `user input: ${userMessageContent}, please give me the topic title.`,
@@ -83,8 +83,10 @@ export function useAgentFlow() {
         setEventId,
         setAgentStatusTip,
         setPlanTasks: (tasks) => {
-          console.log('[useAgentFlow] setPlanTasks:', tasks);
-          setPlanTasks(tasks);
+          // 念のため空配列対応＋デバッグログ
+          const safeTasks = Array.isArray(tasks) ? tasks : [];
+          console.log('[useAgentFlow] setPlanTasks:', safeTasks);
+          setPlanTasks(safeTasks);
         },
         setShowCanvas,
         agentFlowId,
@@ -95,6 +97,15 @@ export function useAgentFlow() {
       });
       await Promise.all([agentFlow.run(), updateSessionTitle(inputText)]);
     },
-    [chatUtils, setEvents, updateSessionTitle],
+    [
+      chatUtils,
+      setEvents,
+      setEventId,
+      setAgentStatusTip,
+      setPlanTasks,
+      setShowCanvas,
+      currentAgentFlowIdRef,
+      updateSessionTitle,
+    ],
   );
 }
