@@ -48,7 +48,6 @@ export class AgentFlow {
     console.log('[AgentFlow] run() called');
 
     this.appContext.setPlanTasks([]);
-    // デバッグ: run開始時
     console.log('[AgentFlow-debug] run開始: setPlanTasks([]) 実行');
 
     const chatUtils = this.appContext.chatUtils;
@@ -190,90 +189,95 @@ export class AgentFlow {
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
+          // デバッグ用にtry/catchでUI反映系を細かく分割
           let normalizedPlan: PlanTask[] = [];
           try {
-            console.log(
-              '[AgentFlow] normalizePlan 入力',
-              awareResult,
-              agentContext,
-            );
+            console.log('[AgentFlow] normalizePlan直前');
             normalizedPlan = this.normalizePlan(awareResult, agentContext);
-            console.log('[AgentFlow] normalizePlan 出力', normalizedPlan);
+            console.log('[AgentFlow] normalizePlan直後', normalizedPlan);
           } catch (e) {
-            console.error(
-              '[AgentFlow] normalizePlan 例外:',
-              e,
-              awareResult,
-              agentContext,
-            );
+            console.error('[AgentFlow] normalizePlan失敗:', e, e?.stack);
             throw e;
           }
 
-          const prevStep = agentContext.currentStep;
-          agentContext.plan = normalizedPlan;
-
-          // 【デバッグ】plan内容を必ず確認
-          console.log(
-            '[AgentFlow-debug] ループ内: agentContext.plan=',
-            agentContext.plan,
-          );
-
-          // planTasksAtomへの反映はここだけ・空の場合のみ警告出して終了
+          // PlanUpdate追加
           try {
-            if (!agentContext.plan || agentContext.plan.length === 0) {
-              console.warn(
-                '[AgentFlow-debug] plan is empty: LLM response invalid or parse failure',
-              );
-              this.appContext.setPlanTasks([]);
-              console.log('[AgentFlow-debug] setPlanTasks([]) 実行');
-              await this.eventManager.addAgentStatus(
-                'No plan generated (error)',
-              );
-              this.hasFinished = true;
-              break;
-            } else {
-              // ここでPlanUpdateイベントも追加する！（←重要ポイント）
-              await this.eventManager.addPlanUpdate(
-                awareResult && awareResult.step && awareResult.step > 0
-                  ? awareResult.step
-                  : 1,
-                [...agentContext.plan],
-              );
-              // 先にPlanUpdate、次にUI atom更新
-              this.appContext.setPlanTasks([...agentContext.plan]);
-              console.log(
-                '[AgentFlow-debug] setPlanTasks: 渡した配列 =',
-                agentContext.plan,
-              );
-            }
-          } catch (err) {
-            console.error(
-              '[AgentFlow-debug] setPlanTasks 例外:',
-              err,
-              agentContext.plan,
+            console.log(
+              '[AgentFlow] addPlanUpdate直前',
+              agentContext.currentStep,
+              normalizedPlan,
             );
+            await this.eventManager.addPlanUpdate(
+              awareResult && awareResult.step && awareResult.step > 0
+                ? awareResult.step
+                : 1,
+              [...normalizedPlan],
+            );
+            console.log('[AgentFlow] addPlanUpdate直後');
+          } catch (e) {
+            console.error('[AgentFlow] addPlanUpdate失敗:', e, e?.stack);
+            throw e;
           }
 
-          // ↓ PlanUpdateを含む最新eventsをUIに反映
-          this.appContext.setEvents(this.eventManager.getAllEvents());
+          // setPlanTasks
+          try {
+            console.log('[AgentFlow] setPlanTasks直前', normalizedPlan);
+            this.appContext.setPlanTasks([...normalizedPlan]);
+            console.log('[AgentFlow] setPlanTasks直後');
+          } catch (e) {
+            console.error('[AgentFlow] setPlanTasks失敗:', e, e?.stack);
+            throw e;
+          }
+
+          // setEvents
+          try {
+            console.log('[AgentFlow] setEvents直前');
+            this.appContext.setEvents(this.eventManager.getAllEvents());
+            console.log('[AgentFlow] setEvents直後');
+          } catch (e) {
+            console.error('[AgentFlow] setEvents失敗:', e, e?.stack);
+            throw e;
+          }
+
+          agentContext.plan = normalizedPlan;
 
           agentContext.currentStep =
             awareResult && awareResult.step && awareResult.step > 0
               ? awareResult.step
               : 1;
 
-          if (firstStep || agentContext.currentStep > prevStep) {
-            await this.eventManager.addNewPlanStep(agentContext.currentStep);
-            firstStep = false;
-            if (agentContext.currentStep > agentContext.plan.length) break;
+          if (
+            firstStep ||
+            agentContext.currentStep > (agentContext.plan?.length || 0)
+          ) {
+            try {
+              await this.eventManager.addNewPlanStep(agentContext.currentStep);
+              firstStep = false;
+              if (agentContext.currentStep > (agentContext.plan?.length || 0))
+                break;
+            } catch (e) {
+              console.error('[AgentFlow] addNewPlanStep失敗:', e, e?.stack);
+            }
           }
 
           if (awareResult && awareResult.status) {
-            await this.eventManager.addAgentStatus(awareResult.status);
+            try {
+              await this.eventManager.addAgentStatus(awareResult.status);
+            } catch (e) {
+              console.error('[AgentFlow] addAgentStatus失敗:', e, e?.stack);
+            }
           }
 
-          await this.eventManager.addLoadingStatus(this.loadingStatusTip);
-          this.appContext.setAgentStatusTip(this.loadingStatusTip);
+          try {
+            await this.eventManager.addLoadingStatus(this.loadingStatusTip);
+            this.appContext.setAgentStatusTip(this.loadingStatusTip);
+          } catch (e) {
+            console.error(
+              '[AgentFlow] addLoadingStatus/setAgentStatusTip失敗:',
+              e,
+              e?.stack,
+            );
+          }
 
           if (
             agentContext.plan.length > 0 &&
@@ -303,7 +307,6 @@ export class AgentFlow {
             console.error('[AgentFlow] executor.runで例外:', runErr);
             throw runErr;
           }
-          // --- ここまでデバッグ ---
 
           if (this.abortController.signal.aborted) break;
           if (this.interruptController.signal.aborted) {
@@ -382,7 +385,7 @@ export class AgentFlow {
           }
           this.loadingStatusTip = 'Thinking';
         } catch (e) {
-          console.error('[AgentFlow] loop error', e);
+          console.error('[AgentFlow] loop error', e, e?.stack);
           break;
         }
       }
@@ -391,7 +394,7 @@ export class AgentFlow {
         console.log('Agent loop aborted');
         return;
       }
-      console.error('[AgentFlow] fatal error', error);
+      console.error('[AgentFlow] fatal error', error, error?.stack);
       throw error;
     }
   }
@@ -438,7 +441,6 @@ Current task: ${currentTask}
     awareResult: AwareResult | null | undefined,
     agentContext: AgentContext,
   ): PlanTask[] {
-    // 強化: awareResult自体がnull/undefinedでも対応
     if (
       !awareResult ||
       !awareResult.plan ||
