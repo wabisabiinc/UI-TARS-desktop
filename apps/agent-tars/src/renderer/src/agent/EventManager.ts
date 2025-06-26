@@ -18,7 +18,6 @@ export class EventManager {
   constructor(historyEvents: EventItem[] = []) {
     this.historyEvents = historyEvents;
     this.events = [];
-    // ★ 初期化状態ログ
     console.log('[EventManager.constructor] 初期化', {
       historyEvents,
       events: this.events,
@@ -57,7 +56,11 @@ export class EventManager {
       this.events.push(event);
 
       console.log('[addEvent/after push] events:', this.events);
-      willNotifyUpdate && (await this.notifyUpdate());
+      if (willNotifyUpdate) {
+        // awaitは絶対禁止！副作用・デッドロック防止のため
+        this.notifyUpdate();
+        console.log('[addEvent/after notifyUpdate]');
+      }
       return event;
     } catch (err) {
       console.error('[addEvent/ERROR]', err);
@@ -233,7 +236,7 @@ export class EventManager {
       ...latestEditEvent.content,
       original: originalContent,
     };
-    await this.notifyUpdate();
+    this.notifyUpdate();
   }
 
   public async updateScreenshot(screenshotFilePath: string) {
@@ -255,7 +258,7 @@ export class EventManager {
         },
       ],
     };
-    await this.notifyUpdate();
+    this.notifyUpdate();
   }
 
   public async addToolExecutionLoading(toolCall: ToolCall): Promise<EventItem> {
