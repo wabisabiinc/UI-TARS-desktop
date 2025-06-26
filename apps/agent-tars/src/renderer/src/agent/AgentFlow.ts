@@ -232,15 +232,19 @@ export class AgentFlow {
               this.hasFinished = true;
               break;
             } else {
+              // ここでPlanUpdateイベントも追加する！（←重要ポイント）
+              await this.eventManager.addPlanUpdate(
+                awareResult && awareResult.step && awareResult.step > 0
+                  ? awareResult.step
+                  : 1,
+                [...agentContext.plan],
+              );
+              // 先にPlanUpdate、次にUI atom更新
               this.appContext.setPlanTasks([...agentContext.plan]);
               console.log(
                 '[AgentFlow-debug] setPlanTasks: 渡した配列 =',
                 agentContext.plan,
               );
-              // ★ここでPlanUpdateイベントも追加する！
-              await this.eventManager.addPlanUpdate(agentContext.currentStep, [
-                ...agentContext.plan,
-              ]);
             }
           } catch (err) {
             console.error(
@@ -250,17 +254,7 @@ export class AgentFlow {
             );
           }
 
-          // ↓ UIへの伝播タイミングでplanTasks値確認
-          setTimeout(() => {
-            // AppContextの内部にplanTasksがある場合（useState/useAtomなど）を想定
-            if (this.appContext && (this.appContext as any).planTasks) {
-              console.log(
-                '[AgentFlow-debug] setTimeout後のAppContext.planTasks:',
-                (this.appContext as any).planTasks,
-              );
-            }
-          }, 500);
-
+          // ↓ PlanUpdateを含む最新eventsをUIに反映
           this.appContext.setEvents(this.eventManager.getAllEvents());
 
           agentContext.currentStep =
