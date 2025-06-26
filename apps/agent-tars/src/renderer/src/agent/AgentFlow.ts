@@ -228,11 +228,13 @@ export class AgentFlow {
             }, 5000);
 
             await this.eventManager.addPlanUpdate(
-              awareResult.step && awareResult.step > 0 ? awareResult.step : 1,
+              awareResult && awareResult.step && awareResult.step > 0
+                ? awareResult.step
+                : 1,
               Array.isArray(agentContext.plan) ? agentContext.plan : [],
               {
-                reflection: awareResult.reflection,
-                status: awareResult.status,
+                reflection: awareResult ? awareResult.reflection : '',
+                status: awareResult ? awareResult.status : '',
               },
             );
             clearTimeout(addPlanUpdateTimeout);
@@ -274,11 +276,13 @@ export class AgentFlow {
             } else {
               // ★ここでaddPlanUpdate実行！
               await this.eventManager.addPlanUpdate(
-                awareResult.step && awareResult.step > 0 ? awareResult.step : 1,
+                awareResult && awareResult.step && awareResult.step > 0
+                  ? awareResult.step
+                  : 1,
                 Array.isArray(agentContext.plan) ? agentContext.plan : [],
                 {
-                  reflection: awareResult.reflection,
-                  status: awareResult.status,
+                  reflection: awareResult ? awareResult.reflection : '',
+                  status: awareResult ? awareResult.status : '',
                 },
               );
               console.log(
@@ -295,7 +299,9 @@ export class AgentFlow {
           this.appContext.setEvents(allEvents);
 
           agentContext.currentStep =
-            awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
+            awareResult && awareResult.step && awareResult.step > 0
+              ? awareResult.step
+              : 1;
 
           if (firstStep || agentContext.currentStep > prevStep) {
             await this.eventManager.addNewPlanStep(agentContext.currentStep);
@@ -303,7 +309,7 @@ export class AgentFlow {
             if (agentContext.currentStep > agentContext.plan.length) break;
           }
 
-          if (awareResult.status) {
+          if (awareResult && awareResult.status) {
             await this.eventManager.addAgentStatus(awareResult.status);
           }
 
@@ -328,11 +334,11 @@ export class AgentFlow {
           try {
             console.log(
               '[AgentFlow] before executor.run()',
-              awareResult.status,
+              awareResult && awareResult.status,
             );
-            toolCallList = (await executor.run(awareResult.status)).filter(
-              Boolean,
-            );
+            toolCallList = (
+              await executor.run(awareResult && awareResult.status)
+            ).filter(Boolean);
             console.log('[AgentFlow] toolCallList:', toolCallList);
           } catch (runErr) {
             console.error('[AgentFlow] executor.runで例外:', runErr);
@@ -470,11 +476,12 @@ Current task: ${currentTask}
   }
 
   private normalizePlan(
-    awareResult: AwareResult,
+    awareResult: AwareResult | null | undefined,
     agentContext: AgentContext,
   ): PlanTask[] {
-    // ★★ planが空・不正な場合はFallbackで最低1件返す
+    // 強化: awareResult自体がnull/undefinedでも対応
     if (
+      !awareResult ||
       !awareResult.plan ||
       !Array.isArray(awareResult.plan) ||
       awareResult.plan.length === 0
@@ -487,7 +494,6 @@ Current task: ${currentTask}
         },
       ];
     }
-    // 正常な場合
     const step =
       awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
     return awareResult.plan.map((item, index) => ({
