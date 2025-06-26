@@ -250,6 +250,15 @@ export class AgentFlow {
               this.hasFinished = true;
               break;
             } else {
+              // ★ここでaddPlanUpdate実行！
+              await this.eventManager.addPlanUpdate(
+                awareResult.step && awareResult.step > 0 ? awareResult.step : 1,
+                Array.isArray(agentContext.plan) ? agentContext.plan : [],
+                {
+                  reflection: awareResult.reflection,
+                  status: awareResult.status,
+                },
+              );
               console.log(
                 '[AgentFlow] setPlanTasksに渡す値:',
                 agentContext.plan,
