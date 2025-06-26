@@ -47,12 +47,11 @@ export class AgentFlow {
   async run() {
     console.log('[AgentFlow] run() called');
 
-    // **初期化時だけsetPlanTasks([]) ← 2重・競合初期化を絶対に避ける**
     this.appContext.setPlanTasks([]);
     const chatUtils = this.appContext.chatUtils;
     const { setAgentStatusTip } = this.appContext;
-    this.eventManager.addLoadingStatus('Thinking');
-    chatUtils.addMessage(
+    await this.eventManager.addLoadingStatus('Thinking');
+    await chatUtils.addMessage(
       ChatMessageUtil.assistantOmegaMessage({
         events: this.eventManager.getAllEvents(),
       }),
@@ -77,7 +76,7 @@ export class AgentFlow {
       agentContext,
       this.interruptController.signal,
     );
-    this.eventManager.addLoadingStatus('Thinking');
+    await this.eventManager.addLoadingStatus('Thinking');
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
     globalEventEmitter.addListener(
@@ -99,6 +98,7 @@ export class AgentFlow {
         }),
         { shouldSyncStorage: true },
       );
+      // **setUpdateCallbackはasync対応！**
       this.eventManager.setUpdateCallback(async (events) => {
         console.log('[AgentFlow] setUpdateCallback received events:', events);
         this.appContext.setEvents((preEvents: EventItem[]) => {
@@ -153,7 +153,7 @@ export class AgentFlow {
     ]);
 
     if (!this.abortController.signal.aborted) {
-      this.eventManager.addEndEvent('> Agent TARS has finished.');
+      await this.eventManager.addEndEvent('> Agent TARS has finished.');
     }
   }
 
@@ -296,7 +296,7 @@ export class AgentFlow {
 
           if (this.abortController.signal.aborted) break;
           if (this.interruptController.signal.aborted) {
-            this.handleUserInterrupt(aware, executor);
+            await this.handleUserInterrupt(aware, executor);
             continue;
           }
 
@@ -344,12 +344,14 @@ export class AgentFlow {
             }
 
             if (originalFileContent) {
-              this.eventManager.updateFileContentForEdit(originalFileContent);
+              await this.eventManager.updateFileContentForEdit(
+                originalFileContent,
+              );
             }
 
             if (SNAPSHOT_BROWSER_ACTIONS.includes(toolName as ToolCallType)) {
               const screenshotPath = await ipcClient.saveBrowserSnapshot();
-              this.eventManager.updateScreenshot(screenshotPath.filepath);
+              await this.eventManager.updateScreenshot(screenshotPath.filepath);
             }
 
             if (toolName === ExecutorToolType.ChatMessage) {
@@ -362,7 +364,7 @@ export class AgentFlow {
 
             if (toolName === ExecutorToolType.Idle) {
               this.hasFinished = true;
-              this.eventManager.addPlanUpdate(
+              await this.eventManager.addPlanUpdate(
                 agentContext.plan.length,
                 this.flagPlanDone(agentContext.plan),
               );
