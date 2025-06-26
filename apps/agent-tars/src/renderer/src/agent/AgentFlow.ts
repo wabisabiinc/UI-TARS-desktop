@@ -50,8 +50,8 @@ export class AgentFlow {
     this.appContext.setPlanTasks([]);
     const chatUtils = this.appContext.chatUtils;
     const { setAgentStatusTip } = this.appContext;
-    await this.eventManager.addLoadingStatus('Thinking');
-    await chatUtils.addMessage(
+    this.eventManager.addLoadingStatus('Thinking');
+    chatUtils.addMessage(
       ChatMessageUtil.assistantOmegaMessage({
         events: this.eventManager.getAllEvents(),
       }),
@@ -76,7 +76,7 @@ export class AgentFlow {
       agentContext,
       this.interruptController.signal,
     );
-    await this.eventManager.addLoadingStatus('Thinking');
+    this.eventManager.addLoadingStatus('Thinking');
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
     globalEventEmitter.addListener(
@@ -98,28 +98,33 @@ export class AgentFlow {
         }),
         { shouldSyncStorage: true },
       );
-      // **setUpdateCallbackはasync対応！**
       this.eventManager.setUpdateCallback(async (events) => {
-        console.log('[AgentFlow] setUpdateCallback received events:', events);
-        this.appContext.setEvents((preEvents: EventItem[]) => {
-          if (preEvents.find((e) => e.type === EventType.ToolUsed)) {
-            this.appContext.setShowCanvas(true);
-          }
-          const latestToolUsedEvent = [...events]
-            .reverse()
-            .find((e) => e.type === EventType.ToolUsed);
-          latestToolUsedEvent &&
-            this.appContext.setEventId(latestToolUsedEvent.id);
-          return [...this.eventManager.getHistoryEvents(), ...events];
-        });
-        await chatUtils.updateMessage(
-          ChatMessageUtil.assistantOmegaMessage({ events }),
-          {
-            messageId: omegaMessage!.id,
-            shouldSyncStorage: true,
-            shouldScrollToBottom: true,
-          },
-        );
+        try {
+          console.log('[setUpdateCallback] 開始', events);
+          this.appContext.setEvents((preEvents: EventItem[]) => {
+            if (preEvents.find((e) => e.type === EventType.ToolUsed)) {
+              this.appContext.setShowCanvas(true);
+            }
+            const latestToolUsedEvent = [...events]
+              .reverse()
+              .find((e) => e.type === EventType.ToolUsed);
+            latestToolUsedEvent &&
+              this.appContext.setEventId(latestToolUsedEvent.id);
+            return [...this.eventManager.getHistoryEvents(), ...events];
+          });
+
+          await chatUtils.updateMessage(
+            ChatMessageUtil.assistantOmegaMessage({ events }),
+            {
+              messageId: omegaMessage!.id,
+              shouldSyncStorage: true,
+              shouldScrollToBottom: true,
+            },
+          );
+          console.log('[setUpdateCallback] 正常終了');
+        } catch (err) {
+          console.error('[setUpdateCallback] 例外:', err);
+        }
       });
 
       globalEventEmitter.addListener(
@@ -153,7 +158,7 @@ export class AgentFlow {
     ]);
 
     if (!this.abortController.signal.aborted) {
-      await this.eventManager.addEndEvent('> Agent TARS has finished.');
+      this.eventManager.addEndEvent('> Agent TARS has finished.');
     }
   }
 
@@ -233,17 +238,27 @@ export class AgentFlow {
           console.log('[AgentFlow] latestPlanUpdate:', latestPlanUpdate);
 
           // **planTasksAtomへの反映はここだけ・空の場合のみ警告出して終了**
-          if (!agentContext.plan || agentContext.plan.length === 0) {
-            console.warn(
-              '[AgentFlow] plan is empty: LLM response invalid or parse failure',
-            );
-            this.appContext.setPlanTasks([]); // 空で反映
-            await this.eventManager.addAgentStatus('No plan generated (error)');
-            this.hasFinished = true;
-            break;
-          } else {
-            console.log('[AgentFlow] setPlanTasksに渡す値:', agentContext.plan);
-            this.appContext.setPlanTasks([...agentContext.plan]);
+          try {
+            if (!agentContext.plan || agentContext.plan.length === 0) {
+              console.warn(
+                '[AgentFlow] plan is empty: LLM response invalid or parse failure',
+              );
+              this.appContext.setPlanTasks([]); // 空で反映
+              await this.eventManager.addAgentStatus(
+                'No plan generated (error)',
+              );
+              this.hasFinished = true;
+              break;
+            } else {
+              console.log(
+                '[AgentFlow] setPlanTasksに渡す値:',
+                agentContext.plan,
+              );
+              this.appContext.setPlanTasks([...agentContext.plan]);
+              console.log('[setPlanTasks] 正常終了', agentContext.plan);
+            }
+          } catch (err) {
+            console.error('[setPlanTasks] 例外:', err, agentContext.plan);
           }
 
           this.appContext.setEvents(allEvents);
@@ -296,7 +311,7 @@ export class AgentFlow {
 
           if (this.abortController.signal.aborted) break;
           if (this.interruptController.signal.aborted) {
-            await this.handleUserInterrupt(aware, executor);
+            this.handleUserInterrupt(aware, executor);
             continue;
           }
 
@@ -344,14 +359,12 @@ export class AgentFlow {
             }
 
             if (originalFileContent) {
-              await this.eventManager.updateFileContentForEdit(
-                originalFileContent,
-              );
+              this.eventManager.updateFileContentForEdit(originalFileContent);
             }
 
             if (SNAPSHOT_BROWSER_ACTIONS.includes(toolName as ToolCallType)) {
               const screenshotPath = await ipcClient.saveBrowserSnapshot();
-              await this.eventManager.updateScreenshot(screenshotPath.filepath);
+              this.eventManager.updateScreenshot(screenshotPath.filepath);
             }
 
             if (toolName === ExecutorToolType.ChatMessage) {
@@ -364,7 +377,7 @@ export class AgentFlow {
 
             if (toolName === ExecutorToolType.Idle) {
               this.hasFinished = true;
-              await this.eventManager.addPlanUpdate(
+              this.eventManager.addPlanUpdate(
                 agentContext.plan.length,
                 this.flagPlanDone(agentContext.plan),
               );

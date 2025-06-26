@@ -13,7 +13,7 @@ import { SNAPSHOT_BROWSER_ACTIONS } from '@renderer/constants';
 export class EventManager {
   private historyEvents: EventItem[] = [];
   private events: EventItem[] = [];
-  private onEventsUpdate?: (events: EventItem[]) => void | Promise<void>;
+  private onEventsUpdate?: (events: EventItem[]) => void;
 
   constructor(historyEvents: EventItem[] = []) {
     this.historyEvents = historyEvents;
@@ -28,10 +28,7 @@ export class EventManager {
     return this.historyEvents;
   }
 
-  // コールバックはasync/await両対応
-  public setUpdateCallback(
-    callback: (events: EventItem[]) => void | Promise<void>,
-  ): void {
+  public setUpdateCallback(callback: (events: EventItem[]) => void): void {
     this.onEventsUpdate = callback;
   }
 
@@ -39,6 +36,7 @@ export class EventManager {
     return [...this.events];
   }
 
+  // ---- デバッグ強化 ----
   private async addEvent<T extends EventType>(
     type: T,
     content: EventContentDescriptor[T],
@@ -59,9 +57,11 @@ export class EventManager {
 
       console.log('[addEvent/after push] events:', this.events);
       if (willNotifyUpdate) {
-        await this.notifyUpdate();
+        // awaitは絶対禁止！副作用・デッドロック防止のため
+        this.notifyUpdate();
         console.log('[addEvent/after notifyUpdate]');
       }
+      console.log('[addEvent] 正常終了:', event);
       return event;
     } catch (err) {
       console.error('[addEvent/ERROR]', err);
@@ -102,6 +102,7 @@ export class EventManager {
 
       console.log('[addPlanUpdate/after addEvent] newEvent:', event);
       console.log('[addPlanUpdate/after addEvent] events:', this.events);
+      console.log('[addPlanUpdate] 正常終了');
       return event;
     } catch (err) {
       console.error('[addPlanUpdate/ERROR]', err);
@@ -131,7 +132,7 @@ export class EventManager {
       ...updates,
       id: this.events[eventIndex].id,
     };
-    void this.notifyUpdate();
+    this.notifyUpdate();
     return true;
   }
 
@@ -157,15 +158,13 @@ export class EventManager {
 
   public clearEvents(): void {
     this.events = [];
-    void this.notifyUpdate();
+    this.notifyUpdate();
   }
 
-  // 必ずPromise
-  private async notifyUpdate(): Promise<void> {
+  private notifyUpdate(): void {
     try {
       if (this.onEventsUpdate) {
-        const result = this.onEventsUpdate(this.getAllEvents());
-        if (result instanceof Promise) await result;
+        this.onEventsUpdate(this.getAllEvents());
       }
     } catch (err) {
       console.error('[EventManager] notifyUpdate ERROR:', err);
@@ -237,7 +236,7 @@ export class EventManager {
       ...latestEditEvent.content,
       original: originalContent,
     };
-    void this.notifyUpdate();
+    this.notifyUpdate();
   }
 
   public async updateScreenshot(screenshotFilePath: string) {
@@ -259,7 +258,7 @@ export class EventManager {
         },
       ],
     };
-    void this.notifyUpdate();
+    this.notifyUpdate();
   }
 
   public async addToolExecutionLoading(toolCall: ToolCall): Promise<EventItem> {
