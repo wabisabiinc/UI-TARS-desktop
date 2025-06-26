@@ -451,31 +451,37 @@ Current task: ${currentTask}
     awareResult: AwareResult,
     agentContext: AgentContext,
   ): PlanTask[] {
+    // ★★ planが空・不正な場合はFallbackで最低1件返す
     if (
       !awareResult.plan ||
       !Array.isArray(awareResult.plan) ||
       awareResult.plan.length === 0
     ) {
-      return [];
+      return [
+        {
+          id: '1',
+          title: `「${this.appContext.request.inputText}」へのAI回答`,
+          status: PlanTaskStatus.Doing,
+        },
+      ];
     }
+    // 正常な場合
     const step =
       awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
-    return (awareResult.plan || agentContext.plan).map((item, index) => {
-      return {
-        id: item.id ?? `${index + 1}`,
-        title: item.title ?? `Step ${index + 1}`,
-        status:
-          index < step - 1
-            ? PlanTaskStatus.Done
-            : index === step - 1
-              ? PlanTaskStatus.Doing
-              : PlanTaskStatus.Todo,
-        startedAt: (item as any).startedAt ?? undefined,
-        finishedAt: (item as any).finishedAt ?? undefined,
-        cost: (item as any).cost ?? undefined,
-        error: (item as any).error ?? undefined,
-      } as PlanTask;
-    });
+    return awareResult.plan.map((item, index) => ({
+      id: item.id ?? `${index + 1}`,
+      title: item.title ?? `Step ${index + 1}`,
+      status:
+        index < step - 1
+          ? PlanTaskStatus.Done
+          : index === step - 1
+            ? PlanTaskStatus.Doing
+            : PlanTaskStatus.Todo,
+      startedAt: (item as any).startedAt ?? undefined,
+      finishedAt: (item as any).finishedAt ?? undefined,
+      cost: (item as any).cost ?? undefined,
+      error: (item as any).error ?? undefined,
+    }));
   }
 
   private flagPlanDone(plan: PlanTask[]) {
