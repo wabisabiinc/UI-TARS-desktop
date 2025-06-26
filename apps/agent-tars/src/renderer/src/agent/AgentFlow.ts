@@ -237,6 +237,10 @@ export class AgentFlow {
                 '[AgentFlow-debug] setPlanTasks: 渡した配列 =',
                 agentContext.plan,
               );
+              // ★ここでPlanUpdateイベントも追加する！
+              await this.eventManager.addPlanUpdate(agentContext.currentStep, [
+                ...agentContext.plan,
+              ]);
             }
           } catch (err) {
             console.error(
