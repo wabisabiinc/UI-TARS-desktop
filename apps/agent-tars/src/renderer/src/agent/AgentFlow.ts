@@ -194,9 +194,26 @@ export class AgentFlow {
             awareResult.step,
           );
 
-          // **plan生成直後のみUIへセット・競合しないよう分岐を厳密に**
-          const normalizedPlan = this.normalizePlan(awareResult, agentContext);
-          console.log('[AgentFlow] normalizedPlan', normalizedPlan);
+          // ▼▼▼【ここからログ追加】▼▼▼
+          let normalizedPlan: PlanTask[] = [];
+          try {
+            console.log(
+              '[AgentFlow] normalizePlan 入力',
+              awareResult,
+              agentContext,
+            );
+            normalizedPlan = this.normalizePlan(awareResult, agentContext);
+            console.log('[AgentFlow] normalizePlan 出力', normalizedPlan);
+          } catch (e) {
+            console.error(
+              '[AgentFlow] normalizePlan 例外:',
+              e,
+              awareResult,
+              agentContext,
+            );
+            throw e;
+          }
+          // ▲▲▲【ここまで】▲▲▲
 
           const prevStep = agentContext.currentStep;
           agentContext.plan = normalizedPlan;
@@ -222,7 +239,12 @@ export class AgentFlow {
             console.log('[AgentFlow] addPlanUpdate completed!');
           } catch (addPlanUpdateErr) {
             clearTimeout(addPlanUpdateTimeout);
-            console.error('[AgentFlow] addPlanUpdate ERROR:', addPlanUpdateErr);
+            console.error(
+              '[AgentFlow] addPlanUpdate ERROR:',
+              addPlanUpdateErr,
+              awareResult,
+              agentContext,
+            );
             throw addPlanUpdateErr;
           }
 
