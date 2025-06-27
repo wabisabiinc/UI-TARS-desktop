@@ -19,6 +19,21 @@ import { DEFAULT_APP_ID } from '@renderer/components/LeftSidebar';
 import { ipcClient } from '@renderer/api';
 import { Message } from '@agent-infra/shared';
 
+// 追加ここから
+console.log(
+  '[import先] planTasksAtom in useAgentFlow.ts',
+  planTasksAtom,
+  planTasksAtom.toString(),
+  import.meta.url || __filename,
+);
+if (typeof window !== 'undefined') {
+  console.log(
+    '[import先] Object.is(import, globalThis.__GLOBAL_PLAN_ATOM) in useAgentFlow.ts:',
+    Object.is(planTasksAtom, window.__GLOBAL_PLAN_ATOM),
+  );
+}
+// 追加ここまで
+
 export interface AppContext {
   chatUtils: ReturnType<typeof useAppChat>;
   request: {

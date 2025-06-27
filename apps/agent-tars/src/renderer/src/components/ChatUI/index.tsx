@@ -27,6 +27,21 @@ import { WelcomeScreen } from '../WelcomeScreen';
 // ★追加: PlanTaskStatusコンポーネントのimport
 import { PlanTaskStatus } from './PlanTaskStatus';
 
+// 追加ここから
+console.log(
+  '[import先] planTasksAtom in ChatUI/index.tsx',
+  planTasksAtom,
+  planTasksAtom.toString(),
+  import.meta.url || __filename,
+);
+if (typeof window !== 'undefined') {
+  console.log(
+    '[import先] Object.is(import, globalThis.__GLOBAL_PLAN_ATOM) in ChatUI/index.tsx:',
+    Object.is(planTasksAtom, window.__GLOBAL_PLAN_ATOM),
+  );
+}
+// 追加ここまで
+
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);

@@ -25,4 +25,15 @@ export const currentAgentFlowIdRefAtom = atom<{ current: string | null }>({
   current: null,
 });
 export const agentStatusTipAtom = atom('');
+
+// ----- planTasksAtom定義＆デバッグログここから -----
 export const planTasksAtom = atom<PlanTask[]>([]);
+
+console.log(
+  '[定義] planTasksAtom',
+  planTasksAtom,
+  planTasksAtom.toString(),
+  import.meta.url || __filename,
+);
+if (typeof window !== 'undefined') window.__GLOBAL_PLAN_ATOM = planTasksAtom;
+// ------------------------------------------------------

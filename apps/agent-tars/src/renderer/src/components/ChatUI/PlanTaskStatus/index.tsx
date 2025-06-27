@@ -6,6 +6,21 @@ import { Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { FiClock, FiCheck, FiX } from 'react-icons/fi';
 
+// 追加ここから
+console.log(
+  '[import先] planTasksAtom in PlanTaskStatus/index.tsx',
+  planTasksAtom,
+  planTasksAtom.toString(),
+  import.meta.url || __filename,
+);
+if (typeof window !== 'undefined') {
+  console.log(
+    '[import先] Object.is(import, globalThis.__GLOBAL_PLAN_ATOM) in PlanTaskStatus/index.tsx:',
+    Object.is(planTasksAtom, window.__GLOBAL_PLAN_ATOM),
+  );
+}
+// 追加ここまで
+
 /**
  * PlanTaskStatus: AgentのPlan配列をUIで可視化＋デバッグ強化
  */

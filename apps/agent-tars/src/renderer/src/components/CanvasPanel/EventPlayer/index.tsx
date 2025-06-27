@@ -24,6 +24,21 @@ import {
 import { renderPlatformPanel } from './renderPlatformPanel';
 import styles from './index.module.scss';
 
+// 追加ここから
+console.log(
+  '[import先] planTasksAtom in CanvasPanel/EventPlayer/index.tsx',
+  planTasksAtom,
+  planTasksAtom.toString(),
+  import.meta.url || __filename,
+);
+if (typeof window !== 'undefined') {
+  console.log(
+    '[import先] Object.is(import, globalThis.__GLOBAL_PLAN_ATOM) in CanvasPanel/EventPlayer/index.tsx:',
+    Object.is(planTasksAtom, window.__GLOBAL_PLAN_ATOM),
+  );
+}
+// 追加ここまで
+
 const StatusIcon = ({ status }: { status: ActionStatus }) => {
   switch (status) {
     case ActionStatus.Success:

@@ -22,7 +22,19 @@ import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 import { EventItem, EventType } from '@renderer/type/event';
 import { SNAPSHOT_BROWSER_ACTIONS } from '@renderer/constants';
 
-console.log('[DEBUG] planTasksAtom identity in AgentFlow:', planTasksAtom);
+// 追加ここから
+console.log(
+  '[import先] planTasksAtom in AgentFlow.ts',
+  planTasksAtom,
+  planTasksAtom.toString(),
+  import.meta.url || __filename,
+);
+if (typeof window !== 'undefined') {
+  console.log(
+    '[import先] Object.is(import, globalThis.__GLOBAL_PLAN_ATOM) in AgentFlow.ts:',
+    Object.is(planTasksAtom, window.__GLOBAL_PLAN_ATOM),
+  );
+}
 
 export interface AgentContext {
   plan: PlanTask[];
