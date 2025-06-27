@@ -195,9 +195,16 @@ export class AgentFlow {
               ? awareResult.step
               : 1;
           agentContext.plan = this.normalizePlan(awareResult, agentContext);
-          this.appContext.setPlanTasks([...agentContext.plan]);
-          // デバッグ用: plan内容を必ず出力
+
+          // plan内容を必ずログ出力（デバッグ強化）
           console.log('[AgentFlow] setPlanTasksに渡すplan:', agentContext.plan);
+
+          // PlanをUIに必ず反映
+          this.appContext.setPlanTasks(
+            agentContext.plan ? [...agentContext.plan] : [],
+          );
+          // 直後の値を念のためログ
+          console.log('[AgentFlow] setPlanTasks実行後');
 
           // planが空なら強制終了（UIにも反映！）
           if (!agentContext.plan || agentContext.plan.length === 0) {

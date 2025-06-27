@@ -24,6 +24,9 @@ import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
 
+// ★追加: PlanTaskStatusコンポーネントのimport
+import { PlanTaskStatus } from './PlanTaskStatus';
+
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -33,7 +36,6 @@ export function OpenAgentChatUI() {
   const isDarkMode = useThemeMode();
   const { initMessages, setMessages, messages } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
-  const [events] = useAtom(eventsAtom);
   const [planTasks] = useAtom(planTasksAtom);
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
@@ -90,30 +92,6 @@ export function OpenAgentChatUI() {
     return <WelcomeScreen />;
   }
 
-  // Planの表示
-  const renderPlanTasks = () => {
-    if (!planTasks || planTasks.length === 0) return null;
-    return (
-      <div
-        style={{
-          background: '#f6f6fa',
-          margin: '8px 0',
-          padding: '12px',
-          borderRadius: 8,
-        }}
-      >
-        <b>Plan:</b>
-        <ol style={{ margin: '8px 0 0 24px', padding: 0 }}>
-          {planTasks.map((task, idx) => (
-            <li key={task.id || idx}>
-              <span>{task.title || '(no title)'}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
-    );
-  };
-
   // エラー時の表示
   const renderError = () => {
     if (
@@ -165,8 +143,9 @@ export function OpenAgentChatUI() {
         beforeMessageList: (
           <>
             <MenuHeader />
+            {/* ここにPlan進捗バーを差し込む（PlanTaskStatus） */}
+            <PlanTaskStatus />
             {isInitialized && messages.length === 0 && <WelcomeScreen />}
-            {renderPlanTasks()}
             {renderError()}
           </>
         ),

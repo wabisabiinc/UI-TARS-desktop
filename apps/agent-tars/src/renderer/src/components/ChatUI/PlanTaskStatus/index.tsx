@@ -13,13 +13,13 @@ export function PlanTaskStatus() {
   // 必ず配列型にするガード
   const planTasks: PlanTask[] = useMemo(() => {
     if (!Array.isArray(planTasksRaw)) return [];
-    // 不正なオブジェクト防御
     return planTasksRaw.filter(
       (task) =>
         task && typeof task === 'object' && typeof task.title === 'string',
     );
   }, [planTasksRaw]);
 
+  // デバッグ用: jotaiのplanTasks更新を監視
   useEffect(() => {
     console.log('[PlanTaskStatus] planTasks:', planTasks);
   }, [planTasks]);
