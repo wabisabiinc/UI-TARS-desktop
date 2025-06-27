@@ -189,28 +189,29 @@ export class AgentFlow {
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
+          // ▼ 必ずplan・setPlanTasksをbreakより前で実行
           agentContext.currentStep =
             awareResult && awareResult.step && awareResult.step > 0
               ? awareResult.step
               : 1;
           agentContext.plan = this.normalizePlan(awareResult, agentContext);
-
-          // PlanをUIに必ず反映
           this.appContext.setPlanTasks([...agentContext.plan]);
+          // デバッグ用: plan内容を必ず出力
+          console.log('[AgentFlow] setPlanTasksに渡すplan:', agentContext.plan);
 
-          // planが空なら強制終了
+          // planが空なら強制終了（UIにも反映！）
           if (!agentContext.plan || agentContext.plan.length === 0) {
             console.warn(
               '[AgentFlow-debug] plan is empty: LLM response invalid or parse failure',
             );
             await this.eventManager.addAgentStatus('No plan generated (error)');
             this.hasFinished = true;
-            // UIに異常状態を伝播
             this.appContext.setAgentStatusTip('No plan');
             this.appContext.setPlanTasks([]);
             break;
           }
 
+          // 必ずplan反映後にstepチェック
           if (agentContext.currentStep > agentContext.plan.length) {
             this.hasFinished = true;
             break;
@@ -220,8 +221,6 @@ export class AgentFlow {
             ...agentContext.plan,
           ]);
           this.appContext.setEvents(this.eventManager.getAllEvents());
-
-          const prevStep = agentContext.currentStep;
 
           if (firstStep) {
             await this.eventManager.addNewPlanStep(agentContext.currentStep);
@@ -256,7 +255,6 @@ export class AgentFlow {
             ).filter(Boolean);
             console.log('[AgentFlow] toolCallList:', toolCallList);
           } catch (runErr) {
-            // ここでもUI復帰処理
             this.appContext.setAgentStatusTip('Error');
             this.appContext.setPlanTasks([]);
             console.error('[AgentFlow] executor.runで例外:', runErr);
@@ -340,7 +338,6 @@ export class AgentFlow {
           }
           this.loadingStatusTip = 'Thinking';
         } catch (e) {
-          // ここでUI状態を必ず復帰
           this.appContext.setAgentStatusTip('Error');
           this.appContext.setPlanTasks([]);
           console.error(
@@ -351,7 +348,6 @@ export class AgentFlow {
         }
       }
     } catch (error) {
-      // ここでもUIに反映
       this.appContext.setAgentStatusTip('Error');
       this.appContext.setPlanTasks([]);
       if (error instanceof DOMException && error.name === 'AbortError') {
