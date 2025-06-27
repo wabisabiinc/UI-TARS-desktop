@@ -19,9 +19,9 @@ import {
 } from '@renderer/state/chat';
 import { Greeter } from './Greeter';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
+import { extractEventStreamUIMeta } from '@renderer/utils/parseEvents';
 import { EventItem, EventType } from '@renderer/type/event';
 import { SNAPSHOT_BROWSER_ACTIONS } from '@renderer/constants';
-import { parseEvents } from '@renderer/utils/parseEvents';
 
 // 追加ここから
 console.log(
@@ -134,7 +134,16 @@ export class AgentFlow {
             return [...this.eventManager.getHistoryEvents(), ...events];
           });
 
-          parseEvents(events);
+          // ここで最新のplanTasksを抽出
+          const meta = extractEventStreamUIMeta(events);
+
+          // planTasksが空でなければ上書き、空なら何もしない（前の値を維持）
+          if (meta.planTasks && meta.planTasks.length > 0) {
+            this.appContext.setPlanTasks([...meta.planTasks]);
+          } else {
+            // 空になる場合に前の値を維持するにはsetPlanTasks呼び出し自体をskip
+            // もしくは「一度もplanTasksを受け取っていない初回だけは空を許可」
+          }
 
           await chatUtils.updateMessage(
             ChatMessageUtil.assistantOmegaMessage({ events }),
