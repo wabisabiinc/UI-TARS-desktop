@@ -17,10 +17,10 @@ export function PlanTaskStatus() {
   const planTasks: PlanTask[] = useMemo(() => {
     // [★デバッグ] jotaiのplanTasksAtom値をwindowに保存して観察できるように
     if (typeof window !== 'undefined') {
-      window.__DEBUG_PLAN_UI_ATOM__ = planTasksRaw;
+      window.__DEBUG_PLAN_UI_ATOM_STATUS__ = planTasksRaw;
       console.log('[PlanTaskStatus] jotai値:', planTasksRaw);
     }
-    // ここではfilterを除去し「不正値」もUIで強調表示できるように
+    // filter除去
     if (!Array.isArray(planTasksRaw)) return [];
     return planTasksRaw;
   }, [planTasksRaw]);
@@ -143,4 +143,4 @@ export function PlanTaskStatus() {
   );
 }
 
-// [★グローバルDEBUG] window.__DEBUG_PLAN_UI_ATOM__で現在UIに流れているplanTasksを常に監視できる！
+// [★グローバルDEBUG] window.__DEBUG_PLAN_UI_ATOM_STATUS__ で現在UIに流れているplanTasksを常に監視！

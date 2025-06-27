@@ -12,11 +12,17 @@ import {
 import { EventManager } from './EventManager';
 import { ExecutorToolType } from './Executor/tools';
 import { ipcClient } from '@renderer/api';
-import { GlobalEvent, globalEventEmitter } from '@renderer/state/chat';
+import {
+  GlobalEvent,
+  globalEventEmitter,
+  planTasksAtom,
+} from '@renderer/state/chat';
 import { Greeter } from './Greeter';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 import { EventItem, EventType } from '@renderer/type/event';
 import { SNAPSHOT_BROWSER_ACTIONS } from '@renderer/constants';
+
+console.log('[DEBUG] planTasksAtom identity in AgentFlow:', planTasksAtom);
 
 export interface AgentContext {
   plan: PlanTask[];
@@ -46,6 +52,7 @@ export class AgentFlow {
 
   async run() {
     console.log('[AgentFlow] run() called');
+
     this.appContext.setPlanTasks([]);
     console.log('[AgentFlow-debug] run開始: setPlanTasks([]) 実行');
 
@@ -195,22 +202,31 @@ export class AgentFlow {
               : 1;
           agentContext.plan = this.normalizePlan(awareResult, agentContext);
 
-          // デバッグwindowにplanを保存
-          window.__DEBUG_PLAN_LAST_SET__ = agentContext.plan;
-          console.log('[DEBUG][AgentFlow] setPlanTasks:', agentContext.plan);
+          // plan内容を必ずログ出力（デバッグ強化）
+          console.log('[AgentFlow] setPlanTasksに渡すplan:', agentContext.plan);
 
+          // [★DEBUG] jotai atomに流す値をwindowに必ず保存
+          if (typeof window !== 'undefined') {
+            // @ts-ignore
+            window.__DEBUG_PLAN_UI_ATOM_AGENTFLOW__ = agentContext.plan;
+          }
+
+          // PlanをUIに必ず反映
           this.appContext.setPlanTasks(
             agentContext.plan ? [...agentContext.plan] : [],
           );
-          // 念のため直後に値をwindowに記録
+          // jotaiのバッチング/非同期都合で100ms後にも出す
           setTimeout(() => {
-            console.log(
-              '[DEBUG][AgentFlow] planTasksAtom value after setPlanTasks:',
-              window.__DEBUG_PLAN_UI_ATOM__,
-            );
-          }, 300);
+            if (typeof window !== 'undefined') {
+              // @ts-ignore
+              console.log(
+                '[AgentFlow] window.__DEBUG_PLAN_UI_ATOM_AGENTFLOW__:',
+                window.__DEBUG_PLAN_UI_ATOM_AGENTFLOW__,
+              );
+            }
+          }, 100);
 
-          // planが空なら強制終了（UIにも反映！）
+          // planが空なら強制終了
           if (!agentContext.plan || agentContext.plan.length === 0) {
             console.warn(
               '[AgentFlow-debug] plan is empty: LLM response invalid or parse failure',
@@ -222,7 +238,6 @@ export class AgentFlow {
             break;
           }
 
-          // 必ずplan反映後にstepチェック
           if (agentContext.currentStep > agentContext.plan.length) {
             this.hasFinished = true;
             break;
@@ -309,17 +324,7 @@ export class AgentFlow {
                   filePath: params.path,
                 });
               }
-
-              const callResults = await executor.executeTools([toolCall]);
-              const callResult = callResults && callResults[0];
-              if (!callResult) {
-                this.appContext.setAgentStatusTip('Error');
-                this.appContext.setPlanTasks([]);
-                console.error(
-                  '[AgentFlow] executor.runでToolCallの実行結果がundefined',
-                );
-                throw new Error('ToolCallの実行結果が取得できませんでした');
-              }
+              const callResult = (await executor.executeTools([toolCall]))[0];
               this.appContext.setAgentStatusTip('Executing Tool');
 
               await this.eventManager.handleToolExecution({
