@@ -6,44 +6,47 @@ import { Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { FiClock, FiCheck, FiX } from 'react-icons/fi';
 
+/**
+ * PlanTaskStatus: AgentのPlan配列をUIで可視化＋デバッグ強化
+ */
 export function PlanTaskStatus() {
   const [planTasksRaw] = useAtom(planTasksAtom);
   const [isOpen, setIsOpen] = useState(false);
 
-  // 必ず配列型にするガード
+  // 必ず配列型に変換（不正混入もデバッグできるようfilter外す！）
   const planTasks: PlanTask[] = useMemo(() => {
+    // [★デバッグ] jotaiのplanTasksAtom値をwindowに保存して観察できるように
+    if (typeof window !== 'undefined') {
+      window.__DEBUG_PLAN_UI_ATOM__ = planTasksRaw;
+      console.log('[PlanTaskStatus] jotai値:', planTasksRaw);
+    }
+    // ここではfilterを除去し「不正値」もUIで強調表示できるように
     if (!Array.isArray(planTasksRaw)) return [];
-    return planTasksRaw.filter(
-      (task) =>
-        task && typeof task === 'object' && typeof task.title === 'string',
-    );
+    return planTasksRaw;
   }, [planTasksRaw]);
 
-  // デバッグ用: jotaiのplanTasks更新を監視
   useEffect(() => {
     console.log('[PlanTaskStatus] planTasks:', planTasks);
   }, [planTasks]);
 
-  const completedTasks = planTasks.filter(
-    (task) => task.status === TaskStatus.Done,
-  ).length;
+  // Planがゼロ個でも必ずUI出す（UI流通確認のため一時的に強制表示）
+  if (!planTasks || planTasks.length === 0) {
+    return (
+      <div
+        style={{
+          background: '#ffecec',
+          color: '#a94442',
+          padding: 12,
+          borderRadius: 6,
+          margin: 8,
+        }}
+      >
+        [DEBUG] Plan配列が空です。atom値: {JSON.stringify(planTasksRaw)}
+      </div>
+    );
+  }
 
-  const getStatusIcon = (status: TaskStatus) => {
-    switch (status) {
-      case TaskStatus.Done:
-        return <FiCheck className="w-4 h-4" />;
-      case TaskStatus.Doing:
-        return <FiClock className="w-4 h-4 animate-spin" />;
-      case TaskStatus.Skipped:
-        return <FiX className="w-4 h-4" />;
-      default:
-        return null;
-    }
-  };
-
-  // planTasksが空や不正な場合は非表示
-  if (!planTasks.length) return null;
-
+  // 通常UI（従来通り、異常値は赤字で出す）
   return (
     <Popover
       isOpen={isOpen}
@@ -61,7 +64,14 @@ export function PlanTaskStatus() {
               </span>
             </div>
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              {completedTasks}/{planTasks.length} completed
+              {/* 完了件数計算もfilter外して雑に数える */}
+              {
+                planTasks.filter(
+                  (t) =>
+                    t && typeof t === 'object' && t.status === TaskStatus.Done,
+                ).length
+              }
+              /{planTasks.length} completed
             </span>
           </div>
         </div>
@@ -74,9 +84,9 @@ export function PlanTaskStatus() {
             </h3>
           </div>
           <div className="p-2">
-            {planTasks.map((task, index) => (
+            {planTasks.map((task: any, index: number) => (
               <motion.div
-                key={task.id || index}
+                key={task?.id || index}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
@@ -85,23 +95,39 @@ export function PlanTaskStatus() {
                 <div className="flex items-start gap-3">
                   <div
                     className={`
-                    w-5 h-5 rounded-full flex items-center justify-center
-                    ${
-                      task.status === TaskStatus.Done
-                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                        : task.status === TaskStatus.Doing
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                          : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                    }
-                  `}
+                      w-5 h-5 rounded-full flex items-center justify-center
+                      ${
+                        task?.status === TaskStatus.Done
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                          : task?.status === TaskStatus.Doing
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                            : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                      }
+                    `}
                   >
-                    {getStatusIcon(task.status)}
+                    {(() => {
+                      switch (task?.status) {
+                        case TaskStatus.Done:
+                          return <FiCheck className="w-4 h-4" />;
+                        case TaskStatus.Doing:
+                          return <FiClock className="w-4 h-4 animate-spin" />;
+                        case TaskStatus.Skipped:
+                          return <FiX className="w-4 h-4" />;
+                        default:
+                          return <span>?</span>;
+                      }
+                    })()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-700 dark:text-gray-200">
-                      {task.title}
+                      {/* titleや不正値はそのまま出す */}
+                      {typeof task?.title === 'string' ? (
+                        task.title
+                      ) : (
+                        <span style={{ color: 'red' }}>[不正Plan構造]</span>
+                      )}
                     </p>
-                    {task.error && (
+                    {task?.error && (
                       <p className="mt-1 text-xs text-red-500 dark:text-red-400">
                         {task.error}
                       </p>
@@ -116,3 +142,5 @@ export function PlanTaskStatus() {
     </Popover>
   );
 }
+
+// [★グローバルDEBUG] window.__DEBUG_PLAN_UI_ATOM__で現在UIに流れているplanTasksを常に監視できる！

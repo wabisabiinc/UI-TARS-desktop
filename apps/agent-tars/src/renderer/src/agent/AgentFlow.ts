@@ -46,7 +46,6 @@ export class AgentFlow {
 
   async run() {
     console.log('[AgentFlow] run() called');
-
     this.appContext.setPlanTasks([]);
     console.log('[AgentFlow-debug] run開始: setPlanTasks([]) 実行');
 
@@ -196,15 +195,20 @@ export class AgentFlow {
               : 1;
           agentContext.plan = this.normalizePlan(awareResult, agentContext);
 
-          // plan内容を必ずログ出力（デバッグ強化）
-          console.log('[AgentFlow] setPlanTasksに渡すplan:', agentContext.plan);
+          // デバッグwindowにplanを保存
+          window.__DEBUG_PLAN_LAST_SET__ = agentContext.plan;
+          console.log('[DEBUG][AgentFlow] setPlanTasks:', agentContext.plan);
 
-          // PlanをUIに必ず反映
           this.appContext.setPlanTasks(
             agentContext.plan ? [...agentContext.plan] : [],
           );
-          // 直後の値を念のためログ
-          console.log('[AgentFlow] setPlanTasks実行後');
+          // 念のため直後に値をwindowに記録
+          setTimeout(() => {
+            console.log(
+              '[DEBUG][AgentFlow] planTasksAtom value after setPlanTasks:',
+              window.__DEBUG_PLAN_UI_ATOM__,
+            );
+          }, 300);
 
           // planが空なら強制終了（UIにも反映！）
           if (!agentContext.plan || agentContext.plan.length === 0) {

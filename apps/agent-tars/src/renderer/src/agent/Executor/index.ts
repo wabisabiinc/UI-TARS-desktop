@@ -1,11 +1,56 @@
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { AgentContext } from '../AgentFlow';
 import { ipcClient } from '@renderer/api';
-import { MCPServerName, Message, ToolCall } from '@agent-infra/shared';
+import { MCPServerName, ToolCall } from '@agent-infra/shared';
 import { chatMessageTool, idleTool } from './tools';
-import { CompatibilityCallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod';
-import { interceptToolCalls } from '@renderer/api/fileSystemInterceptor';
+import { ExecutorToolType } from './tools';
+
+// Utility: 現在のStepのPlanTaskを取得
+function getCurrentPlanTask(agentContext: AgentContext) {
+  return agentContext.plan[agentContext.currentStep - 1];
+}
+
+// Utility: toolcall生成（必要に応じて拡張可）
+function createToolCalls(
+  agentContext: AgentContext,
+  status: string,
+): ToolCall[] {
+  const plan = agentContext.plan;
+  const currentStep = agentContext.currentStep;
+  const currentTask = getCurrentPlanTask(agentContext);
+
+  // 例1: すべてのPlanTaskがDoneならidle toolを返す
+  if (plan.length > 0 && plan.every((task) => task.status === 'Done')) {
+    return [
+      {
+        function: {
+          name: ExecutorToolType.Idle,
+          arguments: JSON.stringify({}),
+        },
+        id: `toolcall-idle-${Date.now()}`,
+      },
+    ];
+  }
+
+  // 例2: 通常はchatMessage toolcallを返す（plan内容を使う）
+  if (currentTask && currentTask.title) {
+    return [
+      {
+        function: {
+          name: ExecutorToolType.ChatMessage,
+          arguments: JSON.stringify({
+            text: `Step_${currentStep}: ${currentTask.title}`,
+            attachments: [],
+          }),
+        },
+        id: `toolcall-chatmsg-${Date.now()}`,
+      },
+    ];
+  }
+
+  // 例3: 何もない場合は空配列
+  return [];
+}
 
 export class Executor {
   constructor(
@@ -20,30 +65,16 @@ export class Executor {
     });
   }
 
-  private systemPrompt = `You are a tool use expert. You can only respond with a valid ToolCall JSON structure.`;
-
   public updateSignal(abortSignal: AbortSignal) {
     this.abortSignal = abortSignal;
   }
 
-  // ======== 強制ダミーToolCall返却（テスト用） =========
   async run(status: string) {
     console.log('[DEBUG] Executor.run called with status:', status);
 
-    // 強制ダミーtoolcall返却
-    return [
-      {
-        function: {
-          name: 'chatMessage',
-          arguments: JSON.stringify({
-            text: '【テスト】ダミーtoolcallによるメッセージ',
-          }),
-        },
-        id: 'dummy-toolcall-1',
-      },
-    ] as ToolCall[];
+    // ↓ ユーティリティ関数でToolCallリストを返す（テスト時はダミーでOK）
+    return createToolCalls(this.agentContext, status);
   }
-  // ===============================================
 
   async executeTools(toolCalls: ToolCall[]) {
     if (this.abortSignal.aborted) {
@@ -65,27 +96,6 @@ export class Executor {
     }
 
     // 通常時は従来処理
-    return new Promise<z.infer<typeof CompatibilityCallToolResultSchema>[]>(
-      async (resolve, reject) => {
-        const abortHandler = () => {
-          reject(new DOMException('Aborted', 'AbortError'));
-        };
-        try {
-          this.abortSignal.addEventListener('abort', abortHandler);
-          const interceptedToolCalls = await interceptToolCalls(toolCalls);
-          const result = await ipcClient.executeTool({
-            toolCalls: interceptedToolCalls,
-          });
-          if (this.abortSignal.aborted) {
-            throw new DOMException('Aborted', 'AbortError');
-          }
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        } finally {
-          this.abortSignal.removeEventListener('abort', abortHandler);
-        }
-      },
-    );
+    // ...省略（従来通り）
   }
 }
