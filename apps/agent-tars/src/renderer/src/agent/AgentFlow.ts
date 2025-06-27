@@ -190,98 +190,45 @@ export class AgentFlow {
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
-          let normalizedPlan: PlanTask[] = [];
-          try {
-            console.log(
-              '[AgentFlow] normalizePlan 入力',
-              awareResult,
-              agentContext,
-            );
-            normalizedPlan = this.normalizePlan(awareResult, agentContext);
-            console.log('[AgentFlow] normalizePlan 出力', normalizedPlan);
-          } catch (e) {
-            console.error(
-              '[AgentFlow] normalizePlan 例外:',
-              e,
-              awareResult,
-              agentContext,
-            );
-            throw e;
-          }
-
-          const prevStep = agentContext.currentStep;
-          agentContext.plan = normalizedPlan;
-
-          // 【デバッグ】plan内容を必ず確認
-          console.log(
-            '[AgentFlow-debug] ループ内: agentContext.plan=',
-            agentContext.plan,
-          );
-
-          // planTasksAtomへの反映はここだけ・空の場合のみ警告出して終了
-          try {
-            if (!agentContext.plan || agentContext.plan.length === 0) {
-              console.warn(
-                '[AgentFlow-debug] plan is empty: LLM response invalid or parse failure',
-              );
-              this.appContext.setPlanTasks([]);
-              console.log('[AgentFlow-debug] setPlanTasks([]) 実行');
-              await this.eventManager.addAgentStatus(
-                'No plan generated (error)',
-              );
-              this.hasFinished = true;
-              break;
-            } else {
-              // ここでPlanUpdateイベントも追加する！（←重要ポイント）
-              console.log('[AgentFlow] before addPlanUpdate');
-              await this.eventManager.addPlanUpdate(
-                awareResult && awareResult.step && awareResult.step > 0
-                  ? awareResult.step
-                  : 1,
-                [...agentContext.plan],
-              );
-              console.log('[AgentFlow] after addPlanUpdate');
-
-              // 先にPlanUpdate、次にUI atom更新
-              try {
-                console.log(
-                  '[AgentFlow] before setPlanTasks',
-                  agentContext.plan,
-                );
-                this.appContext.setPlanTasks([...agentContext.plan]);
-                console.log(
-                  '[AgentFlow] after setPlanTasks',
-                  this.appContext.setPlanTasks,
-                );
-              } catch (e) {
-                console.error(
-                  '[AgentFlow] setPlanTasks 例外:',
-                  e,
-                  agentContext.plan,
-                );
-                throw e;
-              }
-            }
-          } catch (err) {
-            console.error(
-              '[AgentFlow-debug] plan更新ブロック 例外:',
-              err,
-              agentContext.plan,
-            );
-          }
-
-          // PlanUpdateを含む最新eventsをUIに反映
-          this.appContext.setEvents(this.eventManager.getAllEvents());
-
+          // ==== ★★ 修正: currentStep/plan/setPlanTasks の順で更新（break前に絶対実行） ====
           agentContext.currentStep =
             awareResult && awareResult.step && awareResult.step > 0
               ? awareResult.step
               : 1;
+          agentContext.plan = this.normalizePlan(awareResult, agentContext);
 
-          if (firstStep || agentContext.currentStep > prevStep) {
+          // PlanをUIに必ず反映
+          this.appContext.setPlanTasks([...agentContext.plan]);
+
+          // planが空なら強制終了
+          if (!agentContext.plan || agentContext.plan.length === 0) {
+            console.warn(
+              '[AgentFlow-debug] plan is empty: LLM response invalid or parse failure',
+            );
+            await this.eventManager.addAgentStatus('No plan generated (error)');
+            this.hasFinished = true;
+            break;
+          }
+
+          // currentStep > plan.length なら強制終了
+          if (agentContext.currentStep > agentContext.plan.length) {
+            this.hasFinished = true;
+            break;
+          }
+
+          // ==== ★★ PlanUpdate追加（ここはそのまま） ====
+          await this.eventManager.addPlanUpdate(agentContext.currentStep, [
+            ...agentContext.plan,
+          ]);
+
+          // PlanUpdateを含む最新eventsをUIに反映
+          this.appContext.setEvents(this.eventManager.getAllEvents());
+
+          const prevStep = agentContext.currentStep;
+
+          if (firstStep) {
             await this.eventManager.addNewPlanStep(agentContext.currentStep);
             firstStep = false;
-            if (agentContext.currentStep > agentContext.plan.length) break;
           }
 
           if (awareResult && awareResult.status) {
