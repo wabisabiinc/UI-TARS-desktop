@@ -20,17 +20,17 @@ export class Executor {
     });
   }
 
-  private systemPrompt = `You are a tool use expert. ... 省略 ...`;
+  private systemPrompt = `You are a tool use expert. You can only respond with a valid ToolCall JSON structure.`;
 
   public updateSignal(abortSignal: AbortSignal) {
     this.abortSignal = abortSignal;
   }
 
-  // === ここを強制ダミーToolCall返却に書き換え ===
+  // ======== 強制ダミーToolCall返却（テスト用） =========
   async run(status: string) {
     console.log('[DEBUG] Executor.run called with status:', status);
 
-    // 強制的に必ずダミーToolCallを返す！（ここが超重要テスト）
+    // 強制ダミーtoolcall返却
     return [
       {
         function: {
@@ -41,9 +41,9 @@ export class Executor {
         },
         id: 'dummy-toolcall-1',
       },
-    ];
+    ] as ToolCall[];
   }
-  // ============================================
+  // ===============================================
 
   async executeTools(toolCalls: ToolCall[]) {
     if (this.abortSignal.aborted) {
@@ -64,7 +64,7 @@ export class Executor {
       ];
     }
 
-    // それ以外は本来の実装にfall back（通常ここまで到達しない想定）
+    // 通常時は従来処理
     return new Promise<z.infer<typeof CompatibilityCallToolResultSchema>[]>(
       async (resolve, reject) => {
         const abortHandler = () => {
