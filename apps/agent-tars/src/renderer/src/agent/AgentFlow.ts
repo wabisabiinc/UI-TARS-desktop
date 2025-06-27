@@ -309,7 +309,17 @@ export class AgentFlow {
                   filePath: params.path,
                 });
               }
-              const callResult = (await executor.executeTools([toolCall]))[0];
+
+              const callResults = await executor.executeTools([toolCall]);
+              const callResult = callResults && callResults[0];
+              if (!callResult) {
+                this.appContext.setAgentStatusTip('Error');
+                this.appContext.setPlanTasks([]);
+                console.error(
+                  '[AgentFlow] executor.runでToolCallの実行結果がundefined',
+                );
+                throw new Error('ToolCallの実行結果が取得できませんでした');
+              }
               this.appContext.setAgentStatusTip('Executing Tool');
 
               await this.eventManager.handleToolExecution({
