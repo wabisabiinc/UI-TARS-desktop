@@ -26,97 +26,56 @@ export class Executor {
     this.abortSignal = abortSignal;
   }
 
+  // === ここを強制ダミーToolCall返却に書き換え ===
   async run(status: string) {
-    // ★このログが出れば「run呼び出し」は100％成功
     console.log('[DEBUG] Executor.run called with status:', status);
 
-    const environmentInfo = await this.agentContext.getEnvironmentInfo(
-      this.appContext,
-      this.agentContext,
-    );
-
-    if (this.abortSignal.aborted) {
-      console.log('[Executor] run aborted (pre)');
-      return [];
-    }
-
-    const streamId = Math.random().toString(36).substring(7);
-
-    return new Promise<ToolCall[]>(async (resolve, reject) => {
-      const abortHandler = () => {
-        ipcClient.abortRequest({ requestId: streamId });
-        resolve([]);
-      };
-
-      const activeMcpSettings = await ipcClient
-        .getActiveMcpSettings()
-        .catch((e) => {
-          console.error('Error getting active MCP settings', e);
-          return {};
-        });
-
-      try {
-        this.abortSignal.addEventListener('abort', abortHandler);
-
-        const payload = {
-          messages: [
-            Message.systemMessage(this.systemPrompt),
-            Message.userMessage(environmentInfo),
-            Message.userMessage(`Aware status: ${status}`),
-          ],
-          tools: [idleTool, chatMessageTool],
-          mcpServerKeys: [
-            ...Object.values(MCPServerName),
-            ...Object.keys(activeMcpSettings),
-          ],
-          requestId: streamId,
-        };
-
-        console.log('[DEBUG] Executor.askLLMTool payload:', payload);
-
-        const result = await ipcClient.askLLMTool(payload);
-
-        console.log('[DEBUG] Executor.askLLMTool result:', result);
-
-        const toolCalls = (result.tool_calls || []).filter(Boolean);
-        console.log('[DEBUG] Executor.LLM tool_calls:', toolCalls);
-
-        const interceptedToolCalls = await interceptToolCalls(toolCalls);
-        console.log(
-          '[DEBUG] Executor.Intercepted tool_calls:',
-          interceptedToolCalls,
-        );
-
-        resolve(interceptedToolCalls);
-      } catch (error) {
-        console.error('[Executor] run error:', error);
-        reject(error);
-      } finally {
-        this.abortSignal.removeEventListener('abort', abortHandler);
-      }
-    });
+    // 強制的に必ずダミーToolCallを返す！（ここが超重要テスト）
+    return [
+      {
+        function: {
+          name: 'chatMessage',
+          arguments: JSON.stringify({
+            text: '【テスト】ダミーtoolcallによるメッセージ',
+          }),
+        },
+        id: 'dummy-toolcall-1',
+      },
+    ];
   }
+  // ============================================
 
   async executeTools(toolCalls: ToolCall[]) {
     if (this.abortSignal.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
 
+    // toolCallsの1件目がchatMessageなら「成功」レスポンスを強制返却
+    if (
+      toolCalls &&
+      toolCalls[0] &&
+      toolCalls[0].function?.name === 'chatMessage'
+    ) {
+      return [
+        {
+          content: { text: '【ダミーToolCall実行成功】' },
+          isError: false,
+        } as any,
+      ];
+    }
+
+    // それ以外は本来の実装にfall back（通常ここまで到達しない想定）
     return new Promise<z.infer<typeof CompatibilityCallToolResultSchema>[]>(
       async (resolve, reject) => {
         const abortHandler = () => {
           reject(new DOMException('Aborted', 'AbortError'));
         };
-
         try {
           this.abortSignal.addEventListener('abort', abortHandler);
           const interceptedToolCalls = await interceptToolCalls(toolCalls);
-
           const result = await ipcClient.executeTool({
             toolCalls: interceptedToolCalls,
           });
-
-          console.log('[DEBUG] Executor.Execute result:', result);
           if (this.abortSignal.aborted) {
             throw new DOMException('Aborted', 'AbortError');
           }
