@@ -39,29 +39,14 @@ export function OpenAgentChatUI() {
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // ❌ planTasksの副作用的な再上書き（extractEventStreamUIMeta）は不要！
-  // useEffect(() => {
-  //   const { planTasks } = extractEventStreamUIMeta(events);
-  //   setPlanTasks((prev) => {
-  //     if (JSON.stringify(prev) !== JSON.stringify(planTasks)) {
-  //       return planTasks;
-  //     }
-  //     return prev;
-  //   });
-  // }, [events, setPlanTasks]);
-
   useEffect(() => {
     if (
-      isSending &&
-      ((planTasks && planTasks.length > 0) ||
-        agentStatusTip === 'No plan' ||
-        agentStatusTip === 'Failed' ||
-        agentStatusTip === 'Error' ||
-        agentStatusTip === '完了')
+      planTasks.length > 0 ||
+      ['No plan', 'Failed', 'Error', '完了'].includes(agentStatusTip)
     ) {
       setIsSending(false);
     }
-  }, [planTasks, agentStatusTip, isSending]);
+  }, [planTasks, agentStatusTip]);
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
@@ -77,6 +62,7 @@ export function OpenAgentChatUI() {
       } catch (e) {
         setIsSending(false);
       } finally {
+        setIsSending(false); // ここで必ず解除
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = false;
@@ -133,9 +119,7 @@ export function OpenAgentChatUI() {
     if (
       !isSending &&
       planTasks.length === 0 &&
-      (agentStatusTip === 'No plan' ||
-        agentStatusTip === 'Failed' ||
-        agentStatusTip === 'Error')
+      ['No plan', 'Failed', 'Error'].includes(agentStatusTip)
     ) {
       return (
         <div style={{ color: 'red', padding: 8 }}>

@@ -48,7 +48,6 @@ export class AgentFlow {
     console.log('[AgentFlow] run() called');
 
     this.appContext.setPlanTasks([]);
-    // デバッグ: run開始時
     console.log('[AgentFlow-debug] run開始: setPlanTasks([]) 実行');
 
     const chatUtils = this.appContext.chatUtils;
@@ -190,7 +189,6 @@ export class AgentFlow {
           await preparePromise;
           if (this.abortController.signal.aborted) break;
 
-          // ==== ★★ 修正: currentStep/plan/setPlanTasks の順で更新（break前に絶対実行） ====
           agentContext.currentStep =
             awareResult && awareResult.step && awareResult.step > 0
               ? awareResult.step
@@ -207,21 +205,20 @@ export class AgentFlow {
             );
             await this.eventManager.addAgentStatus('No plan generated (error)');
             this.hasFinished = true;
+            // UIに異常状態を伝播
+            this.appContext.setAgentStatusTip('No plan');
+            this.appContext.setPlanTasks([]);
             break;
           }
 
-          // currentStep > plan.length なら強制終了
           if (agentContext.currentStep > agentContext.plan.length) {
             this.hasFinished = true;
             break;
           }
 
-          // ==== ★★ PlanUpdate追加（ここはそのまま） ====
           await this.eventManager.addPlanUpdate(agentContext.currentStep, [
             ...agentContext.plan,
           ]);
-
-          // PlanUpdateを含む最新eventsをUIに反映
           this.appContext.setEvents(this.eventManager.getAllEvents());
 
           const prevStep = agentContext.currentStep;
@@ -248,10 +245,6 @@ export class AgentFlow {
             break;
           }
 
-          // --- ここから強制デバッグ ---
-          console.log('[DEBUG] executorインスタンス:', executor);
-          console.log('[DEBUG] executor.run typeof:', typeof executor.run);
-
           let toolCallList: any[] = [];
           try {
             console.log(
@@ -263,10 +256,12 @@ export class AgentFlow {
             ).filter(Boolean);
             console.log('[AgentFlow] toolCallList:', toolCallList);
           } catch (runErr) {
+            // ここでもUI復帰処理
+            this.appContext.setAgentStatusTip('Error');
+            this.appContext.setPlanTasks([]);
             console.error('[AgentFlow] executor.runで例外:', runErr);
             throw runErr;
           }
-          // --- ここまでデバッグ ---
 
           if (this.abortController.signal.aborted) break;
           if (this.interruptController.signal.aborted) {
@@ -345,6 +340,9 @@ export class AgentFlow {
           }
           this.loadingStatusTip = 'Thinking';
         } catch (e) {
+          // ここでUI状態を必ず復帰
+          this.appContext.setAgentStatusTip('Error');
+          this.appContext.setPlanTasks([]);
           console.error(
             '[AgentFlow] loop error',
             e instanceof Error ? e.stack : e,
@@ -353,6 +351,9 @@ export class AgentFlow {
         }
       }
     } catch (error) {
+      // ここでもUIに反映
+      this.appContext.setAgentStatusTip('Error');
+      this.appContext.setPlanTasks([]);
       if (error instanceof DOMException && error.name === 'AbortError') {
         console.log('Agent loop aborted');
         return;
