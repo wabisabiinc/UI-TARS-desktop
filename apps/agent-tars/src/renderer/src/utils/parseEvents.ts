@@ -36,43 +36,29 @@ export function extractEventStreamUIMeta(
   const lastPlanUpdate = [...events]
     .reverse()
     .find((event) => event.type === EventType.PlanUpdate);
-  console.log(
-    '[DEBUG] parseEvents lastPlanUpdate:',
-    JSON.stringify(lastPlanUpdate, null, 2),
-  );
 
-  // ★ PlanUpdateイベントのplan内容デバッグ
-  if (lastPlanUpdate) {
-    console.log(
-      '[parseEvents] lastPlanUpdate.content:',
-      lastPlanUpdate.content,
-    );
-    if (
-      lastPlanUpdate.content &&
-      Array.isArray((lastPlanUpdate.content as any).plan)
-    ) {
-      console.log(
-        '[parseEvents] lastPlanUpdate.plan:',
-        (lastPlanUpdate.content as any).plan,
-      );
-    }
-  }
-
-  // planTasks: 必ず配列、title:stringなobjectだけを通す
   let planTasks: PlanTask[] = [];
+
   if (
     lastPlanUpdate &&
     lastPlanUpdate.content &&
     Array.isArray((lastPlanUpdate.content as any).plan)
   ) {
+    // ここで配列だけを取り出し
     planTasks = (lastPlanUpdate.content as any).plan;
-    if (!planTasks.length) {
+    if (!Array.isArray(planTasks)) planTasks = [];
+    // title: string以外は弾く
+    planTasks = planTasks.filter(
+      (t) => t && typeof t === 'object' && typeof t.title === 'string',
+    );
+    if (planTasks.length === 0) {
       console.warn(
-        '[parseEvents] PlanUpdateのplan配列が空! lastPlanUpdate.content:',
+        '[parseEvents] PlanUpdate内のplan配列は存在するが、title:stringな要素が見つからない/空:',
         lastPlanUpdate.content,
       );
     }
   } else {
+    // 防御
     planTasks = [];
     if (lastPlanUpdate) {
       console.warn(
@@ -81,13 +67,8 @@ export function extractEventStreamUIMeta(
       );
     }
   }
-  // 絶対配列＆不正データ防御
+  // 二重防御（念のため）
   if (!Array.isArray(planTasks)) planTasks = [];
-  planTasks = planTasks.filter(
-    (t) => t && typeof t === 'object' && typeof t.title === 'string',
-  );
-
-  console.log('[parseEvents] planTasks:', Array.isArray(planTasks), planTasks);
 
   // 最新のAgentStatusを取得
   const lastAgentStatus = [...events]
@@ -152,7 +133,6 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
       ...tailingNoRenderEvents,
     ];
   };
-  console.log('filtered events', filterLoading(events));
 
   filterLoading(events).forEach((event) => {
     if (event.type === EventType.PlanUpdate) {
@@ -256,6 +236,5 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
     });
   }
 
-  console.log('groups', groups);
   return groups;
 }

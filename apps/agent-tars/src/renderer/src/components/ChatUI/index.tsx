@@ -23,7 +23,6 @@ import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
-import { extractEventStreamUIMeta } from '@renderer/utils/parseEvents';
 
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
@@ -36,46 +35,33 @@ export function OpenAgentChatUI() {
   const [, setEvents] = useAtom(eventsAtom);
   const [events] = useAtom(eventsAtom);
   const [planTasks] = useAtom(planTasksAtom);
-  const [, setPlanTasks] = useAtom(planTasksAtom);
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // --- planTasksの同期ロジック ---
-  useEffect(() => {
-    const { planTasks } = extractEventStreamUIMeta(events);
-    setPlanTasks((prev) => {
-      if (JSON.stringify(prev) !== JSON.stringify(planTasks)) {
-        return planTasks;
-      }
-      return prev;
-    });
-  }, [events, setPlanTasks]);
+  // ❌ planTasksの副作用的な再上書き（extractEventStreamUIMeta）は不要！
+  // useEffect(() => {
+  //   const { planTasks } = extractEventStreamUIMeta(events);
+  //   setPlanTasks((prev) => {
+  //     if (JSON.stringify(prev) !== JSON.stringify(planTasks)) {
+  //       return planTasks;
+  //     }
+  //     return prev;
+  //   });
+  // }, [events, setPlanTasks]);
 
-  // planTasksまたはagentStatusTipの変化でThinking解除
   useEffect(() => {
     if (
       isSending &&
-      ((planTasks && Array.isArray(planTasks) && planTasks.length > 0) ||
+      ((planTasks && planTasks.length > 0) ||
         agentStatusTip === 'No plan' ||
         agentStatusTip === 'Failed' ||
         agentStatusTip === 'Error' ||
         agentStatusTip === '完了')
     ) {
       setIsSending(false);
-      console.log('[DEBUG] Thinkingを解除しました:', planTasks, agentStatusTip);
     }
-    console.log(
-      '[ChatUI] UIで受け取ったplanTasks:',
-      planTasks,
-      'agentStatusTip:',
-      agentStatusTip,
-    );
   }, [planTasks, agentStatusTip, isSending]);
-
-  useEffect(() => {
-    console.log('[ChatUI] UIで受け取ったevents:', events);
-  }, [events]);
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
@@ -161,61 +147,59 @@ export function OpenAgentChatUI() {
   };
 
   return (
-    <>
-      <BaseChatUI
-        styles={{
-          container: { height: 'calc(100vh)', width: '100%' },
-          inputContainer: { display: isReportHtmlMode ? 'none' : 'flex' },
-        }}
-        disableInput={isReportHtmlMode}
-        ref={chatUIRef}
-        customMessageRender={(message) =>
-          renderMessageUI({ message: message as unknown as MessageItem })
+    <BaseChatUI
+      styles={{
+        container: { height: 'calc(100vh)', width: '100%' },
+        inputContainer: { display: isReportHtmlMode ? 'none' : 'flex' },
+      }}
+      disableInput={isReportHtmlMode}
+      ref={chatUIRef}
+      customMessageRender={(message) =>
+        renderMessageUI({ message: message as unknown as MessageItem })
+      }
+      isDark={isDarkMode.value}
+      onMessageSend={sendMessage}
+      storageDbName={STORAGE_DB_NAME}
+      features={{ clearConversationHistory: true, uploadFiles: false }}
+      onMessageAbort={() => {
+        setIsSending(false);
+        const inputEle = chatUIRef.current?.getInputTextArea?.();
+        if (inputEle) {
+          inputEle.disabled = false;
+          inputEle.style.cursor = 'auto';
         }
-        isDark={isDarkMode.value}
-        onMessageSend={sendMessage}
-        storageDbName={STORAGE_DB_NAME}
-        features={{ clearConversationHistory: true, uploadFiles: false }}
-        onMessageAbort={() => {
-          setIsSending(false);
-          const inputEle = chatUIRef.current?.getInputTextArea?.();
-          if (inputEle) {
-            inputEle.disabled = false;
-            inputEle.style.cursor = 'auto';
-          }
-          if (currentAgentFlowIdRef.current) {
-            globalEventEmitter.emit(currentAgentFlowIdRef.current, {
-              type: 'terminate',
-            });
-          }
-        }}
-        onClearConversationHistory={() => {
-          setEvents([]);
-        }}
-        slots={{
-          beforeMessageList: (
-            <>
-              <MenuHeader />
-              {isInitialized && messages.length === 0 && <WelcomeScreen />}
-              {renderPlanTasks()}
-              {renderError()}
-            </>
-          ),
-          beforeInputContainer: <BeforeInputContainer />,
-          customFeatures: (
-            <div className="flex gap-2">
-              {isSending ? <AgentStatusTip /> : null}
-            </div>
-          ),
-        }}
-        classNames={{ messageList: 'scrollbar' }}
-        conversationId={currentSessionId || 'default'}
-        inputPlaceholder={
-          isSending
-            ? 'Agent is working, please wait...'
-            : 'Type your message here...'
+        if (currentAgentFlowIdRef.current) {
+          globalEventEmitter.emit(currentAgentFlowIdRef.current, {
+            type: 'terminate',
+          });
         }
-      />
-    </>
+      }}
+      onClearConversationHistory={() => {
+        setEvents([]);
+      }}
+      slots={{
+        beforeMessageList: (
+          <>
+            <MenuHeader />
+            {isInitialized && messages.length === 0 && <WelcomeScreen />}
+            {renderPlanTasks()}
+            {renderError()}
+          </>
+        ),
+        beforeInputContainer: <BeforeInputContainer />,
+        customFeatures: (
+          <div className="flex gap-2">
+            {isSending ? <AgentStatusTip /> : null}
+          </div>
+        ),
+      }}
+      classNames={{ messageList: 'scrollbar' }}
+      conversationId={currentSessionId || 'default'}
+      inputPlaceholder={
+        isSending
+          ? 'Agent is working, please wait...'
+          : 'Type your message here...'
+      }
+    />
   );
 }

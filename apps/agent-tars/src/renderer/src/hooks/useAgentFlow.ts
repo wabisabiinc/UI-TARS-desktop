@@ -47,9 +47,7 @@ export function useAgentFlow() {
 
   const updateSessionTitle = useCallback(
     async (input: string) => {
-      if (!currentSessionId) {
-        return;
-      }
+      if (!currentSessionId) return;
       const userMessages = chatUtils.messages
         .filter((m) => m.role === MessageRole.User)
         .slice(-5);
@@ -77,15 +75,18 @@ export function useAgentFlow() {
     async (inputText: string, inputFiles: InputFile[]) => {
       const agentFlowId = uuid();
       currentAgentFlowIdRef.current = agentFlowId;
+
+      // ★ ここでUIのplanTasksを「空配列で初期化」しておくことで、「Thinking」でずっと止まるのを防ぐ
+      setPlanTasks([]);
+
       const agentFlow = new AgentFlow({
         chatUtils,
         setEvents,
         setEventId,
         setAgentStatusTip,
         setPlanTasks: (tasks) => {
-          // 念のため空配列対応＋デバッグログ
+          // 型防御: 必ず配列に変換
           const safeTasks = Array.isArray(tasks) ? tasks : [];
-          console.log('[useAgentFlow] setPlanTasks:', safeTasks);
           setPlanTasks(safeTasks);
         },
         setShowCanvas,
@@ -95,6 +96,7 @@ export function useAgentFlow() {
           inputFiles,
         },
       });
+      // 並行実行（タイトル生成も同時）
       await Promise.all([agentFlow.run(), updateSessionTitle(inputText)]);
     },
     [
