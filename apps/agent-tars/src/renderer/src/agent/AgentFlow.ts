@@ -21,6 +21,7 @@ import { Greeter } from './Greeter';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 import { EventItem, EventType } from '@renderer/type/event';
 import { SNAPSHOT_BROWSER_ACTIONS } from '@renderer/constants';
+import { parseEvents } from '@renderer/utils/parseEvents';
 
 // 追加ここから
 console.log(
@@ -132,6 +133,8 @@ export class AgentFlow {
               this.appContext.setEventId(latestToolUsedEvent.id);
             return [...this.eventManager.getHistoryEvents(), ...events];
           });
+
+          parseEvents(events);
 
           await chatUtils.updateMessage(
             ChatMessageUtil.assistantOmegaMessage({ events }),
