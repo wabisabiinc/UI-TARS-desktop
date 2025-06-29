@@ -24,10 +24,11 @@ import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
 
-// ★追加: PlanTaskStatusコンポーネントのimport
+// ★追加: PlanTaskStatus と StatusBar コンポーネントの import
 import { PlanTaskStatus } from './PlanTaskStatus';
+import { StatusBar } from './StatusBar';
 
-// 追加ここから
+// 追加ここから（デバッグ用）
 console.log(
   '[import先] planTasksAtom in ChatUI/index.tsx',
   planTasksAtom,
@@ -47,7 +48,7 @@ export function OpenAgentChatUI() {
   const [isInitialized, setIsInitialized] = useState(false);
   const addUserMessage = useAddUserMessage();
   const launchAgentFlow = useAgentFlow();
-  const chatUIRef = useRef(null);
+  const chatUIRef = useRef<any>(null);
   const isDarkMode = useThemeMode();
   const { initMessages, setMessages, messages } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
@@ -56,6 +57,7 @@ export function OpenAgentChatUI() {
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
+  // プラン生成完了 or エラーステータスで入力ロック解除
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -68,18 +70,21 @@ export function OpenAgentChatUI() {
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       try {
+        // UI 側テキストエリアを手動でロック
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = true;
           inputEle.style.cursor = 'not-allowed';
         }
+
         setIsSending(true);
         await addUserMessage(inputText, inputFiles);
         await launchAgentFlow(inputText, inputFiles);
-      } catch (e) {
+      } catch {
         setIsSending(false);
       } finally {
-        setIsSending(false); // ここで必ず解除
+        // 送信完了／中断後は必ずロック解除
+        setIsSending(false);
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = false;
@@ -90,24 +95,26 @@ export function OpenAgentChatUI() {
     [addUserMessage, launchAgentFlow],
   );
 
+  // 初期メッセージ & イベントをセット
   useEffect(() => {
     async function init() {
       setIsInitialized(false);
-      const messages =
+      const msgs =
         window.__OMEGA_REPORT_DATA__?.messages ?? (await initMessages());
-      setMessages(messages || []);
-      const events = extractHistoryEvents(messages as unknown as MessageItem[]);
-      setEvents(events);
+      setMessages(msgs || []);
+      const evts = extractHistoryEvents(msgs as unknown as MessageItem[]);
+      setEvents(evts);
       setIsInitialized(true);
     }
     init();
   }, [currentSessionId]);
 
+  // セッション未選択時はウェルカム画面
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
 
-  // エラー時の表示
+  // プラン生成エラー表示
   const renderError = () => {
     if (
       !isSending &&
@@ -126,7 +133,7 @@ export function OpenAgentChatUI() {
   return (
     <BaseChatUI
       styles={{
-        container: { height: 'calc(100vh)', width: '100%' },
+        container: { height: '100vh', width: '100%' },
         inputContainer: { display: isReportHtmlMode ? 'none' : 'flex' },
       }}
       disableInput={isReportHtmlMode}
@@ -158,8 +165,8 @@ export function OpenAgentChatUI() {
         beforeMessageList: (
           <>
             <MenuHeader />
-            {/* ここにPlan進捗バーを差し込む（PlanTaskStatus） */}
-            <PlanTaskStatus />
+            <StatusBar /> {/* ← 追加: ステータスバー */}
+            <PlanTaskStatus /> {/* プラン進捗バー */}
             {isInitialized && messages.length === 0 && <WelcomeScreen />}
             {renderError()}
           </>
