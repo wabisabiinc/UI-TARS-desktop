@@ -54,6 +54,10 @@ export class AgentFlow {
   private interruptController: AbortController;
   private hasFinished = false;
   private loadingStatusTip = '';
+  // --- ここから追加 ---
+  /** 最初の一回だけ chat-message を流すフラグ */
+  private chatMessageSent = false;
+  // --- ここまで追加 ---
 
   constructor(private appContext: AppContext) {
     console.log('[AgentFlow] constructor called');
@@ -61,6 +65,8 @@ export class AgentFlow {
     this.eventManager = new EventManager(omegaHistoryEvents);
     this.abortController = new AbortController();
     this.interruptController = new AbortController();
+    // run ごとにフラグをリセット
+    this.chatMessageSent = false;
   }
 
   async run() {
@@ -101,7 +107,6 @@ export class AgentFlow {
     this.eventManager.addLoadingStatus('Thinking');
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // グローバルイベント（終了／中断）ハンドラ
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (event) => {
@@ -122,8 +127,6 @@ export class AgentFlow {
         }),
         { shouldSyncStorage: true },
       );
-
-      // イベントストリーム更新コールバック設定
       this.eventManager.setUpdateCallback(async (events) => {
         try {
           console.log('[setUpdateCallback] 開始', events);
@@ -140,21 +143,9 @@ export class AgentFlow {
             return [...this.eventManager.getHistoryEvents(), ...events];
           });
 
-          // ここで最新のplanTasksを抽出
           const meta = extractEventStreamUIMeta(events);
-          console.log(
-            '[AgentFlow:setUpdateCallback] extracted meta.planTasks:',
-            meta.planTasks,
-          );
-
-          // planTasksが空でなければ上書き
           if (meta.planTasks && meta.planTasks.length > 0) {
-            console.log(
-              '[AgentFlow:setUpdateCallback] calling setPlanTasks with:',
-              meta.planTasks,
-            );
             this.appContext.setPlanTasks([...meta.planTasks]);
-            console.log('[AgentFlow:setUpdateCallback] setPlanTasks applied');
           }
 
           await chatUtils.updateMessage(
@@ -171,11 +162,9 @@ export class AgentFlow {
         }
       });
 
-      // ユーザー中断イベントハンドラ
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (event: GlobalEvent) => {
-          console.log('[AgentFlow] globalEventEmitter inner triggered', event);
           if (event.type === 'user-interrupt') {
             await this.eventManager.addUserInterruptionInput(event.text);
             this.interruptController.abort();
@@ -193,7 +182,6 @@ export class AgentFlow {
       );
     });
 
-    // Greeter完了 ＆ ループ開始
     await Promise.all([
       preparePromise,
       this.launchAgentLoop(executor, aware, agentContext, preparePromise),
@@ -220,26 +208,19 @@ export class AgentFlow {
           console.log('[AgentFlow] loop start, adding loading status');
           await this.eventManager.addLoadingStatus(this.loadingStatusTip);
 
-          // 1. 環境分析(Planning)
           console.log('[AgentFlow] before aware.run()');
           const awareResult = await aware.run();
           console.log('[AgentFlow] after aware.run()', awareResult);
 
           this.loadingStatusTip = 'Thinking';
 
-          // Plan の更新（Greeter待ちブロックを外しました）
           agentContext.currentStep =
             awareResult?.step && awareResult.step > 0 ? awareResult.step : 1;
           agentContext.plan = this.normalizePlan(awareResult, agentContext);
 
           console.log('[AgentFlow] setPlanTasksに渡すplan:', agentContext.plan);
-          console.log(
-            '[AgentFlow] ⏩ calling setPlanTasks with:',
-            agentContext.plan,
-          );
           this.appContext.setPlanTasks([...agentContext.plan]);
 
-          // jotaiのバッチング考慮で100ms後に再ログ
           setTimeout(() => {
             if (typeof window !== 'undefined') {
               // @ts-ignore
@@ -250,7 +231,6 @@ export class AgentFlow {
             }
           }, 100);
 
-          // Planの空判定
           if (!agentContext.plan.length) {
             console.warn(
               '[AgentFlow-debug] plan is empty: LLM response invalid or parse failure',
@@ -265,7 +245,6 @@ export class AgentFlow {
             break;
           }
 
-          // UIイベント更新
           await this.eventManager.addPlanUpdate(agentContext.currentStep, [
             ...agentContext.plan,
           ]);
@@ -279,22 +258,9 @@ export class AgentFlow {
             await this.eventManager.addAgentStatus(awareResult.status);
           }
 
-          // 次ステータス
           await this.eventManager.addLoadingStatus(this.loadingStatusTip);
           this.appContext.setAgentStatusTip(this.loadingStatusTip);
 
-          // 全 Done 判定
-          if (
-            agentContext.plan.every(
-              (task) => task.status === PlanTaskStatus.Done,
-            )
-          ) {
-            this.hasFinished = true;
-            break;
-          }
-
-          // 2. ツール実行フェーズ
-          console.log('[AgentFlow] before executor.run()', awareResult.status);
           const toolCallList = (await executor.run(awareResult.status)).filter(
             Boolean,
           );
@@ -306,18 +272,17 @@ export class AgentFlow {
             continue;
           }
 
-          // — ツール一覧取得は必ず配列で —
           let mcpTools: any[] = [];
           let customServerTools: any[] = [];
           try {
             mcpTools = (await ipcClient.listMcpTools()) || [];
-          } catch (e) {
-            console.warn('[AgentFlow] listMcpTools failed', e);
+          } catch {
+            console.warn('[AgentFlow] listMcpTools failed');
           }
           try {
             customServerTools = (await ipcClient.listCustomTools()) || [];
-          } catch (e) {
-            console.warn('[AgentFlow] listCustomTools failed', e);
+          } catch {
+            console.warn('[AgentFlow] listCustomTools failed');
           }
           this.loadingStatusTip = 'Executing Tool';
 
@@ -367,10 +332,18 @@ export class AgentFlow {
               const snapshot = await ipcClient.saveBrowserSnapshot();
               this.eventManager.updateScreenshot(snapshot.filepath);
             }
+
+            // --- 重複防止の chat-message ---
             if (toolName === ExecutorToolType.ChatMessage) {
-              const p = JSON.parse(toolCall.function.arguments);
-              await this.eventManager.addChatText(p.text, p.attachments);
+              if (!this.chatMessageSent) {
+                this.chatMessageSent = true;
+                const p = JSON.parse(toolCall.function.arguments);
+                await this.eventManager.addChatText(p.text, p.attachments);
+              } else {
+                console.debug('[AgentFlow] skip duplicate chat-message');
+              }
             }
+
             if (toolName === ExecutorToolType.Idle) {
               this.hasFinished = true;
               this.eventManager.addPlanUpdate(
