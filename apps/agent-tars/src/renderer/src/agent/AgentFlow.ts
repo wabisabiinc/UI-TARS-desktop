@@ -171,7 +171,7 @@ export class AgentFlow {
         }
       });
 
-      // ユーザー中断イベントハンドラ（within prepare）
+      // ユーザー中断イベントハンドラ
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (event: GlobalEvent) => {
@@ -227,11 +227,7 @@ export class AgentFlow {
 
           this.loadingStatusTip = 'Thinking';
 
-          // ── preparePromise の待機を外して即時プラン更新 ──
-          // await preparePromise;
-          // if (this.abortController.signal.aborted) break;
-
-          // Plan の更新
+          // Plan の更新（Greeter待ちブロックを外しました）
           agentContext.currentStep =
             awareResult?.step && awareResult.step > 0 ? awareResult.step : 1;
           agentContext.plan = this.normalizePlan(awareResult, agentContext);
@@ -254,7 +250,7 @@ export class AgentFlow {
             }
           }, 100);
 
-          // Planがない or 完了判定
+          // Planの空判定
           if (!agentContext.plan.length) {
             console.warn(
               '[AgentFlow-debug] plan is empty: LLM response invalid or parse failure',
@@ -310,10 +306,21 @@ export class AgentFlow {
             continue;
           }
 
-          // ツール毎の処理...
-          const mcpTools = await ipcClient.listMcpTools();
-          const customServerTools = await ipcClient.listCustomTools();
+          // — ツール一覧取得は必ず配列で —
+          let mcpTools: any[] = [];
+          let customServerTools: any[] = [];
+          try {
+            mcpTools = (await ipcClient.listMcpTools()) || [];
+          } catch (e) {
+            console.warn('[AgentFlow] listMcpTools failed', e);
+          }
+          try {
+            customServerTools = (await ipcClient.listCustomTools()) || [];
+          } catch (e) {
+            console.warn('[AgentFlow] listCustomTools failed', e);
+          }
           this.loadingStatusTip = 'Executing Tool';
+
           for (const toolCall of toolCallList) {
             const toolName = toolCall.function.name;
             await this.eventManager.addToolCallStart(
@@ -323,10 +330,12 @@ export class AgentFlow {
             await this.eventManager.addToolExecutionLoading(toolCall);
 
             let originalFileContent: string | null = null;
-            if (
-              mcpTools.some((t) => t.name === toolName) ||
-              customServerTools.some((t) => t.function.name === toolName)
-            ) {
+            const isMCP = mcpTools.some((t) => t.name === toolName);
+            const isCustom = customServerTools.some(
+              (t) => t.function.name === toolName,
+            );
+
+            if (isMCP || isCustom) {
               if (
                 toolName === ToolCallType.EditFile ||
                 toolName === ToolCallType.WriteFile
