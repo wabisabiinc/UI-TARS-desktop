@@ -54,10 +54,9 @@ export class AgentFlow {
   private interruptController: AbortController;
   private hasFinished = false;
   private loadingStatusTip = '';
-  // --- ここから追加 ---
+
   /** 最初の一回だけ chat-message を流すフラグ */
   private chatMessageSent = false;
-  // --- ここまで追加 ---
 
   constructor(private appContext: AppContext) {
     console.log('[AgentFlow] constructor called');
@@ -211,6 +210,18 @@ export class AgentFlow {
           console.log('[AgentFlow] before aware.run()');
           const awareResult = await aware.run();
           console.log('[AgentFlow] after aware.run()', awareResult);
+
+          // ── AI の所感(reflection)をチャットに表示 ──
+          if (awareResult?.reflection) {
+            await this.appContext.chatUtils.addMessage(
+              ChatMessageUtil.assistantTextMessage(awareResult.reflection),
+              {
+                shouldSyncStorage: true,
+                shouldScrollToBottom: true,
+              },
+            );
+          }
+          // ──────────────────────────────────────
 
           this.loadingStatusTip = 'Thinking';
 
