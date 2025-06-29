@@ -193,7 +193,7 @@ export class AgentFlow {
       );
     });
 
-    // Greeter完了 & ループ開始
+    // Greeter完了 ＆ ループ開始
     await Promise.all([
       preparePromise,
       this.launchAgentLoop(executor, aware, agentContext, preparePromise),
@@ -226,10 +226,12 @@ export class AgentFlow {
           console.log('[AgentFlow] after aware.run()', awareResult);
 
           this.loadingStatusTip = 'Thinking';
-          await preparePromise;
-          if (this.abortController.signal.aborted) break;
 
-          // Planの更新
+          // ── preparePromise の待機を外して即時プラン更新 ──
+          // await preparePromise;
+          // if (this.abortController.signal.aborted) break;
+
+          // Plan の更新
           agentContext.currentStep =
             awareResult?.step && awareResult.step > 0 ? awareResult.step : 1;
           agentContext.plan = this.normalizePlan(awareResult, agentContext);
@@ -241,7 +243,7 @@ export class AgentFlow {
           );
           this.appContext.setPlanTasks([...agentContext.plan]);
 
-          // jotaiのバッチング対策で再確認ログ
+          // jotaiのバッチング考慮で100ms後に再ログ
           setTimeout(() => {
             if (typeof window !== 'undefined') {
               // @ts-ignore
@@ -308,7 +310,7 @@ export class AgentFlow {
             continue;
           }
 
-          // ツールごとの処理ループ
+          // ツール毎の処理...
           const mcpTools = await ipcClient.listMcpTools();
           const customServerTools = await ipcClient.listCustomTools();
           this.loadingStatusTip = 'Executing Tool';
@@ -350,7 +352,9 @@ export class AgentFlow {
             if (originalFileContent) {
               this.eventManager.updateFileContentForEdit(originalFileContent);
             }
-            if (SNAPSHOT_BROWSER_ACTIONS.includes(toolName as ToolCallType)) {
+            if (
+              SNAPSHOT_BROWSER_ACTIONS.includes(toolName as ExecutorToolType)
+            ) {
               const snapshot = await ipcClient.saveBrowserSnapshot();
               this.eventManager.updateScreenshot(snapshot.filepath);
             }
