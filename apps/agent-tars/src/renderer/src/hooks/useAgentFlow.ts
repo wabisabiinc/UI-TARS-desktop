@@ -19,7 +19,7 @@ import { DEFAULT_APP_ID } from '@renderer/components/LeftSidebar';
 import { ipcClient } from '@renderer/api';
 import { Message } from '@agent-infra/shared';
 
-// 追加ここから
+// デバッグ: Atom のインポート先を確認
 console.log(
   '[import先] planTasksAtom in useAgentFlow.ts',
   planTasksAtom,
@@ -32,7 +32,6 @@ if (typeof window !== 'undefined') {
     Object.is(planTasksAtom, window.__GLOBAL_PLAN_ATOM),
   );
 }
-// 追加ここまで
 
 export interface AppContext {
   chatUtils: ReturnType<typeof useAppChat>;
@@ -91,7 +90,7 @@ export function useAgentFlow() {
       const agentFlowId = uuid();
       currentAgentFlowIdRef.current = agentFlowId;
 
-      // ★ ここでUIのplanTasksを「空配列で初期化」しておくことで、「Thinking」でずっと止まるのを防ぐ
+      // 初期化：プランをクリア
       setPlanTasks([]);
 
       const agentFlow = new AgentFlow({
@@ -99,8 +98,9 @@ export function useAgentFlow() {
         setEvents,
         setEventId,
         setAgentStatusTip,
+        // オーバーライド: 必ずログしてから Atom 更新
         setPlanTasks: (tasks) => {
-          // 型防御: 必ず配列に変換
+          console.log('[useAgentFlow] ⏩ override setPlanTasks()', tasks);
           const safeTasks = Array.isArray(tasks) ? tasks : [];
           setPlanTasks(safeTasks);
         },
@@ -111,7 +111,8 @@ export function useAgentFlow() {
           inputFiles,
         },
       });
-      // 並行実行（タイトル生成も同時）
+
+      // 並行実行: AgentFlow とセッションタイトル生成
       await Promise.all([agentFlow.run(), updateSessionTitle(inputText)]);
     },
     [
