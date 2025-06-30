@@ -128,14 +128,15 @@ export class AgentFlow {
 
     // ─── 5) 最終まとめ ───
     if (!this.abortController.signal.aborted) {
+      // 終了イベント
       await this.eventManager.addEndEvent('> Agent TARS has finished.');
 
-      // プランUIクリア
+      // プランUIクリア ＋ ステータス更新
       setPlanTasks([]);
-      setAgentStatusTip('');
+      setAgentStatusTip('Completed');
 
       console.log('[AgentFlow] calling askLLMText for final summary...');
-      const finalResp = await ipcClient.askLLMText({
+      const resp = await ipcClient.askLLMText({
         messages: [
           Message.systemMessage(
             'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
@@ -146,12 +147,19 @@ export class AgentFlow {
         ],
         requestId: uuid(),
       });
-      console.log('[AgentFlow] finalResp:', finalResp);
+      console.log('[AgentFlow] raw askLLMText response:', resp);
 
-      await chatUtils.addMessage(
-        ChatMessageUtil.assistantTextMessage(finalResp),
-        { shouldSyncStorage: true, shouldScrollToBottom: true },
-      );
+      // 返ってきたオブジェクトから文字列部を取り出す
+      const text =
+        typeof resp === 'string'
+          ? resp
+          : (resp.choices?.[0]?.message?.content ?? String(resp));
+      console.log('[AgentFlow] final summary text:', text);
+
+      await chatUtils.addMessage(ChatMessageUtil.assistantTextMessage(text), {
+        shouldSyncStorage: true,
+        shouldScrollToBottom: true,
+      });
     }
   }
 

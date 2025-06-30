@@ -27,6 +27,7 @@ import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
 import { PlanTaskStatus } from './PlanTaskStatus';
 import { StatusBar } from './StatusBar';
+import { AgentFlowMessage } from '../AgentFlowMessage';
 
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
@@ -46,7 +47,7 @@ export function OpenAgentChatUI() {
   useEffect(() => {
     if (
       planTasks.length > 0 ||
-      ['No plan', 'Failed', 'Error', '完了'].includes(agentStatusTip)
+      ['No plan', 'Failed', 'Error', 'Completed'].includes(agentStatusTip)
     ) {
       setIsSending(false);
     }
@@ -55,18 +56,15 @@ export function OpenAgentChatUI() {
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       try {
-        // テキストエリアをロック
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = true;
           inputEle.style.cursor = 'not-allowed';
         }
-
         setIsSending(true);
         await addUserMessage(inputText, inputFiles);
         await launchAgentFlow(inputText, inputFiles);
       } finally {
-        // ロック解除
         setIsSending(false);
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
@@ -78,7 +76,6 @@ export function OpenAgentChatUI() {
     [addUserMessage, launchAgentFlow],
   );
 
-  // 初期メッセージ & イベント
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -90,12 +87,10 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
-  // セッション未選択時はウェルカム
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
 
-  // プラン生成エラー表示
   const renderError = () =>
     !isSending &&
     planTasks.length === 0 &&
@@ -115,7 +110,15 @@ export function OpenAgentChatUI() {
       ref={chatUIRef}
       customMessageRender={(message) => {
         const msg = message as MessageItem;
-        return renderMessageUI({ message: msg });
+        // ① OmegaAgent → プランバブル
+        if (msg.type === MessageType.OmegaAgent) {
+          return <AgentFlowMessage message={msg} />;
+        }
+        // ② PlainText → 通常チャット
+        if (msg.type === MessageType.PlainText) {
+          return renderMessageUI({ message: msg });
+        }
+        return null;
       }}
       isDark={isDarkMode.value}
       onMessageSend={sendMessage}
