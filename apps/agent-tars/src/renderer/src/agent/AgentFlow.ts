@@ -1,5 +1,4 @@
 // ===== apps/agent-tars/src/renderer/src/agent/AgentFlow.ts =====
-
 import { v4 as uuid } from 'uuid';
 import { Message, Memory } from '@agent-infra/shared';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
@@ -39,7 +38,7 @@ export class AgentFlow {
   }
 
   public async run() {
-    const { chatUtils, setAgentStatusTip, setPlanTasks, setEvents } =
+    const { chatUtils, setAgentStatusTip, setPlanTasks, setEvents, request } =
       this.appContext;
 
     // ▼ 1) プラン初期化
@@ -97,7 +96,7 @@ export class AgentFlow {
           {
             messageId: omegaMsg.id,
             shouldSyncStorage: true,
-            shouldScrollToBottom: true,
+            shouldScrollToBottom: true, // ← スクロールも明示
           },
         );
       });
@@ -112,7 +111,11 @@ export class AgentFlow {
               ChatMessageUtil.assistantOmegaMessage({
                 events: this.eventManager.getAllEvents(),
               }),
-              { messageId: omegaMsg.id, shouldSyncStorage: true },
+              {
+                messageId: omegaMsg.id,
+                shouldSyncStorage: true,
+                shouldScrollToBottom: true,
+              },
             );
           }
         },
@@ -124,28 +127,35 @@ export class AgentFlow {
 
     // ▼ 5) ループ完了後、一度だけ最終まとめを生成
     if (!this.abortController.signal.aborted) {
-      this.eventManager.addEndEvent('> Agent TARS has finished.');
+      // 終了イベント
+      await this.eventManager.addEndEvent('> Agent TARS has finished.');
 
       // Plan UI をクリア
       setPlanTasks([]);
       setAgentStatusTip('');
 
-      // ChatGPTライクなまとめ呼び出し
+      // ── ここから ChatGPT ライクな最終まとめ ──
+      console.log('[AgentFlow] ▶︎ 最終まとめを実行');
       const finalResp = await ipcClient.askLLMText({
         messages: [
           Message.systemMessage(
-            'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
+            'You are a super-helpful assistant. ' +
+              'Given the user request below, provide a single, concise, easy-to-understand answer in Japanese.',
           ),
-          Message.userMessage(
-            `ユーザーのリクエスト: ${this.appContext.request.inputText}`,
-          ),
+          Message.userMessage(`ユーザーのリクエスト: 「${request.inputText}」`),
         ],
         requestId: uuid(),
       });
+      console.log('[AgentFlow] ◀︎ 最終まとめの結果', finalResp);
+
       await chatUtils.addMessage(
         ChatMessageUtil.assistantTextMessage(finalResp),
-        { shouldSyncStorage: true, shouldScrollToBottom: true },
+        {
+          shouldSyncStorage: true,
+          shouldScrollToBottom: true, // ← 画面下までスクロール
+        },
       );
+      // ──────────────────────────────────
     }
   }
 
@@ -190,7 +200,7 @@ export class AgentFlow {
       }
       setAgentStatusTip('Thinking');
 
-      // 必要なツール呼び出し（既存ロジック）
+      // ツール呼び出し（既存ロジック）
       const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
         // …ツール実行…
