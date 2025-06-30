@@ -43,7 +43,7 @@ export function OpenAgentChatUI() {
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // プラン生成完了 or エラーで入力ロック解除
+  // プラン生成完了 or エラーで解除
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -76,6 +76,7 @@ export function OpenAgentChatUI() {
     [addUserMessage, launchAgentFlow],
   );
 
+  // 初期読み込み
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -87,6 +88,7 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
+  // セッションがないときは Welcome 画面
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
@@ -110,11 +112,11 @@ export function OpenAgentChatUI() {
       ref={chatUIRef}
       customMessageRender={(message) => {
         const msg = message as MessageItem;
-        // ① OmegaAgent → プランバブル
+        // OmegaAgent → プランバブル
         if (msg.type === MessageType.OmegaAgent) {
           return <AgentFlowMessage message={msg} />;
         }
-        // ② PlainText → 通常チャット
+        // PlainText → 通常チャット
         if (msg.type === MessageType.PlainText) {
           return renderMessageUI({ message: msg });
         }
