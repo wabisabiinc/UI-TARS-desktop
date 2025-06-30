@@ -33,7 +33,7 @@ export class AgentFlow {
   private hasFinished = false;
 
   constructor(private appContext: AppContext) {
-    // チャット履歴→イベントに変換して EventManager を初期化
+    // 履歴からイベントを構築
     const history = this.parseHistoryEvents();
     this.eventManager = new EventManager(history);
   }
@@ -42,11 +42,11 @@ export class AgentFlow {
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // ─── 1) 初期化 ───
+    // 1) 初期化
     setPlanTasks([]);
     setAgentStatusTip('Thinking');
 
-    // ─── 2) AgentContext/サブコンポーネント初期化 ───
+    // 2) AgentContext と各コンポーネント初期化
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
@@ -66,7 +66,7 @@ export class AgentFlow {
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // ── ユーザー中断(terminate)リスナー ──
+    // ユーザー中断リスナー
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (e: GlobalEvent) => {
@@ -79,19 +79,21 @@ export class AgentFlow {
       },
     );
 
-    // ─── 3) Greeter → Omega バブルの初回描画 ───
-    const preparePromise = greeter.run().then(async () => {
+    // 3) Greeter（Omega バブル描画）は fire-and-forget
+    greeter.run().then(async () => {
       const omegaMsg = await chatUtils.addMessage(
         ChatMessageUtil.assistantOmegaMessage({
           events: this.eventManager.getAllEvents(),
         }),
         { shouldSyncStorage: true },
       );
+
       this.eventManager.setUpdateCallback(async (events) => {
-        // イベントstream更新 → UI 反映
         setEvents([...this.eventManager.getHistoryEvents(), ...events]);
         const meta = extractEventStreamUIMeta(events);
-        if (meta.planTasks?.length) setPlanTasks([...meta.planTasks]);
+        if (meta.planTasks?.length) {
+          setPlanTasks([...meta.planTasks]);
+        }
         await chatUtils.updateMessage(
           ChatMessageUtil.assistantOmegaMessage({ events }),
           {
@@ -102,7 +104,7 @@ export class AgentFlow {
         );
       });
 
-      // ユーザー途中割り込み(“user-interrupt”)リスナー
+      // ユーザー割り込みリスナー
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (e: GlobalEvent) => {
@@ -113,30 +115,29 @@ export class AgentFlow {
               ChatMessageUtil.assistantOmegaMessage({
                 events: this.eventManager.getAllEvents(),
               }),
-              { messageId: omegaMsg.id, shouldSyncStorage: true },
+              {
+                messageId: omegaMsg.id,
+                shouldSyncStorage: true,
+              },
             );
           }
         },
       );
     });
 
-    // ─── 4) メインループ：Aware → Executor を並列実行 ───
-    await Promise.all([
-      preparePromise,
-      this.launchAgentLoop(executor, aware, agentContext),
-    ]);
+    // 4) メインループ：Aware → Executor
+    await this.launchAgentLoop(executor, aware, agentContext);
 
-    // ─── 5) 最終まとめ ───
+    // 5) 最終まとめの呼び出し
     if (!this.abortController.signal.aborted) {
-      // 終了イベント
       await this.eventManager.addEndEvent('> Agent TARS has finished.');
 
-      // プランUIクリア ＋ ステータス更新
+      // プランUIクリア
       setPlanTasks([]);
-      setAgentStatusTip('Completed');
+      setAgentStatusTip('');
 
       console.log('[AgentFlow] calling askLLMText for final summary...');
-      const resp = await ipcClient.askLLMText({
+      const finalResp = await ipcClient.askLLMText({
         messages: [
           Message.systemMessage(
             'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
@@ -147,19 +148,15 @@ export class AgentFlow {
         ],
         requestId: uuid(),
       });
-      console.log('[AgentFlow] raw askLLMText response:', resp);
+      console.log('[AgentFlow] finalResp:', finalResp);
 
-      // 返ってきたオブジェクトから文字列部を取り出す
-      const text =
-        typeof resp === 'string'
-          ? resp
-          : (resp.choices?.[0]?.message?.content ?? String(resp));
-      console.log('[AgentFlow] final summary text:', text);
-
-      await chatUtils.addMessage(ChatMessageUtil.assistantTextMessage(text), {
-        shouldSyncStorage: true,
-        shouldScrollToBottom: true,
-      });
+      await chatUtils.addMessage(
+        ChatMessageUtil.assistantTextMessage(finalResp),
+        {
+          shouldSyncStorage: true,
+          shouldScrollToBottom: true,
+        },
+      );
     }
   }
 
@@ -172,17 +169,17 @@ export class AgentFlow {
     let firstStep = true;
 
     while (!this.abortController.signal.aborted && !this.hasFinished) {
-      // 「Thinking」インジケータ更新
+      // Thinking ステータス
       await this.eventManager.addLoadingStatus('Thinking');
       setAgentStatusTip('Thinking');
 
-      // Aware → reflection/plan生成
+      // Aware で reflection & plan 取得
       const result: AwareResult = await aware.run();
       agentContext.currentStep = result.step > 0 ? result.step : 1;
       agentContext.plan = this.normalizePlan(result, agentContext);
       setPlanTasks([...agentContext.plan]);
 
-      // ループ終了判定：プラン切れ or 全ステップ完了
+      // 終了判定
       if (
         !agentContext.plan.length ||
         agentContext.currentStep > agentContext.plan.length
@@ -191,7 +188,7 @@ export class AgentFlow {
         break;
       }
 
-      // Plan バブル更新
+      // Plan 更新→UI
       await this.eventManager.addPlanUpdate(agentContext.currentStep, [
         ...agentContext.plan,
       ]);
@@ -205,11 +202,10 @@ export class AgentFlow {
         await this.eventManager.addAgentStatus(result.status);
       }
 
-      // ツール呼び出し
       console.log('[AgentFlow] Executor.run with status:', result.status);
       const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
-        // 既存のツール実行ロジック…
+        // 既存ツール呼び出しロジック
       }
     }
   }
