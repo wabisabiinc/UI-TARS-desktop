@@ -44,7 +44,6 @@ export class AgentFlow {
   private chatMessageSent = false;
 
   constructor(private appContext: AppContext) {
-    console.log('[AgentFlow] constructor called');
     const omegaHistoryEvents = this.parseHistoryEvents();
     this.eventManager = new EventManager(omegaHistoryEvents);
     this.abortController = new AbortController();
@@ -53,12 +52,8 @@ export class AgentFlow {
   }
 
   public async run() {
-    console.log('[AgentFlow] run() called');
-
-    // 初期化：プランをクリア
+    // 初期化
     this.appContext.setPlanTasks([]);
-    console.log('[AgentFlow-debug] run開始: setPlanTasks([]) executed');
-
     const chatUtils = this.appContext.chatUtils;
     const { setAgentStatusTip } = this.appContext;
     this.eventManager.addLoadingStatus('Thinking');
@@ -87,12 +82,11 @@ export class AgentFlow {
       agentContext,
       this.interruptController.signal,
     );
-    this.eventManager.addLoadingStatus('Thinking');
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
-      async (event) => {
+      async (event: GlobalEvent) => {
         if (event.type === 'terminate') {
           this.abortController.abort();
           await this.eventManager.addEndEvent(
@@ -115,7 +109,7 @@ export class AgentFlow {
           ...events,
         ]);
         const meta = extractEventStreamUIMeta(events);
-        if (meta.planTasks && meta.planTasks.length) {
+        if (meta.planTasks?.length) {
           this.appContext.setPlanTasks([...meta.planTasks]);
         }
         await chatUtils.updateMessage(
@@ -153,7 +147,11 @@ export class AgentFlow {
     if (!this.abortController.signal.aborted) {
       this.eventManager.addEndEvent('> Agent TARS has finished.');
 
-      // ─── 最終回答を生成してチャットに表示 ───
+      // Plan UI をクリア
+      this.appContext.setPlanTasks([]);
+      this.appContext.setAgentStatusTip('');
+
+      // 最終回答を生成してチャットに表示
       const finalResponse = await ipcClient.askLLMText({
         messages: [
           Message.systemMessage(
@@ -167,12 +165,8 @@ export class AgentFlow {
       });
       await this.appContext.chatUtils.addMessage(
         ChatMessageUtil.assistantTextMessage(finalResponse),
-        {
-          shouldSyncStorage: true,
-          shouldScrollToBottom: true,
-        },
+        { shouldSyncStorage: true, shouldScrollToBottom: true },
       );
-      // ───────────────────────────────
     }
   }
 
@@ -189,25 +183,12 @@ export class AgentFlow {
       while (!this.abortController.signal.aborted && !this.hasFinished) {
         await this.eventManager.addLoadingStatus(this.loadingStatusTip);
 
-        // Aware 実行
+        // Aware 実行のみ
         const awareResult = await aware.run();
         console.log('[AgentFlow] after aware.run()', awareResult);
 
-        // ── AI の所感(reflection)をチャットに表示 ──
-        if (awareResult?.reflection) {
-          await this.appContext.chatUtils.addMessage(
-            ChatMessageUtil.assistantTextMessage(awareResult.reflection),
-            {
-              shouldSyncStorage: true,
-              shouldScrollToBottom: true,
-            },
-          );
-        }
-        // ────────────────────────────────────
-
         this.loadingStatusTip = 'Thinking';
-        agentContext.currentStep =
-          awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
+        agentContext.currentStep = awareResult.step > 0 ? awareResult.step : 1;
         agentContext.plan = this.normalizePlan(awareResult, agentContext);
         this.appContext.setPlanTasks([...agentContext.plan]);
 
@@ -252,10 +233,8 @@ export class AgentFlow {
       this.appContext.setAgentStatusTip('Error');
       this.appContext.setPlanTasks([]);
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log('Agent loop aborted');
         return;
       }
-      console.error('[AgentFlow] fatal error', error);
       throw error;
     }
   }
@@ -288,12 +267,7 @@ Current task: ${currentTask}`
     awareResult: AwareResult | null | undefined,
     agentContext: AgentContext,
   ): PlanTask[] {
-    if (
-      !awareResult ||
-      !awareResult.plan ||
-      !Array.isArray(awareResult.plan) ||
-      awareResult.plan.length === 0
-    ) {
+    if (!awareResult?.plan?.length) {
       return [
         {
           id: '1',
@@ -302,8 +276,7 @@ Current task: ${currentTask}`
         },
       ];
     }
-    const step =
-      awareResult.step && awareResult.step > 0 ? awareResult.step : 1;
+    const step = awareResult.step > 0 ? awareResult.step : 1;
     return awareResult.plan.map((item, i) => ({
       id: item.id ?? `${i + 1}`,
       title: item.title ?? `Step ${i + 1}`,
