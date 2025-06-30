@@ -162,7 +162,7 @@ export class AgentFlow {
       this.appContext.setPlanTasks([...agentContext.plan]);
       if (
         !agentContext.plan.length ||
-        agentContext.currentStep > agentContext.plan.length
+        agentContext.currentStep >= agentContext.plan.length
       ) {
         this.hasFinished = true;
         break;
