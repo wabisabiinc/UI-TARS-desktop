@@ -1,4 +1,4 @@
-// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
+// ===== apps/agent-tars/src/renderer/src/agent/AgentFlow.ts =====
 
 import { v4 as uuid } from 'uuid';
 import { Message, Memory } from '@agent-infra/shared';
@@ -33,7 +33,6 @@ export class AgentFlow {
   private hasFinished = false;
 
   constructor(private appContext: AppContext) {
-    // 既存チャット履歴を初期化
     const history = this.parseHistoryEvents();
     this.eventManager = new EventManager(history);
   }
@@ -87,7 +86,6 @@ export class AgentFlow {
         }),
         { shouldSyncStorage: true },
       );
-
       this.eventManager.setUpdateCallback(async (events) => {
         setEvents([...this.eventManager.getHistoryEvents(), ...events]);
         const meta = extractEventStreamUIMeta(events);
@@ -101,7 +99,6 @@ export class AgentFlow {
           },
         );
       });
-
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (e: GlobalEvent) => {
@@ -119,10 +116,10 @@ export class AgentFlow {
       );
     });
 
-    // 4) メインループ
+    // 4) メインのエージェントループ
     await this.launchAgentLoop(executor, aware, agentContext);
 
-    // 5) まとめ出力
+    // 5) ループを抜けたら最終まとめ（必ず一度だけ）
     if (!this.abortController.signal.aborted) {
       await this.eventManager.addEndEvent('> Agent TARS has finished.');
 
@@ -130,9 +127,10 @@ export class AgentFlow {
       setPlanTasks([]);
       setAgentStatusTip('');
 
-      // ChatGPT ライクなまとめ呼び出し
-      console.log('[AgentFlow] calling askLLMText for final summary...');
-      const finalResp = await ipcClient.askLLMText({
+      // ChatGPTライクな「最終まとめ」を呼び出し
+      console.log('[AgentFlow] calling askLLM for final summary...');
+      const chatResp = await ipcClient.askLLM({
+        // ※ askLLMChat / askLLM が使える場合はこちら。IPC 経由で ChatCompletion を呼び出します
         messages: [
           Message.systemMessage(
             'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
@@ -143,6 +141,9 @@ export class AgentFlow {
         ],
         requestId: uuid(),
       });
+      const finalResp =
+        chatResp.choices?.[0]?.message?.content ??
+        '申し訳ありません。要約を取得できませんでした。';
       console.log('[AgentFlow] finalResp:', finalResp);
 
       await chatUtils.addMessage(
@@ -163,29 +164,28 @@ export class AgentFlow {
     while (!this.abortController.signal.aborted && !this.hasFinished) {
       await this.eventManager.addLoadingStatus('Thinking');
 
-      // 2-1) 次ステップ取得
+      // 次ステップを Aware に依頼
       const result: AwareResult = await aware.run();
       console.log('[AgentFlow] awareResult:', result);
 
-      // 2-2) ステップとプランを更新
       const step = result.step > 0 ? result.step : 1;
       agentContext.currentStep = step;
       agentContext.plan = this.normalizePlan(result, agentContext);
       setPlanTasks([...agentContext.plan]);
 
-      // ★★ ここで「Completed」を検知したらループ終了 ★★
-      if (result.status === 'Completed') {
+      // ★★★ 終了判定 ★★★
+      // - ステータスが "Completed" になったら抜ける
+      // - あるいは step が plan.length を超えたら抜ける
+      if (
+        result.status === 'Completed' ||
+        step > agentContext.plan.length ||
+        agentContext.plan.length === 0
+      ) {
         this.hasFinished = true;
         break;
       }
 
-      // 2-3) プラン長を超えたら終了
-      if (!agentContext.plan.length || step > agentContext.plan.length) {
-        this.hasFinished = true;
-        break;
-      }
-
-      // 3) Plan 更新イベント
+      // Plan 更新イベントを流す
       await this.eventManager.addPlanUpdate(step, [...agentContext.plan]);
       setEvents(this.eventManager.getAllEvents());
 
@@ -198,10 +198,10 @@ export class AgentFlow {
       }
       setAgentStatusTip('Thinking');
 
-      // 4) 必要ツール呼び出し
+      // 必要なツール呼び出し
       const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
-        /* 既存ロジック */
+        /* 既存のツール実行ロジック */
       }
     }
   }
