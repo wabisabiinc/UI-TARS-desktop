@@ -1,4 +1,4 @@
-// ===== apps/agent-tars/src/renderer/src/agent/AgentFlow.ts =====
+// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
 
 import { v4 as uuid } from 'uuid';
 import { Message, Memory } from '@agent-infra/shared';
@@ -33,7 +33,7 @@ export class AgentFlow {
   private hasFinished = false;
 
   constructor(private appContext: AppContext) {
-    // 既存のチャット履歴を取り込み
+    // 既存チャット履歴を初期化
     const history = this.parseHistoryEvents();
     this.eventManager = new EventManager(history);
   }
@@ -42,11 +42,11 @@ export class AgentFlow {
     const { chatUtils, setAgentStatusTip, setPlanTasks, setEvents } =
       this.appContext;
 
-    // 1) プラン UI をクリア＆ステータス初期化
+    // 1) プラン初期化
     setPlanTasks([]);
     setAgentStatusTip('Thinking');
 
-    // 2) AgentContext 準備
+    // 2) AgentContext を用意
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
@@ -66,7 +66,7 @@ export class AgentFlow {
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // ユーザー中断リスナー
+    // 中断リスナー
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (e: GlobalEvent) => {
@@ -79,8 +79,8 @@ export class AgentFlow {
       },
     );
 
-    // 3) Greeter + Ω初期メッセージ登録を待つ Promise
-    const preparePromise = greeter.run().then(async () => {
+    // 3) Greeter はバックグラウンド実行
+    greeter.run().then(async () => {
       const omegaMsg = await chatUtils.addMessage(
         ChatMessageUtil.assistantOmegaMessage({
           events: this.eventManager.getAllEvents(),
@@ -88,13 +88,10 @@ export class AgentFlow {
         { shouldSyncStorage: true },
       );
 
-      // イベント更新コールバック登録
       this.eventManager.setUpdateCallback(async (events) => {
         setEvents([...this.eventManager.getHistoryEvents(), ...events]);
         const meta = extractEventStreamUIMeta(events);
-        if (meta.planTasks?.length) {
-          setPlanTasks([...meta.planTasks]);
-        }
+        if (meta.planTasks?.length) setPlanTasks([...meta.planTasks]);
         await chatUtils.updateMessage(
           ChatMessageUtil.assistantOmegaMessage({ events }),
           {
@@ -105,7 +102,6 @@ export class AgentFlow {
         );
       });
 
-      // ユーザー割り込み時のリスナー追加
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (e: GlobalEvent) => {
@@ -123,21 +119,18 @@ export class AgentFlow {
       );
     });
 
-    // 4) Greeter の準備完了とループ本体を並列に待つ
-    await Promise.all([
-      preparePromise,
-      this.launchAgentLoop(executor, aware, agentContext),
-    ]);
+    // 4) メインループ
+    await this.launchAgentLoop(executor, aware, agentContext);
 
-    // 5) ループ終了後に最終まとめを一度だけ生成＆送信
+    // 5) まとめ出力
     if (!this.abortController.signal.aborted) {
-      this.eventManager.addEndEvent('> Agent TARS has finished.');
+      await this.eventManager.addEndEvent('> Agent TARS has finished.');
 
-      // プラン UI をクリア＆ステータス解除
+      // Plan UI をクリア
       setPlanTasks([]);
       setAgentStatusTip('');
 
-      // デバッグログ：最終まとめ呼び出し直前
+      // ChatGPT ライクなまとめ呼び出し
       console.log('[AgentFlow] calling askLLMText for final summary...');
       const finalResp = await ipcClient.askLLMText({
         messages: [
@@ -154,14 +147,7 @@ export class AgentFlow {
 
       await chatUtils.addMessage(
         ChatMessageUtil.assistantTextMessage(finalResp),
-        {
-          shouldSyncStorage: true,
-          shouldScrollToBottom: true,
-        },
-      );
-      console.log(
-        '[AgentFlow] appended final summary to chatUtils.messages:',
-        chatUtils.messages.slice(-1),
+        { shouldSyncStorage: true, shouldScrollToBottom: true },
       );
     }
   }
@@ -175,32 +161,36 @@ export class AgentFlow {
     let firstStep = true;
 
     while (!this.abortController.signal.aborted && !this.hasFinished) {
-      // 次ステータス待ち
       await this.eventManager.addLoadingStatus('Thinking');
 
-      // Aware で次ステップ取得
+      // 2-1) 次ステップ取得
       const result: AwareResult = await aware.run();
-      agentContext.currentStep = result.step > 0 ? result.step : 1;
+      console.log('[AgentFlow] awareResult:', result);
+
+      // 2-2) ステップとプランを更新
+      const step = result.step > 0 ? result.step : 1;
+      agentContext.currentStep = step;
       agentContext.plan = this.normalizePlan(result, agentContext);
       setPlanTasks([...agentContext.plan]);
 
-      // プラン完了 or 空ならループを抜け
-      if (
-        !agentContext.plan.length ||
-        agentContext.currentStep > agentContext.plan.length
-      ) {
+      // ★★ ここで「Completed」を検知したらループ終了 ★★
+      if (result.status === 'Completed') {
         this.hasFinished = true;
         break;
       }
 
-      // プラン更新イベント
-      await this.eventManager.addPlanUpdate(agentContext.currentStep, [
-        ...agentContext.plan,
-      ]);
+      // 2-3) プラン長を超えたら終了
+      if (!agentContext.plan.length || step > agentContext.plan.length) {
+        this.hasFinished = true;
+        break;
+      }
+
+      // 3) Plan 更新イベント
+      await this.eventManager.addPlanUpdate(step, [...agentContext.plan]);
       setEvents(this.eventManager.getAllEvents());
 
       if (firstStep) {
-        await this.eventManager.addNewPlanStep(agentContext.currentStep);
+        await this.eventManager.addNewPlanStep(step);
         firstStep = false;
       }
       if (result.status) {
@@ -208,10 +198,10 @@ export class AgentFlow {
       }
       setAgentStatusTip('Thinking');
 
-      // ツール呼び出し（既存ロジック）
+      // 4) 必要ツール呼び出し
       const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
-        // …ツール実行…
+        /* 既存ロジック */
       }
     }
   }
@@ -220,21 +210,20 @@ export class AgentFlow {
     appContext: AppContext,
     agentContext: AgentContext,
   ): string {
-    const pendingInit = agentContext.plan.length === 0;
+    const pending = agentContext.plan.length === 0;
     const step = agentContext.currentStep;
     const task = agentContext.plan[step - 1]?.title;
-    return `Event stream result history: ${this.eventManager.normalizeEventsForPrompt()}
+    return `Event history: ${this.eventManager.normalizeEventsForPrompt()}
 
-The user original input: ${appContext.request.inputText}
+User input: ${appContext.request.inputText}
 
 ${
-  pendingInit
+  pending
     ? 'Plan: None'
     : `Plan:
-${agentContext.plan.map((item) => `  - [${item.id}] ${item.title}`).join('\n')}
+${agentContext.plan.map((i) => `  - [${i.id}] ${i.title}`).join('\n')}
 
 Current step: ${step}
-
 Current task: ${task}`
 }`;
   }
