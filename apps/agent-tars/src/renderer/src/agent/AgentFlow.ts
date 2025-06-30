@@ -1,5 +1,3 @@
-// ===== apps/agent-tars/src/renderer/src/agent/AgentFlow.ts =====
-
 import { v4 as uuid } from 'uuid';
 import { Message, Memory } from '@agent-infra/shared';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
@@ -78,59 +76,57 @@ export class AgentFlow {
       },
     );
 
-    // 3) Greeter はバックグラウンド実行
-    greeter.run().then(async () => {
-      const omegaMsg = await chatUtils.addMessage(
-        ChatMessageUtil.assistantOmegaMessage({
-          events: this.eventManager.getAllEvents(),
-        }),
-        { shouldSyncStorage: true },
-      );
-      this.eventManager.setUpdateCallback(async (events) => {
-        setEvents([...this.eventManager.getHistoryEvents(), ...events]);
-        const meta = extractEventStreamUIMeta(events);
-        if (meta.planTasks?.length) setPlanTasks([...meta.planTasks]);
-        await chatUtils.updateMessage(
-          ChatMessageUtil.assistantOmegaMessage({ events }),
-          {
-            messageId: omegaMsg.id,
-            shouldSyncStorage: true,
-            shouldScrollToBottom: true,
-          },
-        );
-      });
-      globalEventEmitter.addListener(
-        this.appContext.agentFlowId,
-        async (e: GlobalEvent) => {
-          if (e.type === 'user-interrupt') {
-            await this.eventManager.addUserInterruptionInput(e.text);
-            this.interruptController.abort();
-            await chatUtils.updateMessage(
-              ChatMessageUtil.assistantOmegaMessage({
-                events: this.eventManager.getAllEvents(),
-              }),
-              { messageId: omegaMsg.id, shouldSyncStorage: true },
-            );
-          }
+    // 3) Greeter を同期的に実行
+    await greeter.run();
+    const omegaMsg = await chatUtils.addMessage(
+      ChatMessageUtil.assistantOmegaMessage({
+        events: this.eventManager.getAllEvents(),
+      }),
+      { shouldSyncStorage: true },
+    );
+    // updateCallback 登録
+    this.eventManager.setUpdateCallback(async (events) => {
+      setEvents([...this.eventManager.getHistoryEvents(), ...events]);
+      const meta = extractEventStreamUIMeta(events);
+      if (meta.planTasks?.length) setPlanTasks([...meta.planTasks]);
+      await chatUtils.updateMessage(
+        ChatMessageUtil.assistantOmegaMessage({ events }),
+        {
+          messageId: omegaMsg.id,
+          shouldSyncStorage: true,
+          shouldScrollToBottom: true,
         },
       );
     });
+    // ユーザー割り込みリスナー
+    globalEventEmitter.addListener(
+      this.appContext.agentFlowId,
+      async (e: GlobalEvent) => {
+        if (e.type === 'user-interrupt') {
+          await this.eventManager.addUserInterruptionInput(e.text);
+          this.interruptController.abort();
+          await chatUtils.updateMessage(
+            ChatMessageUtil.assistantOmegaMessage({
+              events: this.eventManager.getAllEvents(),
+            }),
+            { messageId: omegaMsg.id, shouldSyncStorage: true },
+          );
+        }
+      },
+    );
 
     // 4) メインのエージェントループ
     await this.launchAgentLoop(executor, aware, agentContext);
 
     // 5) ループを抜けたら最終まとめ（必ず一度だけ）
-    if (!this.abortController.signal.aborted) {
+    if (this.hasFinished && !this.abortController.signal.aborted) {
+      // UI上のステータス更新
+      setAgentStatusTip('Complete');
       await this.eventManager.addEndEvent('> Agent TARS has finished.');
-
-      // Plan UI をクリア
       setPlanTasks([]);
-      setAgentStatusTip('');
 
-      // ChatGPTライクな「最終まとめ」を呼び出し
       console.log('[AgentFlow] calling askLLM for final summary...');
       const chatResp = await ipcClient.askLLM({
-        // ※ askLLMChat / askLLM が使える場合はこちら。IPC 経由で ChatCompletion を呼び出します
         messages: [
           Message.systemMessage(
             'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
@@ -173,12 +169,10 @@ export class AgentFlow {
       agentContext.plan = this.normalizePlan(result, agentContext);
       setPlanTasks([...agentContext.plan]);
 
+      // 終了判定: プラン数に到達したら必ず脱出
       const lastStep = agentContext.plan.length;
-      const isBeyondPlan = agentContext.currentStep > lastStep;
-      const isAtEndStep = agentContext.currentStep === lastStep;
-      const isCompletedAndAtEnd = result.status === 'Completed' && isAtEndStep;
-
-      if (!agentContext.plan.length || isBeyondPlan || isCompletedAndAtEnd) {
+      const isAtOrBeyond = agentContext.currentStep >= lastStep;
+      if (lastStep === 0 || isAtOrBeyond) {
         this.hasFinished = true;
         break;
       }
