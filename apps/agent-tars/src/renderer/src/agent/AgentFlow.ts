@@ -33,6 +33,7 @@ export class AgentFlow {
   private hasFinished = false;
 
   constructor(private appContext: AppContext) {
+    // 履歴からイベント初期化
     const history = this.parseHistoryEvents();
     this.eventManager = new EventManager(history);
   }
@@ -88,9 +89,12 @@ export class AgentFlow {
       );
 
       this.eventManager.setUpdateCallback(async (events) => {
+        // イベント更新 → UI 反映
         setEvents([...this.eventManager.getHistoryEvents(), ...events]);
         const meta = extractEventStreamUIMeta(events);
-        if (meta.planTasks?.length) setPlanTasks([...meta.planTasks]);
+        if (meta.planTasks?.length) {
+          setPlanTasks([...meta.planTasks]);
+        }
         await chatUtils.updateMessage(
           ChatMessageUtil.assistantOmegaMessage({ events }),
           {
@@ -119,7 +123,7 @@ export class AgentFlow {
       );
     });
 
-    // 4) メインループ
+    // 4) メインループ (Aware → Executor)
     await Promise.all([
       preparePromise,
       this.launchAgentLoop(executor, aware, agentContext),
@@ -133,7 +137,8 @@ export class AgentFlow {
 
       console.log('[AgentFlow] ▶ calling askLLMTool for final summary...');
       const raw = await ipcClient.askLLMTool({
-        model: 'gpt-4o-2024-08-06',
+        // 明示的にモデル名を指定
+        model: 'gpt-4o',
         messages: [
           Message.systemMessage(
             'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
@@ -144,15 +149,20 @@ export class AgentFlow {
         ],
         requestId: uuid(),
       });
+      console.log('[AgentFlow] ▶ raw tool result:', raw);
 
-      // String or Object どちらでも必ず文字列化して fallback まで含める
+      // レスポンスを文字列化
       const finalResp =
         typeof raw === 'string' ? raw : (raw.content ?? JSON.stringify(raw));
-
       console.log('[AgentFlow] ▶ got finalResp:', finalResp);
+
+      // UI に回答バブルを追加
       await chatUtils.addMessage(
         ChatMessageUtil.assistantTextMessage(finalResp),
-        { shouldSyncStorage: true, shouldScrollToBottom: true },
+        {
+          shouldSyncStorage: true,
+          shouldScrollToBottom: true,
+        },
       );
     }
   }
@@ -166,14 +176,17 @@ export class AgentFlow {
     let firstStep = true;
 
     while (!this.abortController.signal.aborted && !this.hasFinished) {
+      // Thinking ステータス更新
       await this.eventManager.addLoadingStatus('Thinking');
       setAgentStatusTip('Thinking');
 
+      // Aware → plan 更新
       const result: AwareResult = await aware.run();
       agentContext.currentStep = result.step > 0 ? result.step : 1;
       agentContext.plan = this.normalizePlan(result, agentContext);
       setPlanTasks([...agentContext.plan]);
 
+      // 終了判定
       if (
         !agentContext.plan.length ||
         agentContext.currentStep > agentContext.plan.length
@@ -182,6 +195,7 @@ export class AgentFlow {
         break;
       }
 
+      // プラン進捗更新
       await this.eventManager.addPlanUpdate(agentContext.currentStep, [
         ...agentContext.plan,
       ]);
@@ -195,10 +209,11 @@ export class AgentFlow {
         await this.eventManager.addAgentStatus(result.status);
       }
 
+      // ツール呼び出し (Executor)
       console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
       const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
-        /** 既存のツール呼び出しロジック **/
+        // -- 既存のツール実行ロジックをそのまま --
       }
     }
   }
