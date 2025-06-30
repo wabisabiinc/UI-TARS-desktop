@@ -115,8 +115,6 @@ export function OpenAgentChatUI() {
       ref={chatUIRef}
       customMessageRender={(message) => {
         const msg = message as MessageItem;
-        // OmegaAgent（プランバブル）は描画せず、PlainTextのみ描画
-        if (msg.type !== MessageType.PlainText) return null;
         return renderMessageUI({ message: msg });
       }}
       isDark={isDarkMode.value}
