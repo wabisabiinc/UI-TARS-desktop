@@ -1,4 +1,5 @@
 // ===== apps/agent-tars/src/renderer/src/agent/AgentFlow.ts =====
+
 import { v4 as uuid } from 'uuid';
 import { Message, Memory } from '@agent-infra/shared';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
@@ -30,10 +31,9 @@ export class AgentFlow {
   private abortController = new AbortController();
   private interruptController = new AbortController();
   private hasFinished = false;
-  private loadingStatusTip = '';
 
   constructor(private appContext: AppContext) {
-    // 初期のチャット履歴を取得してEventManagerを初期化
+    // 既存チャット履歴を初期化
     const history = this.parseHistoryEvents();
     this.eventManager = new EventManager(history);
   }
@@ -42,11 +42,11 @@ export class AgentFlow {
     const { chatUtils, setAgentStatusTip, setPlanTasks, setEvents } =
       this.appContext;
 
-    // 1) プランをクリア
+    // ▼ 1) プラン初期化
     setPlanTasks([]);
     setAgentStatusTip('Thinking');
 
-    // 2) AgentContext の構築
+    // ▼ 2) AgentContext を用意
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
@@ -54,7 +54,6 @@ export class AgentFlow {
       getEnvironmentInfo: this.getEnvironmentInfo,
       eventManager: this.eventManager,
     };
-
     const aware = new Aware(
       this.appContext,
       agentContext,
@@ -67,7 +66,7 @@ export class AgentFlow {
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // ユーザーからの中断イベントリスナー
+    // ── ユーザー中断イベントリスナー
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (e: GlobalEvent) => {
@@ -80,7 +79,7 @@ export class AgentFlow {
       },
     );
 
-    // 3) Greeter はバックグラウンドで起動
+    // ▼ 3) Greeter はバックグラウンドで実行
     greeter.run().then(async () => {
       const omegaMsg = await chatUtils.addMessage(
         ChatMessageUtil.assistantOmegaMessage({
@@ -89,13 +88,10 @@ export class AgentFlow {
         { shouldSyncStorage: true },
       );
 
-      // イベント更新コールバック設定
       this.eventManager.setUpdateCallback(async (events) => {
         setEvents([...this.eventManager.getHistoryEvents(), ...events]);
         const meta = extractEventStreamUIMeta(events);
-        if (meta.planTasks?.length) {
-          setPlanTasks([...meta.planTasks]);
-        }
+        if (meta.planTasks?.length) setPlanTasks([...meta.planTasks]);
         await chatUtils.updateMessage(
           ChatMessageUtil.assistantOmegaMessage({ events }),
           {
@@ -106,7 +102,6 @@ export class AgentFlow {
         );
       });
 
-      // ユーザー割り込みリスナー
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (e: GlobalEvent) => {
@@ -124,18 +119,18 @@ export class AgentFlow {
       );
     });
 
-    // 4) メインの Agent ループ
+    // ▼ 4) 本体ループを実行
     await this.launchAgentLoop(executor, aware, agentContext);
 
-    // 5) ループ完了後、まとめを生成
+    // ▼ 5) ループ完了後、一度だけ最終まとめを生成
     if (!this.abortController.signal.aborted) {
       this.eventManager.addEndEvent('> Agent TARS has finished.');
 
-      // Plan UI のクリア
+      // Plan UI をクリア
       setPlanTasks([]);
       setAgentStatusTip('');
 
-      // 最終回答用 LLM 呼び出し
+      // ChatGPTライクなまとめ呼び出し
       const finalResp = await ipcClient.askLLMText({
         messages: [
           Message.systemMessage(
@@ -154,7 +149,6 @@ export class AgentFlow {
     }
   }
 
-  // メインループ：Plan の生成とツール呼び出しのみ
   private async launchAgentLoop(
     executor: Executor,
     aware: Aware,
@@ -166,13 +160,13 @@ export class AgentFlow {
     while (!this.abortController.signal.aborted && !this.hasFinished) {
       await this.eventManager.addLoadingStatus('Thinking');
 
-      // Aware で次のステップを計算
-      const res: AwareResult = await aware.run();
-      agentContext.currentStep = res.step > 0 ? res.step : 1;
-      agentContext.plan = this.normalizePlan(res, agentContext);
+      // Aware で次ステップを計算
+      const result: AwareResult = await aware.run();
+      agentContext.currentStep = result.step > 0 ? result.step : 1;
+      agentContext.plan = this.normalizePlan(result, agentContext);
       setPlanTasks([...agentContext.plan]);
 
-      // ループ終了判定：>= を使用
+      // ── ステップが最終 or プラン空ならループを抜ける
       if (
         !agentContext.plan.length ||
         agentContext.currentStep >= agentContext.plan.length
@@ -181,7 +175,7 @@ export class AgentFlow {
         break;
       }
 
-      // Plan 更新イベント
+      // Plan 更新イベントを発火
       await this.eventManager.addPlanUpdate(agentContext.currentStep, [
         ...agentContext.plan,
       ]);
@@ -191,29 +185,26 @@ export class AgentFlow {
         await this.eventManager.addNewPlanStep(agentContext.currentStep);
         firstStep = false;
       }
-      if (res.status) {
-        await this.eventManager.addAgentStatus(res.status);
+      if (result.status) {
+        await this.eventManager.addAgentStatus(result.status);
       }
-
       setAgentStatusTip('Thinking');
 
-      // ツール呼び出し
-      const calls = (await executor.run(res.status)).filter(Boolean);
+      // 必要なツール呼び出し（既存ロジック）
+      const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
-        // 既存 tooling 処理...
+        // …ツール実行…
       }
     }
   }
 
-  // 環境情報を取得してプロンプトに使う
   private getEnvironmentInfo(
     appContext: AppContext,
     agentContext: AgentContext,
-  ) {
+  ): string {
     const pendingInit = agentContext.plan.length === 0;
     const step = agentContext.currentStep;
     const task = agentContext.plan[step - 1]?.title;
-
     return `Event stream result history: ${this.eventManager.normalizeEventsForPrompt()}
 
 The user original input: ${appContext.request.inputText}
@@ -227,16 +218,14 @@ ${agentContext.plan.map((item) => `  - [${item.id}] ${item.title}`).join('\n')}
 Current step: ${step}
 
 Current task: ${task}`
-}
-`;
+}`;
   }
 
-  // PlanTask から Plan UI 用の構造に変換
   private normalizePlan(
-    res: AwareResult | null,
+    result: AwareResult | null,
     ctx: AgentContext,
   ): PlanTask[] {
-    if (!res?.plan?.length) {
+    if (!result?.plan?.length) {
       return [
         {
           id: '1',
@@ -245,10 +234,10 @@ Current task: ${task}`
         },
       ];
     }
-    const s = res.step > 0 ? res.step : 1;
-    return res.plan.map((p, i) => ({
+    const s = result.step > 0 ? result.step : 1;
+    return result.plan.map((p, i) => ({
       id: p.id || `${i + 1}`,
-      title: p.title || `Step ${i + 1}`,
+      title: p.title,
       status:
         i < s - 1
           ? PlanTaskStatus.Done
@@ -258,7 +247,6 @@ Current task: ${task}`
     }));
   }
 
-  // チャット履歴から既存イベントを parse
   private parseHistoryEvents(): EventItem[] {
     const evts = extractHistoryEvents(this.appContext.chatUtils.messages);
     this.appContext.setEvents(evts);

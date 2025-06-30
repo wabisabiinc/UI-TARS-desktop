@@ -1,3 +1,5 @@
+// ===== apps/agent-tars/src/renderer/src/ChatUI/index.tsx =====
+
 import { ChatUI as BaseChatUI, InputFile } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';
@@ -40,7 +42,7 @@ export function OpenAgentChatUI() {
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // プラン生成完了／エラーでアンロック
+  // プラン生成完了 or エラーで入力ロック解除
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -53,15 +55,18 @@ export function OpenAgentChatUI() {
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       try {
+        // テキストエリアをロック
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = true;
           inputEle.style.cursor = 'not-allowed';
         }
+
         setIsSending(true);
         await addUserMessage(inputText, inputFiles);
         await launchAgentFlow(inputText, inputFiles);
       } finally {
+        // ロック解除
         setIsSending(false);
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
@@ -73,7 +78,7 @@ export function OpenAgentChatUI() {
     [addUserMessage, launchAgentFlow],
   );
 
-  // 初期化
+  // 初期メッセージ & イベント
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -85,10 +90,12 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
+  // セッション未選択時はウェルカム
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
 
+  // プラン生成エラー表示
   const renderError = () =>
     !isSending &&
     planTasks.length === 0 &&
@@ -108,7 +115,7 @@ export function OpenAgentChatUI() {
       ref={chatUIRef}
       customMessageRender={(message) => {
         const msg = message as MessageItem;
-        // OmegaAgentData をスキップ、PlainText のみ描画
+        // OmegaAgent（プランバブル）は描画せず、PlainTextのみ描画
         if (msg.type !== MessageType.PlainText) return null;
         return renderMessageUI({ message: msg });
       }}
