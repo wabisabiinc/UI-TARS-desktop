@@ -131,8 +131,9 @@ export class AgentFlow {
       setPlanTasks([]);
       setAgentStatusTip('');
 
-      console.log('[AgentFlow] ▶ calling askLLMText for final summary...');
-      const raw = await ipcClient.askLLMText({
+      console.log('[AgentFlow] ▶ calling askLLMTool for final summary...');
+      const raw = await ipcClient.askLLMTool({
+        model: 'gpt-4o-2024-08-06',
         messages: [
           Message.systemMessage(
             'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
@@ -146,9 +147,7 @@ export class AgentFlow {
 
       // String or Object どちらでも必ず文字列化して fallback まで含める
       const finalResp =
-        typeof raw === 'string'
-          ? raw
-          : ((raw as any).text ?? (raw as any).content ?? JSON.stringify(raw));
+        typeof raw === 'string' ? raw : (raw.content ?? JSON.stringify(raw));
 
       console.log('[AgentFlow] ▶ got finalResp:', finalResp);
       await chatUtils.addMessage(
