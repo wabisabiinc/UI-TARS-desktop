@@ -169,7 +169,7 @@ export class AgentFlow {
       // ── ステップが最終 or プラン空ならループを抜ける
       if (
         !agentContext.plan.length ||
-        agentContext.currentStep >= agentContext.plan.length
+        agentContext.currentStep > agentContext.plan.length
       ) {
         this.hasFinished = true;
         break;
