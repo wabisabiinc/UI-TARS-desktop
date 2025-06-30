@@ -173,14 +173,12 @@ export class AgentFlow {
       agentContext.plan = this.normalizePlan(result, agentContext);
       setPlanTasks([...agentContext.plan]);
 
-      // ★★★ 終了判定 ★★★
-      // - ステータスが "Completed" になったら抜ける
-      // - あるいは step が plan.length を超えたら抜ける
-      if (
-        result.status === 'Completed' ||
-        step > agentContext.plan.length ||
-        agentContext.plan.length === 0
-      ) {
+      const lastStep = agentContext.plan.length;
+      const isBeyondPlan = agentContext.currentStep > lastStep;
+      const isAtEndStep = agentContext.currentStep === lastStep;
+      const isCompletedAndAtEnd = result.status === 'Completed' && isAtEndStep;
+
+      if (!agentContext.plan.length || isBeyondPlan || isCompletedAndAtEnd) {
         this.hasFinished = true;
         break;
       }
