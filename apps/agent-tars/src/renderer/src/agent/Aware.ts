@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/agent/Aware.ts
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
 import { askLLMTool, listTools } from '../api';
@@ -15,9 +14,16 @@ export interface AwareResult {
 export class Aware {
   private signal: AbortSignal;
 
-  private readonly prompt =
-    'You are an AI agent responsible for analyzing the current environment and planning the next actionable step. ' +
-    'Return only a JSON object with keys: reflection (string), step (number), status (string), plan (array of {id:string,title:string}).';
+  // “生の JSON のみ”を必ず返すように指示を強化
+  private readonly prompt = `
+You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
+Return only a raw JSON object with keys:
+  • reflection (string)
+  • step (number)
+  • status (string)
+  • plan (array of { id: string, title: string })
+Do NOT wrap your output in markdown code fences or include any additional explanation.
+`;
 
   constructor(
     private appContext: AppContext,
@@ -31,33 +37,27 @@ export class Aware {
     this.signal = signal;
   }
 
-  // 強化版 safeParse
+  /** 柔軟に Markdown フェンスや余計なテキストを剥がして JSON を抽出 */
   private static safeParse<T>(text: string): T | null {
-    let match =
+    // 1) ```json ... ```、``` ... ```, または { ... } を抽出
+    const match =
       text.match(/```json\s*([\s\S]*?)```/i) ||
       text.match(/```([\s\S]*?)```/i) ||
       text.match(/{[\s\S]*}/);
+    const raw = match ? match[1] || match[0] : text;
 
-    let cleaned = match ? match[1] || match[0] : text;
-
-    // バックスラッシュや改行・エスケープ再吸収
-    cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
+    // 2) エスケープ文字を戻し、前後空白削除
+    const cleaned = raw.replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
 
     try {
       return JSON.parse(cleaned) as T;
     } catch (e1) {
-      // fallback: {}ブロック抽出だけでも再トライ
-      const curlyMatch = cleaned.match(/{[\s\S]*}/);
-      if (curlyMatch) {
+      // フォールバックでもう一度抽出→parse
+      const fallback = cleaned.match(/{[\s\S]*}/);
+      if (fallback) {
         try {
-          return JSON.parse(curlyMatch[0]) as T;
-        } catch (e2) {
-          console.warn(
-            '[Aware.safeParse] fallback JSON.parse failed:',
-            e2,
-            curlyMatch[0],
-          );
-        }
+          return JSON.parse(fallback[0]) as T;
+        } catch {}
       }
       console.warn('[Aware.safeParse] JSON.parse failed:', e1, cleaned);
       return null;
@@ -74,28 +74,29 @@ export class Aware {
   }
 
   public async run(): Promise<AwareResult> {
-    console.log('[Aware] ▶︎ run start, aborted=', this.signal.aborted);
-    if (this.signal.aborted) {
-      return this.getDefaultResult();
-    }
+    console.log('[Aware] ▶ run start, aborted=', this.signal.aborted);
+    if (this.signal.aborted) return this.getDefaultResult();
 
-    // 環境取得
+    // 環境情報取得
     const envInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
     console.log('[Aware] envInfo=', envInfo);
 
+    // モデル選択
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
       : import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o';
 
+    // 利用可能ツール一覧
     const available = (await listTools()) || [];
     const toolList = available
       .map((t) => `${t.name}: ${t.description}`)
       .join(', ');
 
+    // プロンプト組み立て
     const messages = [
       Message.systemMessage(this.prompt),
       Message.systemMessage(`Available tools: ${toolList}`),
@@ -105,41 +106,37 @@ export class Aware {
       ),
     ];
 
-    const messagesForAPI = messages.map((m) => ({
-      role: m.role as 'system' | 'user' | 'assistant',
+    const apiPayload = messages.map((m) => ({
+      role: m.role as 'system' | 'user',
       content: m.content,
     }));
 
-    console.log('[Aware] → askLLMTool', { model, messages: messagesForAPI });
-    const raw = await askLLMTool({ model, messages: messagesForAPI });
+    console.log('[Aware] → askLLMTool', { model, messages: apiPayload });
+    const raw = await askLLMTool({ model, messages: apiPayload });
     const content = raw?.content || '';
     console.log('[Aware] ← askLLMTool content=', content);
 
-    // 強化safeParse
+    // JSON を安全に抽出
     const parsed = Aware.safeParse<AwareResult>(content);
-    console.log('[Aware] parsed LLM JSON:', parsed);
+    console.log('[Aware] parsed JSON:', parsed);
 
-    // plan補正
+    // plan の補正＆フィルタリング
     let plan: PlanTask[] = [];
     if (parsed && Array.isArray(parsed.plan)) {
       plan = parsed.plan;
-    } else if (parsed && parsed.plan && typeof parsed.plan === 'object') {
+    } else if (parsed?.plan) {
       plan = [parsed.plan as any];
-    } else {
-      plan = [];
     }
     plan = plan.filter(
       (t) => t && typeof t === 'object' && typeof t.title === 'string',
     );
-    console.log('[Aware] 最終plan（返却前）:', plan);
+    console.log('[Aware] final plan:', plan);
 
     if (parsed) {
-      return {
-        ...parsed,
-        plan,
-      };
+      return { ...parsed, plan };
+    } else {
+      console.warn('[Aware] parse failed, returning default');
+      return this.getDefaultResult();
     }
-    console.warn('Failed to parse JSON, returning default.');
-    return this.getDefaultResult();
   }
 }

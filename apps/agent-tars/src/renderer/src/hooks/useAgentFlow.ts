@@ -1,3 +1,4 @@
+// src/renderer/useAgentFlow.ts
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
 import { InputFile, MessageRole } from '@vendor/chat-ui';
@@ -98,11 +99,15 @@ export function useAgentFlow() {
         setEvents,
         setEventId,
         setAgentStatusTip,
-        // オーバーライド: 必ずログしてから Atom 更新
+        // オーバーライド: マージ式に変更
         setPlanTasks: (tasks) => {
           console.log('[useAgentFlow] ⏩ override setPlanTasks()', tasks);
           const safeTasks = Array.isArray(tasks) ? tasks : [];
-          setPlanTasks(safeTasks);
+          setPlanTasks((prev) => {
+            const existingIds = new Set(prev.map((t) => t.id));
+            const newOnes = safeTasks.filter((t) => !existingIds.has(t.id));
+            return [...prev, ...newOnes];
+          });
         },
         setShowCanvas,
         agentFlowId,

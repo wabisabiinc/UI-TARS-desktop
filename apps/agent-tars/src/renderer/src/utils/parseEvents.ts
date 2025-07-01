@@ -38,15 +38,12 @@ export function extractEventStreamUIMeta(
     .find((event) => event.type === EventType.PlanUpdate);
 
   let planTasks: PlanTask[] = [];
-
   if (
     lastPlanUpdate &&
     lastPlanUpdate.content &&
     Array.isArray((lastPlanUpdate.content as any).plan)
   ) {
-    // ここで配列だけを取り出し
     planTasks = (lastPlanUpdate.content as any).plan;
-    if (!Array.isArray(planTasks)) planTasks = [];
     // title: string以外は弾く
     planTasks = planTasks.filter(
       (t) => t && typeof t === 'object' && typeof t.title === 'string',
@@ -63,12 +60,10 @@ export function extractEventStreamUIMeta(
     if (lastPlanUpdate) {
       console.warn(
         '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない（空配列で初期化）:',
-        lastPlanUpdate?.content,
+        lastPlanUpdate.content,
       );
     }
   }
-  // 二重防御（念のため）
-  if (!Array.isArray(planTasks)) planTasks = [];
 
   // 最新のAgentStatusを取得
   const lastAgentStatus = [...events]
@@ -99,7 +94,6 @@ export function extractEventStreamUIMeta(
   };
 }
 
-// UIのグループ化も安全ガードつきでそのまま
 export function groupEventsByStep(events: EventItem[]): UIGroup[] {
   const groups: UIGroup[] = [];
   let currentStepEvents: EventItem[] = [];
@@ -112,38 +106,34 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
   let currentStep = 1;
 
   const filterLoading = (pendingEvents: EventItem[]) => {
-    let clonedEvents = [...pendingEvents];
-    let lastEvent = clonedEvents[clonedEvents.length - 1];
-    const tailingNoRenderEvents: EventItem[] = [];
-    if (lastEvent && NO_RENDER_TYPE.includes(lastEvent.type)) {
-      clonedEvents = clonedEvents.slice(0, -1);
-      tailingNoRenderEvents.unshift(lastEvent);
-      lastEvent = clonedEvents[clonedEvents.length - 1];
+    let cloned = [...pendingEvents];
+    // 最後に PlanUpdate／ToolCallStart があれば一度外す
+    let last = cloned[cloned.length - 1];
+    const tailNoRender: EventItem[] = [];
+    if (last && NO_RENDER_TYPE.includes(last.type)) {
+      cloned.pop();
+      tailNoRender.unshift(last);
+      last = cloned[cloned.length - 1];
     }
-    return [
-      ...clonedEvents.filter((item, index) => {
-        if (
-          index < clonedEvents.length - 1 &&
-          item.type === EventType.LoadingStatus
-        ) {
-          return false;
-        }
-        return true;
-      }),
-      ...tailingNoRenderEvents,
-    ];
+    // 途中の LoadingStatus は重複削除
+    const filtered = cloned.filter((item, idx) => {
+      if (idx < cloned.length - 1 && item.type === EventType.LoadingStatus) {
+        return false;
+      }
+      return true;
+    });
+    return [...filtered, ...tailNoRender];
   };
 
   filterLoading(events).forEach((event) => {
     if (event.type === EventType.PlanUpdate) {
       hasPlan = true;
       const allDone = event.content.plan?.every(
-        (task: any) => task.status === PlanTaskStatus.Done,
+        (t: any) => t.status === PlanTaskStatus.Done,
       );
       if (allDone) return;
 
-      currentStep = (event.content as { step: number | undefined }).step || 1;
-
+      currentStep = (event.content as { step?: number }).step || 1;
       if (currentStepEvents.length > 0) {
         const lastGroup = groups[groups.length - 1];
         if (
@@ -200,10 +190,9 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
           currentStepEvents = [];
         }
       }
-      const groupType =
-        event.type === EventType.End ? UIGroupType.End : UIGroupType.ChatText;
       groups.push({
-        type: groupType,
+        type:
+          event.type === EventType.End ? UIGroupType.End : UIGroupType.ChatText,
         step: currentStep,
         events: [event],
       });
@@ -213,27 +202,26 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
     currentStepEvents.push(event);
   });
 
+  // 残りイベントを最後に
   if (currentStepEvents.length > 0) {
-    if (groups.length > 0) {
-      const lastGroup = groups[groups.length - 1];
-      if (lastGroup.step === currentStep) {
-        if (lastGroup.type === UIGroupType.PlanStep) {
-          lastGroup.events.push(...currentStepEvents);
-        } else {
-          groups.push({
-            type: UIGroupType.PlanStep,
-            step: currentStep,
-            events: [...currentStepEvents],
-          });
-        }
-        return groups;
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup && lastGroup.step === currentStep) {
+      if (lastGroup.type === UIGroupType.PlanStep) {
+        lastGroup.events.push(...currentStepEvents);
+      } else {
+        groups.push({
+          type: UIGroupType.PlanStep,
+          step: currentStep,
+          events: [...currentStepEvents],
+        });
       }
+    } else {
+      groups.push({
+        type: UIGroupType.PlanStep,
+        step: currentStep,
+        events: [...currentStepEvents],
+      });
     }
-    groups.push({
-      type: UIGroupType.PlanStep,
-      step: currentStep,
-      events: [...currentStepEvents],
-    });
   }
 
   return groups;
