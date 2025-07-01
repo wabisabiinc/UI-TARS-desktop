@@ -39,11 +39,9 @@ export class AgentFlow {
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // 1) 初期化
     setPlanTasks([]);
     setAgentStatusTip('Thinking');
 
-    // 2) サブコンポーネント初期化
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
@@ -63,7 +61,6 @@ export class AgentFlow {
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // terminate リスナー
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (e: GlobalEvent) => {
@@ -76,7 +73,6 @@ export class AgentFlow {
       },
     );
 
-    // 3) Greeter → Omega バブル描画
     const preparePromise = greeter.run().then(async () => {
       const omegaMsg = await chatUtils.addMessage(
         ChatMessageUtil.assistantOmegaMessage({
@@ -117,13 +113,12 @@ export class AgentFlow {
       );
     });
 
-    // 4) メインループ
     await Promise.all([
       preparePromise,
       this.launchAgentLoop(executor, aware, agentContext),
     ]);
 
-    // 5) 最終まとめ
+    // 終了処理
     if (!this.abortController.signal.aborted) {
       await this.eventManager.addEndEvent('> Agent TARS has finished.');
       setPlanTasks([]);
@@ -158,7 +153,6 @@ export class AgentFlow {
 
       const result: AwareResult = await aware.run();
 
-      // 完了判定: 最終ステップ && completed のときにループを抜ける
       if (
         Array.isArray(result.plan) &&
         result.plan.length > 0 &&
@@ -166,7 +160,6 @@ export class AgentFlow {
         result.status === 'completed'
       ) {
         this.hasFinished = true;
-        // --- ここが重要: PlanTask全部Doneにしてset ---
         setPlanTasks(
           result.plan.map((p, i) => ({
             id: p.id ?? `${i + 1}`,
@@ -197,7 +190,7 @@ export class AgentFlow {
       console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
       const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
-        // 既存のツール呼び出しロジック…
+        // ツール呼び出しロジック
       }
     }
   }
@@ -228,7 +221,7 @@ Current task: ${task}`
 `.trim();
   }
 
-  // --- ここが今回一番重要な修正 ---
+  // プランをUI用に正規化
   private normalizePlan(result: AwareResult, ctx: AgentContext): PlanTask[] {
     if (!result?.plan?.length) {
       return [
@@ -240,7 +233,6 @@ Current task: ${task}`
       ];
     }
     const s = result.step > 0 ? result.step : 1;
-    // status: completed の場合は全てDoneにする
     if (result.status === 'completed') {
       return result.plan.map((p, i) => ({
         id: p.id ?? `${i + 1}`,
@@ -248,7 +240,6 @@ Current task: ${task}`
         status: PlanTaskStatus.Done,
       }));
     }
-    // 進行中の場合は従来通り
     return result.plan.map((p, i) => ({
       id: p.id ?? `${i + 1}`,
       title: p.title!,
