@@ -1,5 +1,4 @@
 import { v4 as uuid } from 'uuid';
-import { Message, Memory } from '@agent-infra/shared';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { Aware, AwareResult } from './Aware';
@@ -10,13 +9,12 @@ import { ipcClient } from '@renderer/api';
 import { GlobalEvent, globalEventEmitter } from '@renderer/state/chat';
 import { Greeter } from './Greeter';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
-import { extractEventStreamUIMeta } from '@renderer/utils/parseEvents';
 import { EventItem } from '@renderer/type/event';
 
 export interface AgentContext {
   plan: PlanTask[];
   currentStep: number;
-  memory: Memory;
+  memory: any;
   getEnvironmentInfo: (
     appContext: AppContext,
     agentContext: AgentContext,
@@ -47,7 +45,7 @@ export class AgentFlow {
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
-      memory: new Memory(),
+      memory: {},
       getEnvironmentInfo: this.getEnvironmentInfo,
       eventManager: this.eventManager,
     };
@@ -85,10 +83,9 @@ export class AgentFlow {
         { shouldSyncStorage: true },
       );
 
+      // イベント発行時の更新ハンドラ
       this.eventManager.setUpdateCallback(async (events) => {
         setEvents([...this.eventManager.getHistoryEvents(), ...events]);
-        const meta = extractEventStreamUIMeta(events);
-        if (meta.planTasks?.length) setPlanTasks([...meta.planTasks]);
         await chatUtils.updateMessage(
           ChatMessageUtil.assistantOmegaMessage({ events }),
           {
@@ -110,7 +107,10 @@ export class AgentFlow {
               ChatMessageUtil.assistantOmegaMessage({
                 events: this.eventManager.getAllEvents(),
               }),
-              { messageId: omegaMsg.id, shouldSyncStorage: true },
+              {
+                messageId: omegaMsg.id,
+                shouldSyncStorage: true,
+              },
             );
           }
         },
@@ -129,27 +129,16 @@ export class AgentFlow {
       setPlanTasks([]);
       setAgentStatusTip('');
 
-      console.log('[AgentFlow] ▶ calling askLLMTool for final summary...');
-      const raw = await ipcClient.askLLMTool({
-        model: 'gpt-4o',
-        messages: [
-          Message.systemMessage(
-            'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
-          ),
-          Message.userMessage(
-            `ユーザーのリクエスト: ${this.appContext.request.inputText}`,
-          ),
-        ],
-        requestId: uuid(),
-      });
+      console.log('[AgentFlow] ▶ generating final summary via Greeter...');
+      const finalResp = await greeter.generateFinalSummary();
+      console.log('[AgentFlow] ▶ finalized summary:', finalResp);
 
-      const finalResp =
-        typeof raw === 'string' ? raw : (raw.content ?? JSON.stringify(raw));
-
-      console.log('[AgentFlow] ▶ got finalResp:', finalResp);
       await chatUtils.addMessage(
         ChatMessageUtil.assistantTextMessage(finalResp),
-        { shouldSyncStorage: true, shouldScrollToBottom: true },
+        {
+          shouldSyncStorage: true,
+          shouldScrollToBottom: true,
+        },
       );
     }
   }
@@ -206,8 +195,10 @@ export class AgentFlow {
   ): string {
     const pendingInit = agentContext.plan.length === 0;
     const step = agentContext.currentStep;
-    const task = agentContext.plan[step - 1]?.title;
-    return `Event stream result history: ${this.eventManager.normalizeEventsForPrompt()}
+    const task = agentContext.plan[step - 1]?.title ?? '';
+    return `
+Event stream result history:
+${this.eventManager.normalizeEventsForPrompt()}
 
 The user original input: ${appContext.request.inputText}
 
@@ -220,13 +211,11 @@ ${agentContext.plan.map((item) => `  - [${item.id}] ${item.title}`).join('\n')}
 Current step: ${step}
 
 Current task: ${task}`
-}`;
+}
+`.trim();
   }
 
-  private normalizePlan(
-    result: AwareResult | null,
-    ctx: AgentContext,
-  ): PlanTask[] {
+  private normalizePlan(result: AwareResult, ctx: AgentContext): PlanTask[] {
     if (!result?.plan?.length) {
       return [
         {

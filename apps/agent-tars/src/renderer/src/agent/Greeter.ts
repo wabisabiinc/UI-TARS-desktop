@@ -1,8 +1,10 @@
+import { v4 as uuid } from 'uuid';
 import { MessageType } from '@vendor/chat-ui';
 import { Message } from '@agent-infra/shared';
 import { ipcClient, onMainStreamEvent } from '@renderer/api';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { globalEventEmitter } from '@renderer/state/chat';
+import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 
 export class Greeter {
   constructor(
@@ -10,6 +12,7 @@ export class Greeter {
     private abortSignal: AbortSignal,
   ) {}
 
+  /** 起動時のあいさつをストリーミングで返す */
   async run() {
     try {
       let greetMessage = '';
@@ -26,17 +29,16 @@ export class Greeter {
             - Be enthusiastic and positive
             - Let the user know you're ready to help them
             - Returns normal text instead of markdown format or html format
-            
-            Don't ask the user any questions, just greet them warmly.
           `),
           Message.userMessage(inputText),
         ],
         requestId: Math.random().toString(36).substring(7),
       });
 
+      // 小さくウェイトを入れてバブル描画用の空メッセージを挿入
       await new Promise((resolve) => setTimeout(resolve, 200));
 
-      return new Promise((resolve, reject) => {
+      return new Promise<string>((resolve, reject) => {
         if (this.abortSignal.aborted) {
           ipcClient.abortRequest({ requestId: streamId });
           resolve('');
@@ -44,44 +46,75 @@ export class Greeter {
         }
 
         let aborted = false;
-        globalEventEmitter.addListener(this.appContext.agentFlowId, (event) => {
+        const cleanupTerminate = () => {
+          globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
+        };
+        const onTerm = (event: any) => {
           if (event.type === 'terminate') {
             ipcClient.abortRequest({ requestId: streamId });
-            resolve(greetMessage);
             aborted = true;
-            cleanup();
+            resolve(greetMessage);
+            cleanupTerminate();
           }
-        });
+        };
+        globalEventEmitter.addListener(this.appContext.agentFlowId, onTerm);
 
-        const cleanup = onMainStreamEvent(streamId, {
+        const cleanupStream = onMainStreamEvent(streamId, {
           onData: async (chunk: string) => {
-            if (aborted) {
-              return;
-            }
+            if (aborted) return;
             greetMessage += chunk;
             await this.appContext.chatUtils.updateMessage(
               {
                 type: MessageType.PlainText,
                 content: greetMessage,
               },
-              {
-                shouldSyncStorage: true,
-              },
+              { shouldSyncStorage: true },
             );
           },
-          onError: (error: Error) => {
-            reject(error);
-            cleanup();
+          onError: (err) => {
+            reject(err);
+            cleanupTerminate();
+            cleanupStream();
           },
           onEnd: async () => {
             resolve(greetMessage);
-            cleanup();
+            cleanupTerminate();
+            cleanupStream();
           },
         });
       });
-    } catch (error: any) {
-      console.log(error);
-      throw error;
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
+  }
+
+  /**
+   * 全ステップ完了後の最終まとめを取得する
+   */
+  public async generateFinalSummary(): Promise<string> {
+    // （必要なら過去の対話履歴をプロンプトに含める場合はこちらを活用）
+    // const history = extractHistoryEvents(this.appContext.chatUtils.messages);
+
+    const systemPrompt = `
+あなたは優秀なアシスタントです。以下のユーザーのリクエストに対し、
+もっともわかりやすい「最終回答」を日本語でコンパクトに（200字以内で）提供してください。
+`;
+
+    const raw = await ipcClient.askLLMTool({
+      model: 'gpt-4o',
+      messages: [
+        Message.systemMessage(systemPrompt),
+        Message.userMessage(
+          `ユーザーのリクエスト: ${this.appContext.request.inputText}`,
+        ),
+      ],
+      requestId: uuid(),
+    });
+
+    // askLLMTool は文字列または { content: string } を返すので両方に対応
+    return typeof raw === 'string'
+      ? raw.trim()
+      : (raw.content ?? JSON.stringify(raw)).trim();
   }
 }
