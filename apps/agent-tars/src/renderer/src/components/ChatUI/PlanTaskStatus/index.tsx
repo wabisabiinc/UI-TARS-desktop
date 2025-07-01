@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/components/ChatUI/PlanTaskStatus/index.tsx
 import React from 'react';
 import { useAtom } from 'jotai';
 import { eventsAtom } from '@renderer/state/chat';
@@ -6,6 +5,23 @@ import { extractEventStreamUIMeta } from '@renderer/utils/parseEvents';
 import { EventType } from '@renderer/type/event';
 import { FiCheckCircle } from 'react-icons/fi';
 import '../index.scss';
+
+// Statusを厳密にlower-caseで比較
+const isTaskDone = (
+  taskStatus: string | undefined,
+  idx: number,
+  currentStepIndex: number,
+) =>
+  (typeof taskStatus === 'string' && taskStatus.toLowerCase() === 'done') ||
+  idx + 1 < currentStepIndex;
+
+const isTaskDoing = (
+  taskStatus: string | undefined,
+  idx: number,
+  currentStepIndex: number,
+) =>
+  (typeof taskStatus === 'string' && taskStatus.toLowerCase() === 'doing') ||
+  idx + 1 === currentStepIndex;
 
 export const PlanTaskStatus: React.FC = () => {
   const [events] = useAtom(eventsAtom);
@@ -24,19 +40,11 @@ export const PlanTaskStatus: React.FC = () => {
       </div>
       <ul className="plan-tasks-list">
         {planTasks.map((task, idx) => {
-          const stepNum = idx + 1;
-          // status（Done/Doing/Todo）とcurrentStepIndexの両方で判定
-          const isDone =
-            task.status === 'done' ||
-            task.status === 'Done' ||
-            stepNum < currentStepIndex;
-          const isDoing =
-            task.status === 'doing' ||
-            task.status === 'Doing' ||
-            stepNum === currentStepIndex;
+          const isDone = isTaskDone(task.status, idx, currentStepIndex);
+          const isDoing = isTaskDoing(task.status, idx, currentStepIndex);
           return (
             <li
-              key={task.id}
+              key={`${task.id}-${task.title}-${idx}`}
               className={isDone ? 'done' : isDoing ? 'doing' : ''}
             >
               {isDone && <FiCheckCircle className="icon-done" />}

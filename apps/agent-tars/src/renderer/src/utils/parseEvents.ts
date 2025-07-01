@@ -40,14 +40,16 @@ export function extractEventStreamUIMeta(
 
   let planTasks: PlanTask[] = [];
   let step: number | undefined;
+  let rawPlanStatus: string | undefined = undefined;
 
   if (lastPlanUpdate && Array.isArray((lastPlanUpdate.content as any).plan)) {
     planTasks = (lastPlanUpdate.content as any).plan;
     planTasks = planTasks.filter((t) => t && typeof t.title === 'string');
     step = (lastPlanUpdate.content as any).step;
+    rawPlanStatus = (lastPlanUpdate.content as any).status;
   }
 
-  // Endイベントにplan/stepがあれば優先で上書き
+  // Endイベントにplan/step/statusがあれば優先で上書き
   if (lastEndEvent) {
     const endContent = lastEndEvent.content as any;
     if (Array.isArray(endContent.plan) && endContent.plan.length > 0) {
@@ -56,7 +58,22 @@ export function extractEventStreamUIMeta(
       );
     }
     if (endContent.step) step = endContent.step;
+    if (endContent.status) rawPlanStatus = endContent.status;
   }
+
+  // --- status自動付与処理追加 ---
+  const currentStep = step || 1;
+  const completed = rawPlanStatus === 'completed';
+  planTasks = planTasks.map((p, idx) => ({
+    ...p,
+    status: completed
+      ? PlanTaskStatus.Done
+      : idx + 1 < currentStep
+        ? PlanTaskStatus.Done
+        : idx + 1 === currentStep
+          ? PlanTaskStatus.Doing
+          : PlanTaskStatus.Todo,
+  }));
 
   // 最新のAgentStatusを取得
   const lastAgentStatus = [...events]
@@ -71,8 +88,6 @@ export function extractEventStreamUIMeta(
   let currentStepIndex = lastStepEvent
     ? (lastStepEvent.content as { step: number }).step
     : 1;
-
-  // Endイベントにstepがあればそちら優先
   if (step) currentStepIndex = step;
 
   // 最後のイベント

@@ -121,31 +121,6 @@ export class AgentFlow {
       preparePromise,
       this.launchAgentLoop(executor, aware, agentContext),
     ]);
-
-    // 5) 最終まとめ
-    if (!this.abortController.signal.aborted) {
-      // UIからplanstepバー等を消す
-      setPlanTasks([]);
-      setAgentStatusTip('');
-      setEvents([]);
-      // ここで最終まとめ
-      console.log('[AgentFlow] ▶ generating final summary via Greeter...');
-      const finalResp = await greeter.generateFinalSummary();
-      console.log('[AgentFlow] ▶ finalized summary:', finalResp);
-
-      // PlainTextメッセージとして必ず出す
-      const finalMsg = {
-        ...ChatMessageUtil.assistantTextMessage(finalResp),
-        id: uuid(), // ID強制で重複回避
-      };
-      const added = await chatUtils.addMessage(finalMsg, {
-        shouldSyncStorage: true,
-        shouldScrollToBottom: true,
-      });
-      console.log('[AgentFlow] ▶ 最終まとめaddMessage結果:', added);
-      // 念のため
-      console.log('[AgentFlow] ▶ messages:', chatUtils.messages);
-    }
   }
 
   private async launchAgentLoop(
@@ -153,7 +128,8 @@ export class AgentFlow {
     aware: Aware,
     agentContext: AgentContext,
   ) {
-    const { setPlanTasks, setAgentStatusTip, setEvents } = this.appContext;
+    const { setPlanTasks, setAgentStatusTip, setEvents, chatUtils } =
+      this.appContext;
     let firstStep = true;
 
     while (!this.abortController.signal.aborted && !this.hasFinished) {
@@ -170,14 +146,32 @@ export class AgentFlow {
         result.status === 'completed'
       ) {
         this.hasFinished = true;
-        // --- PlanTask全部Doneにしてset ---
+        // 1. 全ステップDoneをUIに反映
         setPlanTasks(
           result.plan.map((p, i) => ({
             id: p.id ?? `${i + 1}`,
             title: p.title!,
-            status: PlanTaskStatus.Done,
+            status: PlanTaskStatus.Done, // 'done'
           })),
         );
+        // 2. 少しだけUIに表示させてから最終まとめ→UIリセット
+        setTimeout(async () => {
+          const greeter = new Greeter(
+            this.appContext,
+            this.abortController.signal,
+          );
+          const finalResp = await greeter.generateFinalSummary();
+          await chatUtils.addMessage(
+            ChatMessageUtil.assistantTextMessage(finalResp),
+            {
+              shouldSyncStorage: true,
+              shouldScrollToBottom: true,
+            },
+          );
+          setPlanTasks([]);
+          setAgentStatusTip('');
+          setEvents([]);
+        }, 800); // 0.8秒で確実にUIが反映される
         break;
       }
 
