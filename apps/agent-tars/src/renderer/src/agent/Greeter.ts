@@ -4,6 +4,7 @@ import { Message } from '@agent-infra/shared';
 import { ipcClient, onMainStreamEvent } from '@renderer/api';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { globalEventEmitter } from '@renderer/state/chat';
+import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 
 export class Greeter {
   constructor(
@@ -34,6 +35,7 @@ export class Greeter {
         requestId: Math.random().toString(36).substring(7),
       });
 
+      // 小さくウェイトを入れてバブル描画用の空メッセージを挿入
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       return new Promise<string>((resolve, reject) => {
@@ -91,49 +93,39 @@ export class Greeter {
    * 全ステップ完了後の最終まとめを取得する
    */
   public async generateFinalSummary(): Promise<string> {
+    // 最終まとめは必ず「テキストのみ」で返すようプロンプトを厳格化
     const systemPrompt = `
 あなたは優秀なアシスタントです。以下のユーザーのリクエストに対し、
 もっともわかりやすい「最終回答」を日本語でコンパクトに（200字以内で）提供してください。
-`;
+- JSONやマークダウンや番号リスト形式は禁止です
+- 必ず文章のみ（日本語のテキストだけ）で答えてください
+    `.trim();
 
-    // LLM呼び出し
+    const userText = `ユーザーのリクエスト: ${this.appContext.request.inputText}`;
+
+    // askLLMToolは通常のmessages形式で投げる
     const raw = await ipcClient.askLLMTool({
       model: 'gpt-4o',
       messages: [
-        Message.systemMessage(systemPrompt),
-        Message.userMessage(
-          `ユーザーのリクエスト: ${this.appContext.request.inputText}`,
-        ),
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userText },
       ],
       requestId: uuid(),
     });
 
-    // { content: string }型なので、raw.contentを取り出す
-    // さらにcontentがJSONのとき（AI返答仕様変更時）もケア
-    let summary: string = '';
-    if (typeof raw === 'string') {
-      summary = raw.trim();
-    } else if (raw && typeof raw.content === 'string') {
-      try {
-        // contentが{"content": "xxx"}やJSONになっている場合をケア
-        const maybeObj = JSON.parse(raw.content);
-        if (maybeObj && typeof maybeObj === 'object' && maybeObj.content) {
-          summary = maybeObj.content.trim();
-        } else {
-          summary = raw.content.trim();
-        }
-      } catch {
-        // パースできない場合はそのまま
-        summary = raw.content.trim();
-      }
-    } else {
-      summary = JSON.stringify(raw);
-    }
+    // 返却値（string or { content: string } 形式に両対応）
+    let content: string | undefined =
+      typeof raw === 'string' ? raw : raw?.content;
 
-    // undefined/空白の場合はUIにそれっぽく出す
-    if (!summary || summary === 'undefined') {
-      return '(最終まとめの出力に失敗しました)';
+    // contentが空 or JSONっぽい場合はエラーとして出す
+    if (
+      !content ||
+      /^\s*\{/.test(content.trim()) ||
+      /^\s*\[/.test(content.trim()) ||
+      /("plan"|^\s*\{.*\bplan\b.*\})/i.test(content)
+    ) {
+      return '（最終まとめの出力に失敗しました。要約指示にplan JSONが返ってきました）';
     }
-    return summary;
+    return content.trim();
   }
 }
