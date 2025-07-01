@@ -23,46 +23,39 @@ export interface EventStreamUIMeta {
   isLoading: boolean;
 }
 
-// 「planTasksは必ず配列」「titleがstringのもののみ」「変な値は空配列で防御」
+/**
+ * UI描画のためにeventsを解析し、plan/step/終了イベントを横断的に見る。
+ */
 export function extractEventStreamUIMeta(
   events: EventItem[],
 ): EventStreamUIMeta {
-  console.log(
-    '[parseEvents] 受信events:',
-    events.map((ev) => ({ type: ev.type, content: ev.content })),
-  );
-
   // PlanUpdateの最新イベントを取得
   const lastPlanUpdate = [...events]
     .reverse()
     .find((event) => event.type === EventType.PlanUpdate);
+  // Endの最新イベント
+  const lastEndEvent = [...events]
+    .reverse()
+    .find((event) => event.type === EventType.End);
 
   let planTasks: PlanTask[] = [];
-  if (
-    lastPlanUpdate &&
-    lastPlanUpdate.content &&
-    Array.isArray((lastPlanUpdate.content as any).plan)
-  ) {
+  let step: number | undefined;
+
+  if (lastPlanUpdate && Array.isArray((lastPlanUpdate.content as any).plan)) {
     planTasks = (lastPlanUpdate.content as any).plan;
-    // title: string以外は弾く
-    planTasks = planTasks.filter(
-      (t) => t && typeof t === 'object' && typeof t.title === 'string',
-    );
-    if (planTasks.length === 0) {
-      console.warn(
-        '[parseEvents] PlanUpdate内のplan配列は存在するが、title:stringな要素が見つからない/空:',
-        lastPlanUpdate.content,
+    planTasks = planTasks.filter((t) => t && typeof t.title === 'string');
+    step = (lastPlanUpdate.content as any).step;
+  }
+
+  // Endイベントにplan/stepがあれば優先で上書き
+  if (lastEndEvent) {
+    const endContent = lastEndEvent.content as any;
+    if (Array.isArray(endContent.plan) && endContent.plan.length > 0) {
+      planTasks = endContent.plan.filter(
+        (t: any) => t && typeof t.title === 'string',
       );
     }
-  } else {
-    // 防御
-    planTasks = [];
-    if (lastPlanUpdate) {
-      console.warn(
-        '[parseEvents] PlanUpdateイベントのplanが配列でない/存在しない（空配列で初期化）:',
-        lastPlanUpdate.content,
-      );
-    }
+    if (endContent.step) step = endContent.step;
   }
 
   // 最新のAgentStatusを取得
@@ -75,9 +68,12 @@ export function extractEventStreamUIMeta(
   const lastStepEvent = [...events]
     .reverse()
     .find((event) => event.type === EventType.NewPlanStep);
-  const currentStepIndex = lastStepEvent
+  let currentStepIndex = lastStepEvent
     ? (lastStepEvent.content as { step: number }).step
     : 1;
+
+  // Endイベントにstepがあればそちら優先
+  if (step) currentStepIndex = step;
 
   // 最後のイベント
   const lastEvent = events.length > 0 ? events[events.length - 1] : undefined;
@@ -107,7 +103,6 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
 
   const filterLoading = (pendingEvents: EventItem[]) => {
     let cloned = [...pendingEvents];
-    // 最後に PlanUpdate／ToolCallStart があれば一度外す
     let last = cloned[cloned.length - 1];
     const tailNoRender: EventItem[] = [];
     if (last && NO_RENDER_TYPE.includes(last.type)) {
@@ -115,7 +110,6 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
       tailNoRender.unshift(last);
       last = cloned[cloned.length - 1];
     }
-    // 途中の LoadingStatus は重複削除
     const filtered = cloned.filter((item, idx) => {
       if (idx < cloned.length - 1 && item.type === EventType.LoadingStatus) {
         return false;
@@ -202,7 +196,6 @@ export function groupEventsByStep(events: EventItem[]): UIGroup[] {
     currentStepEvents.push(event);
   });
 
-  // 残りイベントを最後に
   if (currentStepEvents.length > 0) {
     const lastGroup = groups[groups.length - 1];
     if (lastGroup && lastGroup.step === currentStep) {

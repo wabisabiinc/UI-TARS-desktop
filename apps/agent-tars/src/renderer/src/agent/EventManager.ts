@@ -36,16 +36,12 @@ export class EventManager {
     return [...this.events];
   }
 
-  // ---- デバッグ強化 ----
   private async addEvent<T extends EventType>(
     type: T,
     content: EventContentDescriptor[T],
     willNotifyUpdate = true,
   ): Promise<EventItem> {
     try {
-      console.log('[addEvent/start] type:', type, 'content:', content);
-      console.log('[addEvent/start] 追加前events:', this.events);
-
       const event: EventItem = {
         id: uuidv4(),
         type,
@@ -54,18 +50,12 @@ export class EventManager {
         timestamp: Date.now(),
       };
       this.events.push(event);
-
-      console.log('[addEvent/after push] events:', this.events);
       if (willNotifyUpdate) {
-        // awaitは絶対禁止！副作用・デッドロック防止のため
         this.notifyUpdate();
-        console.log('[addEvent/after notifyUpdate]');
       }
-      console.log('[addEvent] 正常終了:', event);
       return event;
     } catch (err) {
       console.error('[addEvent/ERROR]', err);
-      console.error('[addEvent/ERROR] events:', this.events);
       throw err;
     }
   }
@@ -89,26 +79,11 @@ export class EventManager {
     plan: PlanTask[],
     extra?: { reflection?: string; status?: string },
   ): Promise<EventItem> {
-    try {
-      console.log('[addPlanUpdate/start] 現在のevents:', this.events);
-      console.log('[addPlanUpdate/start] 追加予定のplan:', plan);
-      console.log('[EventManager] addPlanUpdate called', { step, plan, extra });
-
-      const event = await this.addEvent(EventType.PlanUpdate, {
-        plan: plan ?? [],
-        step,
-        ...(extra || {}),
-      });
-
-      console.log('[addPlanUpdate/after addEvent] newEvent:', event);
-      console.log('[addPlanUpdate/after addEvent] events:', this.events);
-      console.log('[addPlanUpdate] 正常終了');
-      return event;
-    } catch (err) {
-      console.error('[addPlanUpdate/ERROR]', err);
-      console.error('[addPlanUpdate/ERROR] events:', this.events);
-      throw err;
-    }
+    return this.addEvent(EventType.PlanUpdate, {
+      plan: plan ?? [],
+      step,
+      ...(extra || {}),
+    });
   }
 
   public async addNewPlanStep(step: number): Promise<EventItem> {
@@ -126,7 +101,6 @@ export class EventManager {
   public updateEvent(eventId: string, updates: Partial<EventItem>): boolean {
     const eventIndex = this.events.findIndex((event) => event.id === eventId);
     if (eventIndex === -1) return false;
-
     this.events[eventIndex] = {
       ...this.events[eventIndex],
       ...updates,
@@ -175,8 +149,13 @@ export class EventManager {
     return this.addEvent(EventType.UserInterruption, { text });
   }
 
-  public async addEndEvent(message: string): Promise<EventItem> {
-    return this.addEvent(EventType.End, { message });
+  // ★ ここを強化！plan, stepもevent内容に含める
+  public async addEndEvent(
+    message: string,
+    plan?: PlanTask[],
+    step?: number,
+  ): Promise<EventItem> {
+    return this.addEvent(EventType.End, { message, plan, step });
   }
 
   public async addToolCallStart(
@@ -359,8 +338,9 @@ export class EventManager {
         return {
           ...base,
           content: {
-            message: (event.content as EventContentDescriptor[EventType.End])
-              .message,
+            message: (event.content as any).message,
+            plan: (event.content as any).plan,
+            step: (event.content as any).step,
           },
         };
       default:

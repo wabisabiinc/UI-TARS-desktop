@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
 import { v4 as uuid } from 'uuid';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
@@ -157,13 +156,14 @@ export class AgentFlow {
 
       const result: AwareResult = await aware.run();
 
-      // 完了判定: 最終ステップ && completed のときにループを抜ける
-      if (
-        Array.isArray(result.plan) &&
-        result.plan.length > 0 &&
-        result.step >= result.plan.length &&
-        result.status === 'completed'
-      ) {
+      // planが空になった場合は強制終了（LLMの異常系も想定）
+      if (!Array.isArray(result.plan) || result.plan.length === 0) {
+        this.hasFinished = true;
+        break;
+      }
+
+      // 完了判定: 最終ステップ && status==='completed'
+      if (result.step >= result.plan.length && result.status === 'completed') {
         this.hasFinished = true;
         break;
       }

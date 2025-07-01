@@ -10,7 +10,7 @@ import { EventType } from '@renderer/type/event';
 import { FiCheckCircle } from 'react-icons/fi';
 import '../index.scss';
 
-export const PlanTasksStatus: React.FC = () => {
+export const PlanTaskStatus: React.FC = () => {
   const [events] = useAtom(eventsAtom);
   const { planTasks, currentStepIndex, currentEvent } =
     extractEventStreamUIMeta(events);

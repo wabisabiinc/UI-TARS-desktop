@@ -15,7 +15,6 @@ export interface AwareResult {
 export class Aware {
   private signal: AbortSignal;
 
-  // “生の JSON のみ”を必ず返すよう指示
   private readonly prompt = `
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
 Return only a raw JSON object with keys:
@@ -114,12 +113,22 @@ Do NOT wrap in markdown or include extra text.
     const parsed = Aware.safeParse<AwareResult>(content) || null;
     const resultPlan: PlanTask[] = [];
     let step = parsed?.step || 1;
-    let status = parsed?.status || 'in-progress';
+
+    // status正規化
+    let status = parsed?.status?.toLowerCase() || 'in-progress';
+    if (['pending', 'executing', 'running', 'in progress'].includes(status)) {
+      status = 'in-progress';
+    }
 
     if (parsed?.plan) {
       const arr = Array.isArray(parsed.plan) ? parsed.plan : [parsed.plan];
       arr.forEach((t) => {
-        if (t && typeof t.title === 'string') resultPlan.push(t);
+        if (t && typeof t.title === 'string') {
+          resultPlan.push({
+            ...t,
+            id: typeof t.id === 'string' ? t.id : String(resultPlan.length + 1),
+          });
+        }
       });
     }
 
@@ -127,7 +136,7 @@ Do NOT wrap in markdown or include extra text.
     if (step >= resultPlan.length && resultPlan.length > 0) {
       status = 'completed';
     } else {
-      status = status === 'completed' ? 'in-progress' : status;
+      if (status === 'completed') status = 'in-progress'; // 途中で勝手にcompletedと返ってきても無効
     }
 
     return {
