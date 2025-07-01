@@ -123,13 +123,31 @@ export class AgentFlow {
       this.launchAgentLoop(executor, aware, agentContext),
     ]);
 
-    // 5) 最終まとめ
+    // 5) 最終まとめ（ここが重要！）
     if (!this.abortController.signal.aborted) {
-      await this.eventManager.addEndEvent('> Agent TARS has finished.');
-      setEvents(this.eventManager.getAllEvents()); // EndイベントをUIへ
-      setPlanTasks([]);
-      setAgentStatusTip('');
+      // Endイベントを「plan/step付き」で追加
+      await this.eventManager.addEndEvent(
+        '> Agent TARS has finished.',
+        agentContext.plan.map((p, i) => ({
+          id: p.id ?? `${i + 1}`,
+          title: p.title!,
+          status: PlanTaskStatus.Done,
+        })),
+        agentContext.plan.length,
+      );
 
+      // planTasks全Done
+      setPlanTasks(
+        agentContext.plan.map((p, i) => ({
+          id: p.id ?? `${i + 1}`,
+          title: p.title!,
+          status: PlanTaskStatus.Done,
+        })),
+      );
+      setAgentStatusTip('');
+      setEvents(this.eventManager.getAllEvents());
+
+      // === ここで最終まとめをAI生成＆assistantメッセージとして追加 ===
       console.log('[AgentFlow] ▶ generating final summary via Greeter...');
       const finalResp = await greeter.generateFinalSummary();
       console.log('[AgentFlow] ▶ finalized summary:', finalResp);
@@ -141,6 +159,7 @@ export class AgentFlow {
           shouldScrollToBottom: true,
         },
       );
+      // UI上のplanstepやバーが消えるにはこの後setPlanTasks([])を追加してもOK
     }
   }
 
@@ -166,7 +185,7 @@ export class AgentFlow {
         result.status === 'completed'
       ) {
         this.hasFinished = true;
-        // --- ここが重要: PlanTask全部Doneにしてset ---
+        // --- PlanTask全部Doneにしてset ---
         setPlanTasks(
           result.plan.map((p, i) => ({
             id: p.id ?? `${i + 1}`,
