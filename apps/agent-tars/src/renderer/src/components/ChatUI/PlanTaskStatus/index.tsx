@@ -7,7 +7,7 @@ import {
   extractEventStreamUIMeta,
 } from '@renderer/utils/parseEvents';
 import { EventType } from '@renderer/type/event';
-import './index.scss';
+import '../index.scss';
 
 export const PlanTasksStatus: React.FC = () => {
   // イベントストリームから planTasks, currentStepIndex を生成
