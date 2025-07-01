@@ -21,7 +21,7 @@ export interface AgentContext {
   memory: Memory;
   getEnvironmentInfo: (
     appContext: AppContext,
-    agentContext: AgentContext,
+    agentContext: AgentContext
   ) => string;
   eventManager: EventManager;
 }
@@ -57,12 +57,12 @@ export class AgentFlow {
     const aware = new Aware(
       this.appContext,
       agentContext,
-      this.interruptController.signal,
+      this.interruptController.signal
     );
     const executor = new Executor(
       this.appContext,
       agentContext,
-      this.interruptController.signal,
+      this.interruptController.signal
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
@@ -73,10 +73,10 @@ export class AgentFlow {
         if (e.type === 'terminate') {
           this.abortController.abort();
           await this.eventManager.addEndEvent(
-            'Agent flow has been terminated.',
+            'Agent flow has been terminated.'
           );
         }
-      },
+      }
     );
 
     // 3) Greeter → Omega バブル描画
@@ -85,12 +85,15 @@ export class AgentFlow {
         ChatMessageUtil.assistantOmegaMessage({
           events: this.eventManager.getAllEvents(),
         }),
-        { shouldSyncStorage: true },
+        { shouldSyncStorage: true }
       );
 
       this.eventManager.setUpdateCallback(async (events) => {
         // イベント更新 → UI 反映
-        setEvents([...this.eventManager.getHistoryEvents(), ...events]);
+        setEvents([
+          ...this.eventManager.getHistoryEvents(),
+          ...events,
+        ]);
         const meta = extractEventStreamUIMeta(events);
         if (meta.planTasks?.length) {
           setPlanTasks([...meta.planTasks]);
@@ -101,7 +104,7 @@ export class AgentFlow {
             messageId: omegaMsg.id,
             shouldSyncStorage: true,
             shouldScrollToBottom: true,
-          },
+          }
         );
       });
 
@@ -116,10 +119,10 @@ export class AgentFlow {
               ChatMessageUtil.assistantOmegaMessage({
                 events: this.eventManager.getAllEvents(),
               }),
-              { messageId: omegaMsg.id, shouldSyncStorage: true },
+              { messageId: omegaMsg.id, shouldSyncStorage: true }
             );
           }
-        },
+        }
       );
     });
 
@@ -141,10 +144,10 @@ export class AgentFlow {
         model: 'gpt-4o',
         messages: [
           Message.systemMessage(
-            'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。',
+            'あなたは優秀なアシスタントです。以下のユーザー入力に対し、一番わかりやすい最終回答を日本語でコンパクトに提供してください。'
           ),
           Message.userMessage(
-            `ユーザーのリクエスト: ${this.appContext.request.inputText}`,
+            `ユーザーのリクエスト: ${this.appContext.request.inputText}`
           ),
         ],
         requestId: uuid(),
@@ -153,7 +156,9 @@ export class AgentFlow {
 
       // レスポンスを文字列化
       const finalResp =
-        typeof raw === 'string' ? raw : (raw.content ?? JSON.stringify(raw));
+        typeof raw === 'string'
+          ? raw
+          : raw.content ?? JSON.stringify(raw);
       console.log('[AgentFlow] ▶ got finalResp:', finalResp);
 
       // UI に回答バブルを追加
@@ -162,7 +167,7 @@ export class AgentFlow {
         {
           shouldSyncStorage: true,
           shouldScrollToBottom: true,
-        },
+        }
       );
     }
   }
@@ -170,20 +175,25 @@ export class AgentFlow {
   private async launchAgentLoop(
     executor: Executor,
     aware: Aware,
-    agentContext: AgentContext,
+    agentContext: AgentContext
   ) {
     const { setPlanTasks, setAgentStatusTip, setEvents } = this.appContext;
     let firstStep = true;
 
-    while (!this.abortController.signal.aborted && !this.hasFinished) {
+    while (
+      !this.abortController.signal.aborted &&
+      !this.hasFinished
+    ) {
       // Thinking ステータス更新
       await this.eventManager.addLoadingStatus('Thinking');
       setAgentStatusTip('Thinking');
 
       // Aware → plan 更新
       const result: AwareResult = await aware.run();
-      agentContext.currentStep = result.step > 0 ? result.step : 1;
-      agentContext.plan = this.normalizePlan(result, agentContext);
+      agentContext.currentStep =
+        result.step > 0 ? result.step : 1;
+      agentContext.plan =
+        this.normalizePlan(result, agentContext);
       setPlanTasks([...agentContext.plan]);
 
       // 終了判定
@@ -196,13 +206,16 @@ export class AgentFlow {
       }
 
       // プラン進捗更新
-      await this.eventManager.addPlanUpdate(agentContext.currentStep, [
-        ...agentContext.plan,
-      ]);
+      await this.eventManager.addPlanUpdate(
+        agentContext.currentStep,
+        [...agentContext.plan]
+      );
       setEvents(this.eventManager.getAllEvents());
 
       if (firstStep) {
-        await this.eventManager.addNewPlanStep(agentContext.currentStep);
+        await this.eventManager.addNewPlanStep(
+          agentContext.currentStep
+        );
         firstStep = false;
       }
       if (result.status) {
@@ -210,8 +223,13 @@ export class AgentFlow {
       }
 
       // ツール呼び出し (Executor)
-      console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
-      const calls = (await executor.run(result.status)).filter(Boolean);
+      console.log(
+        '[AgentFlow] ▶ Executor.run with status:',
+        result.status
+      );
+      const calls = (
+        await executor.run(result.status)
+      ).filter(Boolean);
       for (const call of calls) {
         // -- 既存のツール実行ロジックをそのまま --
       }
@@ -220,7 +238,7 @@ export class AgentFlow {
 
   private getEnvironmentInfo(
     appContext: AppContext,
-    agentContext: AgentContext,
+    agentContext: AgentContext
   ): string {
     const pendingInit = agentContext.plan.length === 0;
     const step = agentContext.currentStep;
@@ -233,7 +251,9 @@ ${
   pendingInit
     ? 'Plan: None'
     : `Plan:
-${agentContext.plan.map((item) => `  - [${item.id}] ${item.title}`).join('\n')}
+${agentContext.plan
+  .map((item) => `  - [${item.id}] ${item.title}`)
+  .join('\n')}
 
 Current step: ${step}
 
@@ -243,7 +263,7 @@ Current task: ${task}`
 
   private normalizePlan(
     result: AwareResult | null,
-    ctx: AgentContext,
+    ctx: AgentContext
   ): PlanTask[] {
     if (!result?.plan?.length) {
       return [
@@ -262,13 +282,15 @@ Current task: ${task}`
         i < s - 1
           ? PlanTaskStatus.Done
           : i === s - 1
-            ? PlanTaskStatus.Doing
-            : PlanTaskStatus.Todo,
+          ? PlanTaskStatus.Doing
+          : PlanTaskStatus.Todo,
     }));
   }
 
   private parseHistoryEvents(): EventItem[] {
-    const evts = extractHistoryEvents(this.appContext.chatUtils.messages);
+    const evts = extractHistoryEvents(
+      this.appContext.chatUtils.messages
+    );
     this.appContext.setEvents(evts);
     return evts;
   }
