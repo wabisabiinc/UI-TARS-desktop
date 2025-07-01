@@ -1,3 +1,5 @@
+// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
+
 import { v4 as uuid } from 'uuid';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
@@ -156,15 +158,22 @@ export class AgentFlow {
 
       const result: AwareResult = await aware.run();
 
-      // planが空になった場合は強制終了（LLMの異常系も想定）
-      if (!Array.isArray(result.plan) || result.plan.length === 0) {
+      // 完了判定: 最終ステップ && completed のときにループを抜ける
+      if (
+        Array.isArray(result.plan) &&
+        result.plan.length > 0 &&
+        result.step >= result.plan.length &&
+        result.status === 'completed'
+      ) {
         this.hasFinished = true;
-        break;
-      }
-
-      // 完了判定: 最終ステップ && status==='completed'
-      if (result.step >= result.plan.length && result.status === 'completed') {
-        this.hasFinished = true;
+        // --- ここが重要: PlanTask全部Doneにしてset ---
+        setPlanTasks(
+          result.plan.map((p, i) => ({
+            id: p.id ?? `${i + 1}`,
+            title: p.title!,
+            status: PlanTaskStatus.Done,
+          })),
+        );
         break;
       }
 
@@ -219,6 +228,7 @@ Current task: ${task}`
 `.trim();
   }
 
+  // --- ここが今回一番重要な修正 ---
   private normalizePlan(result: AwareResult, ctx: AgentContext): PlanTask[] {
     if (!result?.plan?.length) {
       return [
@@ -230,6 +240,15 @@ Current task: ${task}`
       ];
     }
     const s = result.step > 0 ? result.step : 1;
+    // status: completed の場合は全てDoneにする
+    if (result.status === 'completed') {
+      return result.plan.map((p, i) => ({
+        id: p.id ?? `${i + 1}`,
+        title: p.title!,
+        status: PlanTaskStatus.Done,
+      }));
+    }
+    // 進行中の場合は従来通り
     return result.plan.map((p, i) => ({
       id: p.id ?? `${i + 1}`,
       title: p.title!,
