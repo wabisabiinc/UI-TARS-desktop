@@ -21,11 +21,12 @@ export const plannerOutputSchema = z.object({
       z.object({
         id: z.string(),
         title: z.string(),
-        status: z.string().optional(), // 必要なら
+        status: z.string().optional(),
       }),
     )
     .optional(),
-  // --- 追加: 既存コード用の補助フィールド ---
+  step: z.number().optional(),
+  status: z.string().optional(),
   done: z.boolean().optional(),
   web_task: z.boolean().optional(),
   next_steps: z.string().optional(),
@@ -36,11 +37,13 @@ export type PlannerOutput = z.infer<typeof plannerOutputSchema>;
 // === 2. System Prompt ===
 const SYSTEM_PROMPT = `
 あなたはGUI自動化エージェントです。
-全ての出力は以下のJSON形式で返してください:
+全ての出力は必ず下記のJSON形式のみで返してください:
 
 {
   "thought": "今の考えや状況整理を簡潔に記述",
   "action": "ユーザーへの返答や次に取るべき具体的なアクションを記述",
+  "step": 1,
+  "status": "in-progress", // in-progress または completed
   "plan": [
     { "id": "1", "title": "日本の隠れた名所をリサーチする" },
     { "id": "2", "title": "地域やテーマで分類する" },
@@ -48,7 +51,9 @@ const SYSTEM_PROMPT = `
   ]
 }
 
-thought と action は必須、plan は必要に応じて出力してください。
+- thought, action, step, status, plan は全て必須です。
+- stepは現在のステップ番号（1始まり）、statusは通常は "in-progress"、最終stepの時のみ "completed" としてください。
+- 出力は必ずJSONのみ、説明やマークダウン記法を絶対につけないこと。
 `;
 
 export class PlannerAgent extends BaseAgent<
@@ -70,18 +75,18 @@ export class PlannerAgent extends BaseAgent<
         'Planning...',
       );
 
-      // System prompt + 履歴メッセージ
+      // 履歴メッセージ取得
       const messages = this.context.messageManager.getMessages();
       const plannerMessages = [
         new HumanMessage(SYSTEM_PROMPT),
         ...messages.slice(1),
       ];
 
-      // === 3. モデル呼び出し・AI出力取得 ===
+      // モデル呼び出し
       const modelOutput = await this.invoke(plannerMessages);
 
-      // planが未生成なら仮データで埋める（テスト用・実運用では不要）
-      const plan =
+      // plan必須チェック・補完
+      let plan =
         modelOutput.plan &&
         Array.isArray(modelOutput.plan) &&
         modelOutput.plan.length > 0
@@ -92,8 +97,29 @@ export class PlannerAgent extends BaseAgent<
               { id: '3', title: 'おすすめスポットを出力する' },
             ];
 
-      // --- 追加: 既存コード用の補助値（必要なら値を工夫してください）---
-      const done = false; // 仮で false、何か判定基準があればセット
+      // step/status補正
+      let step =
+        typeof modelOutput.step === 'number' && modelOutput.step > 0
+          ? modelOutput.step
+          : 1;
+      let status =
+        typeof modelOutput.status === 'string'
+          ? modelOutput.status.toLowerCase()
+          : 'in-progress';
+
+      // status補正ロジック
+      if (step >= plan.length && plan.length > 0) {
+        status = 'completed';
+      } else if (
+        ['pending', 'executing', 'running', 'in progress'].includes(status)
+      ) {
+        status = 'in-progress';
+      } else if (status !== 'completed') {
+        status = 'in-progress';
+      }
+
+      // --- 追加: 既存コード用の補助値 ---
+      const done = status === 'completed';
       const web_task = false;
       const next_steps = plan.map((p) => p.title).join(' → ');
 
@@ -106,7 +132,7 @@ export class PlannerAgent extends BaseAgent<
       this.context.emitEvent(
         Actors.PLANNER,
         ExecutionState.STEP_OK,
-        (modelOutput.action ?? '') + ' [Thought/Action/Plan形式]',
+        (modelOutput.action ?? '') + ' [Thought/Action/Plan/Step/Status形式]',
       );
 
       return {
@@ -114,6 +140,8 @@ export class PlannerAgent extends BaseAgent<
         result: {
           ...modelOutput,
           plan,
+          step,
+          status,
           done,
           web_task,
           next_steps,
