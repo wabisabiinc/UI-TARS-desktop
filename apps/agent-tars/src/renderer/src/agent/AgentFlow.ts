@@ -1,5 +1,4 @@
 // apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
-
 import { v4 as uuid } from 'uuid';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
@@ -39,9 +38,11 @@ export class AgentFlow {
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
+    // 1) 初期化
     setPlanTasks([]);
     setAgentStatusTip('Thinking');
 
+    // 2) サブコンポーネント初期化
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
@@ -61,7 +62,7 @@ export class AgentFlow {
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // terminateリスナー
+    // terminate リスナー
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (e: GlobalEvent) => {
@@ -115,26 +116,21 @@ export class AgentFlow {
       );
     });
 
-    // メインループ
+    // 4) メインループ
     await Promise.all([
       preparePromise,
       this.launchAgentLoop(executor, aware, agentContext),
     ]);
 
-    // ★★ここからが重要★★
-    // Plan完全完了時 → planタスク非表示・最終まとめ
-    if (!this.abortController.signal.aborted && this.hasFinished) {
-      // Plan UIを消すために空配列をセット
+    // 5) 最終まとめ
+    if (!this.abortController.signal.aborted) {
+      // まずplanを完全クリアしてUI上のPlanStep/StatusBarを消す
       setPlanTasks([]);
       setAgentStatusTip('');
       setEvents([]);
-
-      // 最終まとめ生成
+      // ここで最終まとめ
       console.log('[AgentFlow] ▶ generating final summary via Greeter...');
-      const finalResp = await new Greeter(
-        this.appContext,
-        this.abortController.signal,
-      ).generateFinalSummary();
+      const finalResp = await greeter.generateFinalSummary();
       console.log('[AgentFlow] ▶ finalized summary:', finalResp);
 
       await chatUtils.addMessage(
@@ -169,14 +165,19 @@ export class AgentFlow {
         result.status === 'completed'
       ) {
         this.hasFinished = true;
-        // Plan UI用：全部Doneでセット（この直後run()で空にする）
-        setPlanTasks(
-          result.plan.map((p, i) => ({
-            id: p.id ?? `${i + 1}`,
-            title: p.title!,
-            status: PlanTaskStatus.Done,
-          })),
-        );
+
+        // --- PlanTask全部Doneにしてset ---
+        const allDonePlan = result.plan.map((p, i) => ({
+          id: p.id ?? `${i + 1}`,
+          title: p.title!,
+          status: PlanTaskStatus.Done,
+        }));
+        setPlanTasks(allDonePlan);
+
+        // ★UI用にPlanUpdate（全部done状態）をeventsにも追加
+        await this.eventManager.addPlanUpdate(result.plan.length, allDonePlan);
+        setEvents(this.eventManager.getAllEvents());
+
         break;
       }
 
@@ -200,7 +201,7 @@ export class AgentFlow {
       console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
       const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
-        // ...tool呼び出し処理（省略）
+        // ツール呼び出しロジック
       }
     }
   }
@@ -231,7 +232,6 @@ Current task: ${task}`
 `.trim();
   }
 
-  // --- ここが今回一番重要な修正 ---
   private normalizePlan(result: AwareResult, ctx: AgentContext): PlanTask[] {
     if (!result?.plan?.length) {
       return [

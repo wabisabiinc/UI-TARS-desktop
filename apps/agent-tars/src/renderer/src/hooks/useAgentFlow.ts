@@ -86,29 +86,37 @@ export function useAgentFlow() {
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
+  // 最重要！planTasksセット関数を「マージ」→「空配列は強制リセット」に分岐
+  const setPlanTasksMerged = useCallback(
+    (tasks: PlanTask[]) => {
+      if (!tasks || tasks.length === 0) {
+        setPlanTasks([]); // 強制クリア
+        return;
+      }
+      const safeTasks = Array.isArray(tasks) ? tasks : [];
+      setPlanTasks((prev) => {
+        const existingIds = new Set(prev.map((t) => t.id));
+        const newOnes = safeTasks.filter((t) => !existingIds.has(t.id));
+        return [...prev, ...newOnes];
+      });
+    },
+    [setPlanTasks],
+  );
+
   return useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       const agentFlowId = uuid();
       currentAgentFlowIdRef.current = agentFlowId;
 
       // 初期化：プランをクリア
-      setPlanTasks([]);
+      setPlanTasks([]); // ←最初は空に
 
       const agentFlow = new AgentFlow({
         chatUtils,
         setEvents,
         setEventId,
         setAgentStatusTip,
-        // オーバーライド: マージ式に変更
-        setPlanTasks: (tasks) => {
-          console.log('[useAgentFlow] ⏩ override setPlanTasks()', tasks);
-          const safeTasks = Array.isArray(tasks) ? tasks : [];
-          setPlanTasks((prev) => {
-            const existingIds = new Set(prev.map((t) => t.id));
-            const newOnes = safeTasks.filter((t) => !existingIds.has(t.id));
-            return [...prev, ...newOnes];
-          });
-        },
+        setPlanTasks: setPlanTasksMerged,
         setShowCanvas,
         agentFlowId,
         request: {
@@ -125,7 +133,7 @@ export function useAgentFlow() {
       setEvents,
       setEventId,
       setAgentStatusTip,
-      setPlanTasks,
+      setPlanTasksMerged,
       setShowCanvas,
       currentAgentFlowIdRef,
       updateSessionTitle,

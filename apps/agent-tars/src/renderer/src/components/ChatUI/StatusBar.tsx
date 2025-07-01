@@ -15,9 +15,14 @@ export function StatusBar() {
   useEffect(() => {
     if (events.length > 0) {
       const meta = extractEventStreamUIMeta(events);
-      if (meta.planTasks.length > 0) {
+      // planTasksが0 または Endイベント時はバー自体も消す
+      if (meta.planTasks.length === 0 || meta.currentEvent?.type === 'End') {
+        setUIMeta(null); // ←これでバーを消す
+      } else {
         setUIMeta(meta);
       }
+    } else {
+      setUIMeta(null);
     }
   }, [events]);
 
