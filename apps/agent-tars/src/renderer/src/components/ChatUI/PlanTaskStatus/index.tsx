@@ -9,7 +9,7 @@ import {
 import { EventType } from '@renderer/type/event';
 import '../index.scss';
 
-export const PlanTasksStatus: React.FC = () => {
+export const PlanTaskStatus: React.FC = () => {
   // イベントストリームから planTasks, currentStepIndex を生成
   const [events] = useAtom(eventsAtom);
   const { planTasks, currentStepIndex } = extractEventStreamUIMeta(events);
