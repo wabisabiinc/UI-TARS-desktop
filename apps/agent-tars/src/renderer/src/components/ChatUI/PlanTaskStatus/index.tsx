@@ -12,7 +12,8 @@ import '../index.scss';
 export const PlanTaskStatus: React.FC = () => {
   // イベントストリームから planTasks, currentStepIndex を生成
   const [events] = useAtom(eventsAtom);
-  const { planTasks, currentStepIndex } = extractEventStreamUIMeta(events);
+  const { planTasks, currentStepIndex, currentEvent } =
+    extractEventStreamUIMeta(events);
 
   // 終了検知: 最後のイベントが End なら何も描画しない
   if (currentEvent?.type === EventType.End || planTasks.length === 0) {
