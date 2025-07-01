@@ -124,7 +124,7 @@ export class AgentFlow {
 
     // 5) 最終まとめ
     if (!this.abortController.signal.aborted) {
-      // まずplanを完全クリアしてUI上のPlanStep/StatusBarを消す
+      // UIからplanstepバー等を消す
       setPlanTasks([]);
       setAgentStatusTip('');
       setEvents([]);
@@ -133,13 +133,18 @@ export class AgentFlow {
       const finalResp = await greeter.generateFinalSummary();
       console.log('[AgentFlow] ▶ finalized summary:', finalResp);
 
-      await chatUtils.addMessage(
-        ChatMessageUtil.assistantTextMessage(finalResp),
-        {
-          shouldSyncStorage: true,
-          shouldScrollToBottom: true,
-        },
-      );
+      // PlainTextメッセージとして必ず出す
+      const finalMsg = {
+        ...ChatMessageUtil.assistantTextMessage(finalResp),
+        id: uuid(), // ID強制で重複回避
+      };
+      const added = await chatUtils.addMessage(finalMsg, {
+        shouldSyncStorage: true,
+        shouldScrollToBottom: true,
+      });
+      console.log('[AgentFlow] ▶ 最終まとめaddMessage結果:', added);
+      // 念のため
+      console.log('[AgentFlow] ▶ messages:', chatUtils.messages);
     }
   }
 
@@ -165,19 +170,14 @@ export class AgentFlow {
         result.status === 'completed'
       ) {
         this.hasFinished = true;
-
         // --- PlanTask全部Doneにしてset ---
-        const allDonePlan = result.plan.map((p, i) => ({
-          id: p.id ?? `${i + 1}`,
-          title: p.title!,
-          status: PlanTaskStatus.Done,
-        }));
-        setPlanTasks(allDonePlan);
-
-        // ★UI用にPlanUpdate（全部done状態）をeventsにも追加
-        await this.eventManager.addPlanUpdate(result.plan.length, allDonePlan);
-        setEvents(this.eventManager.getAllEvents());
-
+        setPlanTasks(
+          result.plan.map((p, i) => ({
+            id: p.id ?? `${i + 1}`,
+            title: p.title!,
+            status: PlanTaskStatus.Done,
+          })),
+        );
         break;
       }
 
