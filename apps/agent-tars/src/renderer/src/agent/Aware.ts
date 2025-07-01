@@ -15,15 +15,20 @@ export interface AwareResult {
 export class Aware {
   private signal: AbortSignal;
 
+  // ------ ここが最大の修正ポイント ------
   private readonly prompt = `
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
-Return only a raw JSON object with keys:
+Return only a raw JSON object with the following keys:
   • reflection (string)
   • step (number)            ← current step, starting at 1
-  • status (string)          ← "in-progress" for intermediate, "completed" when step equals total steps
+  • status (string)          ← "in-progress" for intermediate steps, "completed" **MUST BE SET if step is equal to the number of items in plan**
   • plan (array of { id: string, title: string })
-Do NOT wrap in markdown or include extra text.
-`;
+
+RULE: When "step" is equal to plan.length, set "status" to "completed".
+For all other steps, set "status" to "in-progress".
+Do NOT wrap your output in markdown or include any extra text or explanation.
+  `.trim();
+  // --------------------------------------
 
   constructor(
     private appContext: AppContext,
@@ -132,11 +137,11 @@ Do NOT wrap in markdown or include extra text.
       });
     }
 
-    // 完了判定: step >= plan.length なら completed
+    // --- 最終step到達時は必ず"completed"にする。途中でcompletedは認めない ---
     if (step >= resultPlan.length && resultPlan.length > 0) {
       status = 'completed';
     } else {
-      if (status === 'completed') status = 'in-progress'; // 途中で勝手にcompletedと返ってきても無効
+      if (status === 'completed') status = 'in-progress';
     }
 
     return {
