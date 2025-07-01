@@ -128,6 +128,7 @@ export class AgentFlow {
       await this.eventManager.addEndEvent('> Agent TARS has finished.');
       setPlanTasks([]);
       setAgentStatusTip('');
+      setEvents([]);
 
       console.log('[AgentFlow] ▶ generating final summary via Greeter...');
       const finalResp = await greeter.generateFinalSummary();

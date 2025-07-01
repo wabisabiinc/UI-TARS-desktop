@@ -6,12 +6,18 @@ import {
   EventStreamUIMeta,
   extractEventStreamUIMeta,
 } from '@renderer/utils/parseEvents';
-import './index.module.scss';
+import { EventType } from '@renderer/type/event';
+import './index.scss';
 
 export const PlanTasksStatus: React.FC = () => {
   // イベントストリームから planTasks, currentStepIndex を生成
   const [events] = useAtom(eventsAtom);
   const { planTasks, currentStepIndex } = extractEventStreamUIMeta(events);
+
+  // 終了検知: 最後のイベントが End なら何も描画しない
+  if (currentEvent?.type === EventType.End || planTasks.length === 0) {
+    return null;
+  }
 
   return (
     <div className="plan-tasks-status">
