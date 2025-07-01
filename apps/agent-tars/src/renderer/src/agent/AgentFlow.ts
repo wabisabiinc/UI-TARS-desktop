@@ -1,3 +1,4 @@
+// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
 import { v4 as uuid } from 'uuid';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
@@ -83,7 +84,6 @@ export class AgentFlow {
         { shouldSyncStorage: true },
       );
 
-      // イベント発行時の更新ハンドラ
       this.eventManager.setUpdateCallback(async (events) => {
         setEvents([...this.eventManager.getHistoryEvents(), ...events]);
         await chatUtils.updateMessage(
@@ -96,7 +96,6 @@ export class AgentFlow {
         );
       });
 
-      // user‐interrupt リスナー
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (e: GlobalEvent) => {
@@ -157,17 +156,21 @@ export class AgentFlow {
       setAgentStatusTip('Thinking');
 
       const result: AwareResult = await aware.run();
-      agentContext.currentStep = result.step > 0 ? result.step : 1;
-      agentContext.plan = this.normalizePlan(result, agentContext);
-      setPlanTasks([...agentContext.plan]);
 
+      // 完了判定: 最終ステップ && completed のときにループを抜ける
       if (
-        !agentContext.plan.length ||
-        agentContext.currentStep > agentContext.plan.length
+        Array.isArray(result.plan) &&
+        result.plan.length > 0 &&
+        result.step >= result.plan.length &&
+        result.status === 'completed'
       ) {
         this.hasFinished = true;
         break;
       }
+
+      agentContext.currentStep = result.step > 0 ? result.step : 1;
+      agentContext.plan = this.normalizePlan(result, agentContext);
+      setPlanTasks([...agentContext.plan]);
 
       await this.eventManager.addPlanUpdate(agentContext.currentStep, [
         ...agentContext.plan,

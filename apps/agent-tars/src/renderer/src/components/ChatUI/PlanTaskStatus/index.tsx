@@ -7,15 +7,14 @@ import {
   extractEventStreamUIMeta,
 } from '@renderer/utils/parseEvents';
 import { EventType } from '@renderer/type/event';
+import { FiCheckCircle } from 'react-icons/fi';
 import '../index.scss';
 
-export const PlanTaskStatus: React.FC = () => {
-  // イベントストリームから planTasks, currentStepIndex を生成
+export const PlanTasksStatus: React.FC = () => {
   const [events] = useAtom(eventsAtom);
   const { planTasks, currentStepIndex, currentEvent } =
     extractEventStreamUIMeta(events);
 
-  // 終了検知: 最後のイベントが End なら何も描画しない
   if (currentEvent?.type === EventType.End || planTasks.length === 0) {
     return null;
   }
@@ -26,20 +25,20 @@ export const PlanTaskStatus: React.FC = () => {
         Step {currentStepIndex} of {planTasks.length}
       </div>
       <ul className="plan-tasks-list">
-        {planTasks.map((t, i) => (
-          <li
-            key={t.id}
-            className={
-              i + 1 < currentStepIndex
-                ? 'done'
-                : i + 1 === currentStepIndex
-                  ? 'doing'
-                  : ''
-            }
-          >
-            {`${t.id}. ${t.title}`}
-          </li>
-        ))}
+        {planTasks.map((task, idx) => {
+          const stepNum = idx + 1;
+          const isDone = stepNum < currentStepIndex;
+          const isDoing = stepNum === currentStepIndex;
+          return (
+            <li
+              key={task.id}
+              className={isDone ? 'done' : isDoing ? 'doing' : ''}
+            >
+              {isDone && <FiCheckCircle className="icon-done" />}
+              <span className="task-title">{`${task.id}. ${task.title}`}</span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
