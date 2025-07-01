@@ -90,15 +90,12 @@ export class Greeter {
   }
 
   /**
-   * 全ステップ完了後の最終まとめを取得する
+   * 全ステップ完了後の最終まとめを取得する（string/JSONどちらも安全対応）
    */
   public async generateFinalSummary(): Promise<string> {
-    // （必要なら過去の対話履歴をプロンプトに含める場合はこちらを活用）
-    // const history = extractHistoryEvents(this.appContext.chatUtils.messages);
-
     const systemPrompt = `
 あなたは優秀なアシスタントです。以下のユーザーのリクエストに対し、
-もっともわかりやすい「最終回答」を日本語でコンパクトに（200字以内で）提供してください。
+もっともわかりやすい「最終回答」を日本語でコンパクトに（500字以内で）提供してください。
 `;
 
     const raw = await ipcClient.askLLMTool({
@@ -112,9 +109,39 @@ export class Greeter {
       requestId: uuid(),
     });
 
-    // askLLMTool は文字列または { content: string } を返すので両方に対応
-    return typeof raw === 'string'
-      ? raw.trim()
-      : (raw.content ?? JSON.stringify(raw)).trim();
+    // --- 安全な型変換＋複数パターン対応 ---
+    let summary = '';
+    try {
+      if (typeof raw === 'string') {
+        // JSON文字列ならパース
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = null;
+        }
+        if (parsed && typeof parsed === 'object') {
+          summary =
+            parsed.summary ||
+            parsed.content ||
+            parsed.reflection ||
+            JSON.stringify(parsed);
+        } else {
+          summary = raw.trim();
+        }
+      } else if (typeof raw === 'object' && raw !== null) {
+        summary =
+          raw.summary || raw.content || raw.reflection || JSON.stringify(raw);
+      } else {
+        summary = String(raw ?? '').trim();
+      }
+    } catch (e) {
+      summary = typeof raw === 'string' ? raw.trim() : JSON.stringify(raw);
+    }
+
+    // 万が一空ならプレースホルダ
+    if (!summary) summary = '（最終まとめの出力に失敗しました）';
+
+    return summary;
   }
 }
