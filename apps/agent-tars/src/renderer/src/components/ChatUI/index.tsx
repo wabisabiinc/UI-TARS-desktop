@@ -1,5 +1,3 @@
-// ===== apps/agent-tars/src/renderer/src/ChatUI/index.tsx =====
-
 import { ChatUI as BaseChatUI, InputFile } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';
@@ -43,7 +41,7 @@ export function OpenAgentChatUI() {
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // プラン生成完了 or エラーで解除
+  // プラン生成完了 or エラーで入力ロック解除
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -76,7 +74,7 @@ export function OpenAgentChatUI() {
     [addUserMessage, launchAgentFlow],
   );
 
-  // 初期読み込み
+  // 初期メッセージ & イベント
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -88,11 +86,12 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
-  // セッションがないときは Welcome 画面
+  // セッション未選択時はウェルカム
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
 
+  // プラン生成エラー表示
   const renderError = () =>
     !isSending &&
     planTasks.length === 0 &&
@@ -110,17 +109,22 @@ export function OpenAgentChatUI() {
       }}
       disableInput={isReportHtmlMode}
       ref={chatUIRef}
+      // ←━ 修正ポイント ━→
       customMessageRender={(message) => {
         const msg = message as MessageItem;
-        // OmegaAgent → プランバブル
+
+        // ① OmegaAgent 用バブル（Plan ステップの可視化）
         if (msg.type === MessageType.OmegaAgent) {
           return <AgentFlowMessage message={msg} />;
         }
-        // PlainText → 通常チャット
-        if (msg.type === MessageType.PlainText) {
+
+        // ② assistant ロールのテキスト全般を描画
+        if (msg.role === 'assistant') {
           return renderMessageUI({ message: msg });
         }
-        return null;
+
+        // ③ そのほかは default 描画にフォールバック
+        return undefined;
       }}
       isDark={isDarkMode.value}
       onMessageSend={sendMessage}
