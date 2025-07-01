@@ -90,7 +90,7 @@ export class Greeter {
   }
 
   /**
-   * 全ステップ完了後の最終まとめを取得する（string/JSONどちらも安全対応）
+   * 全ステップ完了後の最終まとめを取得する
    */
   public async generateFinalSummary(): Promise<string> {
     const systemPrompt = `
@@ -98,6 +98,7 @@ export class Greeter {
 もっともわかりやすい「最終回答」を日本語でコンパクトに（500字以内で）提供してください。
 `;
 
+    // 返り値が「string or { content: string } or { reflection: string }」に対応
     const raw = await ipcClient.askLLMTool({
       model: 'gpt-4o',
       messages: [
@@ -109,39 +110,29 @@ export class Greeter {
       requestId: uuid(),
     });
 
-    // --- 安全な型変換＋複数パターン対応 ---
-    let summary = '';
-    try {
-      if (typeof raw === 'string') {
-        // JSON文字列ならパース
-        let parsed: any = null;
-        try {
-          parsed = JSON.parse(raw);
-        } catch {
-          parsed = null;
-        }
-        if (parsed && typeof parsed === 'object') {
-          summary =
-            parsed.summary ||
-            parsed.content ||
-            parsed.reflection ||
-            JSON.stringify(parsed);
-        } else {
-          summary = raw.trim();
-        }
-      } else if (typeof raw === 'object' && raw !== null) {
-        summary =
-          raw.summary || raw.content || raw.reflection || JSON.stringify(raw);
-      } else {
-        summary = String(raw ?? '').trim();
+    // ---- ここから robust な処理 ----
+    // string形式
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.content) return String(parsed.content).trim();
+        if (parsed.reflection) return String(parsed.reflection).trim();
+        return raw.trim();
+      } catch {
+        return raw.trim();
       }
-    } catch (e) {
-      summary = typeof raw === 'string' ? raw.trim() : JSON.stringify(raw);
     }
-
-    // 万が一空ならプレースホルダ
-    if (!summary) summary = '（最終まとめの出力に失敗しました）';
-
-    return summary;
+    // object形式（AskLLMResult想定 or reflection系）
+    if (raw && typeof raw === 'object') {
+      if ('content' in raw && typeof raw.content === 'string') {
+        return raw.content.trim();
+      }
+      if ('reflection' in raw && typeof raw.reflection === 'string') {
+        return raw.reflection.trim();
+      }
+      return JSON.stringify(raw).trim();
+    }
+    // それ以外
+    return String(raw).trim();
   }
 }
