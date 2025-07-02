@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
 import { v4 as uuid } from 'uuid';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
@@ -11,6 +10,7 @@ import { GlobalEvent, globalEventEmitter } from '@renderer/state/chat';
 import { Greeter } from './Greeter';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 import { EventItem } from '@renderer/type/event';
+import { MessageRole } from '@vendor/chat-ui';
 
 export interface AgentContext {
   plan: PlanTask[];
@@ -151,7 +151,7 @@ export class AgentFlow {
           result.plan.map((p, i) => ({
             id: p.id ?? `${i + 1}`,
             title: p.title!,
-            status: PlanTaskStatus.Done, // 'done'
+            status: PlanTaskStatus.Done,
           })),
         );
         // 2. 少しだけUIに表示させてから最終まとめ→UIリセット
@@ -171,7 +171,7 @@ export class AgentFlow {
           setPlanTasks([]);
           setAgentStatusTip('');
           setEvents([]);
-        }, 800); // 0.8秒で確実にUIが反映される
+        }, 800);
         break;
       }
 
@@ -204,24 +204,38 @@ export class AgentFlow {
     appContext: AppContext,
     agentContext: AgentContext,
   ): string {
-    const pendingInit = agentContext.plan.length === 0;
-    const step = agentContext.currentStep;
-    const task = agentContext.plan[step - 1]?.title ?? '';
-    return `
-Event stream result history:
-${this.eventManager.normalizeEventsForPrompt()}
+    // チャット履歴を "User: ..." / "Assistant: ..." 形式で取得
+    const chatHistory = appContext.chatUtils.messages
+      .map((m) => {
+        const who = m.role === MessageRole.Assistant ? 'Assistant' : 'User';
+        return `${who}: ${m.content}`;
+      })
+      .join('\n');
 
-The user original input: ${appContext.request.inputText}
+    // イベント履歴
+    const eventText = this.eventManager.normalizeEventsForPrompt();
+
+    // ユーザーの原文入力
+    const original = appContext.request.inputText;
+
+    return `
+Chat history:
+${chatHistory}
+
+Event stream result history:
+${eventText}
+
+The user original input: ${original}
 
 ${
-  pendingInit
+  agentContext.plan.length === 0
     ? 'Plan: None'
     : `Plan:
-${agentContext.plan.map((item) => `  - [${item.id}] ${item.title}`).join('\n')}
+${agentContext.plan.map((p) => `  - [${p.id}] ${p.title}`).join('\n')}
 
-Current step: ${step}
+Current step: ${agentContext.currentStep}
 
-Current task: ${task}`
+Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
 }
 `.trim();
   }
