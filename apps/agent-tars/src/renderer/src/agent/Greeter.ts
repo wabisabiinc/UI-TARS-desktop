@@ -16,24 +16,24 @@ export class Greeter {
       let greetMessage = '';
       const inputText = this.appContext.request.inputText;
 
+      const systemPrompt = `
+You are a highly skilled, empathetic AI assistant specialized in initiating engaging and friendly conversations. Your objectives:
+- Greet the user warmly and professionally, demonstrating genuine empathy and readiness to help.
+- Keep the greeting concise (under 2 sentences) and avoid technical jargon or markdown.
+- Use a small, appropriate emoji to enhance friendliness, but do not overuse.
+- Reflect the user’s query context in your greeting (e.g., "I see you want to …").
+- Maintain a positive, enthusiastic tone without fluff.
+- Do NOT include headings, lists, or special formatting—just plain text.
+`;
       const streamId = await ipcClient.askLLMTextStream({
         messages: [
-          Message.systemMessage(`
-            You are a friendly greeter. Your role is to:
-            - Understand and empathize with users first
-            - Provide a warm, professional response
-            - Add a small amount of emoji to enhance the atmosphere
-            - Keep your greeting brief and encouraging
-            - Be enthusiastic and positive
-            - Let the user know you're ready to help them
-            - Returns normal text instead of markdown format or html format
-          `),
+          Message.systemMessage(systemPrompt),
           Message.userMessage(inputText),
         ],
-        requestId: Math.random().toString(36).substring(7),
+        requestId: Math.random().toString(36).substring(2),
       });
 
-      // 小さくウェイトを入れてバブル描画用の空メッセージを挿入
+      // 初期バブル用の空メッセージ
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       return new Promise<string>((resolve, reject) => {
@@ -42,17 +42,13 @@ export class Greeter {
           resolve('');
           return;
         }
-
         let aborted = false;
-        const cleanupTerminate = () => {
-          globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
-        };
         const onTerm = (event: any) => {
           if (event.type === 'terminate') {
             ipcClient.abortRequest({ requestId: streamId });
             aborted = true;
             resolve(greetMessage);
-            cleanupTerminate();
+            globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
           }
         };
         globalEventEmitter.addListener(this.appContext.agentFlowId, onTerm);
@@ -62,21 +58,18 @@ export class Greeter {
             if (aborted) return;
             greetMessage += chunk;
             await this.appContext.chatUtils.updateMessage(
-              {
-                type: MessageType.PlainText,
-                content: greetMessage,
-              },
+              { type: MessageType.PlainText, content: greetMessage },
               { shouldSyncStorage: true },
             );
           },
           onError: (err) => {
             reject(err);
-            cleanupTerminate();
+            globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
             cleanupStream();
           },
-          onEnd: async () => {
+          onEnd: () => {
             resolve(greetMessage);
-            cleanupTerminate();
+            globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
             cleanupStream();
           },
         });
@@ -89,42 +82,37 @@ export class Greeter {
 
   /** 全ステップ完了後の最終まとめをプレーンテキストで取得 */
   public async generateFinalSummary(): Promise<string> {
-    // プランと進捗をプレーンテキスト化
     const planSummary =
       this.appContext.agentContext?.plan
         ?.map((p, i) => `【${i + 1}】${p.title}`)
         .join('\n') ?? '';
 
-    // 要約専用プロンプト（通常テキスト出力）
     const systemPrompt = `
-あなたはドキュメント要約の専門家です。
-以下のユーザーのリクエストとプラン進捗を参考に、最終的な要約を日本語で500字以内で簡潔に返してください。
-回答は必ず通常のテキスト形式（JSONやマークダウンなし）でお願いします。
----
+You are a world-class professional AI summarizer. Your task:
+- Read the user’s original request and the detailed plan steps completed so far.
+- Produce a final summary in Japanese, concise (max 5000 characters), clear, and    actionable.
+- Highlight key takeaways and next recommended actions in a numbered or bullet format.
+- Write only plain text—no markdown, JSON, or special formatting.
+- Use polite, professional language suitable for business contexts.
+
 【ユーザーのリクエスト】
 ${this.appContext.request.inputText}
 
 【プラン進捗】
 ${planSummary}
-    `.trim();
-
-    // ブラウザ/Electron を自動切り替えするラッパーを使用
+`;
     const raw = await askLLMTool({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content: 'これまでの流れを踏まえて、結論・まとめを教えてください。',
-        },
+        { role: 'user', content: 'これまでの内容をまとめてください。' },
       ],
     });
 
-    // AskLLMResult.content に本文が入る
     if (raw && typeof raw.content === 'string') {
       return raw.content.trim();
     }
     console.warn('[Greeter] Unexpected summary response:', raw);
-    return JSON.stringify(raw ?? {}).trim();
+    return String(raw ?? '').trim();
   }
 }

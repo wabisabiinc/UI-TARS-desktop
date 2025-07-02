@@ -24,8 +24,6 @@ import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
-import { PlanTaskStatus } from './PlanTaskStatus';
-import { StatusBar } from './StatusBar';
 import { AgentFlowMessage } from '../AgentFlowMessage';
 
 export function OpenAgentChatUI() {
@@ -42,7 +40,7 @@ export function OpenAgentChatUI() {
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // プラン生成の完了／失敗で送信中フラグを戻す
+  // プラン生成完了/失敗で送信中フラグを戻す
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -52,11 +50,10 @@ export function OpenAgentChatUI() {
     }
   }, [planTasks, agentStatusTip]);
 
-  // onMessageSend: ここだけ元に戻します
+  // メッセージ送信ハンドラ
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       try {
-        // 入力欄ロック
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = true;
@@ -64,13 +61,12 @@ export function OpenAgentChatUI() {
         }
         setIsSending(true);
 
-        // 1) ユーザー発言を UI に追加
+        // ユーザー発言を追加
         await addUserMessage(inputText, inputFiles);
 
-        // 2) AgentFlow を起動（AgentFlow → Aware → Executor の一連処理）
+        // AgentFlow を起動
         await launchAgentFlow(inputText, inputFiles);
       } finally {
-        // アンロック
         setIsSending(false);
         const inputEle2 = chatUIRef.current?.getInputTextArea?.();
         if (inputEle2) {
@@ -82,7 +78,7 @@ export function OpenAgentChatUI() {
     [addUserMessage, launchAgentFlow],
   );
 
-  // 初期メッセージの読み込みと履歴イベント設定
+  // 初期メッセージ読み込み
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -97,15 +93,6 @@ export function OpenAgentChatUI() {
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
-
-  const renderError = () =>
-    !isSending &&
-    planTasks.length === 0 &&
-    ['No plan', 'Failed', 'Error'].includes(agentStatusTip) ? (
-      <div style={{ color: 'red', padding: 8 }}>
-        プランの生成に失敗しました。もう一度お試しください。
-      </div>
-    ) : null;
 
   return (
     <BaseChatUI
@@ -128,9 +115,8 @@ export function OpenAgentChatUI() {
       isDark={isDarkMode.value}
       onMessageSend={sendMessage}
       storageDbName={STORAGE_DB_NAME}
-      features={{ clearConversationHistory: true, uploadFiles: false }}
+      features={{ clearConversationHistory: false, uploadFiles: false }}
       onMessageAbort={() => {
-        // ユーザーが中断したとき
         setIsSending(false);
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
@@ -145,21 +131,9 @@ export function OpenAgentChatUI() {
       }}
       onClearConversationHistory={() => setEvents([])}
       slots={{
-        beforeMessageList: (
-          <>
-            <MenuHeader />
-            <StatusBar />
-            <PlanTaskStatus />
-            {isInitialized && messages.length === 0 && <WelcomeScreen />}
-            {renderError()}
-          </>
-        ),
-        beforeInputContainer: <BeforeInputContainer />,
-        customFeatures: (
-          <div className="flex gap-2">
-            {isSending ? <AgentStatusTip /> : null}
-          </div>
-        ),
+        beforeMessageList: <MenuHeader />,
+        beforeInputContainer: null,
+        customFeatures: null,
       }}
       classNames={{ messageList: 'scrollbar' }}
       conversationId={currentSessionId || 'default'}
