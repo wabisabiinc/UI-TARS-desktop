@@ -15,7 +15,6 @@ export interface AwareResult {
 export class Aware {
   private signal: AbortSignal;
 
-  // ------ ここが最大の修正ポイント ------
   private readonly prompt = `
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
 Return only a raw JSON object with the following keys:
@@ -24,11 +23,10 @@ Return only a raw JSON object with the following keys:
   • status (string)          ← "in-progress" for intermediate steps, "completed" **MUST BE SET if step is equal to the number of items in plan**
   • plan (array of { id: string, title: string })
 
-RULE: When "step" is equal to plan.length, set "status" to "completed".
-For all other steps, set "status" to "in-progress".
+RULE: When "step" is equal to plan.length, set "status" to "completed".  
+For all other steps, set "status" to "in-progress".  
 Do NOT wrap your output in markdown or include any extra text or explanation.
   `.trim();
-  // --------------------------------------
 
   constructor(
     private appContext: AppContext,
@@ -77,25 +75,23 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
     console.log('[Aware] ▶︎ run start, aborted=', this.signal.aborted);
     if (this.signal.aborted) return this.getDefaultResult();
 
-    // 環境情報
+    // 1) 環境情報取得
     const envInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
 
-    // モデル決定
+    // 2) モデル・ツールリスト準備
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
       : import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o';
-
-    // ツール一覧
     const available = (await listTools()) || [];
     const toolList = available
       .map((t) => `${t.name}: ${t.description}`)
       .join(', ');
 
-    // プロンプト組み立て
+    // 3) プロンプト組み立て → LLM 呼び出し
     const messages = [
       Message.systemMessage(this.prompt),
       Message.systemMessage(`Available tools: ${toolList}`),
@@ -104,48 +100,60 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
         'Please analyze the environment and plan the next step in JSON format.',
       ),
     ];
-    const apiPayload = messages.map((m) => ({
-      role: m.role as 'system' | 'user',
-      content: m.content,
-    }));
-
-    console.log('[Aware] → askLLMTool', { model, messages: apiPayload });
-    const raw = await askLLMTool({ model, messages: apiPayload });
-    const content = raw?.content || '';
+    console.log('[Aware] → askLLMTool', { model, messages });
+    const raw = await askLLMTool({
+      model,
+      messages: messages.map((m) => ({
+        role: m.role as any,
+        content: m.content,
+      })),
+    });
+    const content = raw?.content?.trim() || '';
     console.log('[Aware] ← askLLMTool content=', content);
 
-    // JSON 抽出
-    const parsed = Aware.safeParse<AwareResult>(content) || null;
-    const resultPlan: PlanTask[] = [];
-    let step = parsed?.step || 1;
+    // ★★ safeParse が null を返したら → プレーンテキスト応答とみなしてフォールバック ★★
+    const parsed = Aware.safeParse<AwareResult>(content);
+    if (!parsed) {
+      return {
+        reflection: '',
+        step: 1,
+        status: 'completed',
+        plan: [
+          {
+            id: '1',
+            title: content,
+          },
+        ],
+      };
+    }
 
-    // status正規化
-    let status = parsed?.status?.toLowerCase() || 'in-progress';
+    // 4) 通常の JSON パース成功時
+    const resultPlan: PlanTask[] = [];
+    let step = parsed.step || 1;
+    let status = parsed.status.toLowerCase();
     if (['pending', 'executing', 'running', 'in progress'].includes(status)) {
       status = 'in-progress';
     }
-
-    if (parsed?.plan) {
+    if (parsed.plan) {
       const arr = Array.isArray(parsed.plan) ? parsed.plan : [parsed.plan];
       arr.forEach((t) => {
         if (t && typeof t.title === 'string') {
           resultPlan.push({
             ...t,
-            id: typeof t.id === 'string' ? t.id : String(resultPlan.length + 1),
+            id: typeof t.id === 'string' ? t.id : `${resultPlan.length + 1}`,
           });
         }
       });
     }
-
-    // --- 最終step到達時は必ず"completed"にする。途中でcompletedは認めない ---
+    // 最終ステップ到達時は必ず completed
     if (step >= resultPlan.length && resultPlan.length > 0) {
       status = 'completed';
-    } else {
-      if (status === 'completed') status = 'in-progress';
+    } else if (status === 'completed') {
+      status = 'in-progress';
     }
 
     return {
-      reflection: parsed?.reflection || '',
+      reflection: parsed.reflection || '',
       step,
       status,
       plan: resultPlan,
