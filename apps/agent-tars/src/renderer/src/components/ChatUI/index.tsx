@@ -25,6 +25,8 @@ import { WelcomeScreen } from '../WelcomeScreen';
 import { PlanTaskStatus } from './PlanTaskStatus';
 import { StatusBar } from './StatusBar';
 import { AgentFlowMessage } from '../AgentFlowMessage';
+
+// ここを追加
 import { askLLMTool } from '@renderer/api';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
@@ -41,33 +43,37 @@ export function OpenAgentChatUI() {
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
   const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // 送信ハンドラを AgentFlow ではなく、LLM へ直接投げる簡易版に差し替え
+  // ——— ここを修正 ———
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
-      try {
-        // 入力欄をロック
-        const inputEle = chatUIRef.current?.getInputTextArea?.();
-        if (inputEle) {
-          inputEle.disabled = true;
-          inputEle.style.cursor = 'not-allowed';
-        }
-        setIsSending(true);
+      // 入力欄ロック
+      const inputEle = chatUIRef.current?.getInputTextArea?.();
+      if (inputEle) {
+        inputEle.disabled = true;
+        inputEle.style.cursor = 'not-allowed';
+      }
+      setIsSending(true);
 
+      try {
         // 1) ユーザー発言を UI に追加
         await addUserMessage(inputText, inputFiles);
 
-        // 2) 既存の全メッセージ履歴を API ペイロードに変換
-        const payload = messages.map((m) => ({
-          role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
-          content: m.content as string,
-        }));
+        // 2) 既存履歴を map → payload に変換し、
+        //    必ず直前のユーザー入力を push して空配列を防止
+        const historyPayload = [
+          ...messages.map((m) => ({
+            role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
+            content: m.content as string,
+          })),
+          { role: 'user', content: inputText },
+        ];
 
         // 3) LLM 呼び出し
         const raw = await askLLMTool({
           model: 'gpt-4o',
-          messages: payload,
+          messages: historyPayload,
         });
-        const reply = raw?.content?.trim() || '（応答がありませんでした）';
+        const reply = raw?.content?.trim() || '（応答が得られませんでした）';
 
         // 4) アシスタント応答を UI に追加
         chatUIRef.current?.addMessage(
@@ -75,17 +81,18 @@ export function OpenAgentChatUI() {
           { shouldSyncStorage: true, shouldScrollToBottom: true },
         );
       } finally {
-        // 入力欄をアンロック
+        // 入力欄アンロック
         setIsSending(false);
-        const inputEle = chatUIRef.current?.getInputTextArea?.();
-        if (inputEle) {
-          inputEle.disabled = false;
-          inputEle.style.cursor = 'auto';
+        const inputEle2 = chatUIRef.current?.getInputTextArea?.();
+        if (inputEle2) {
+          inputEle2.disabled = false;
+          inputEle2.style.cursor = 'auto';
         }
       }
     },
     [addUserMessage, messages],
   );
+  // ————————————————
 
   // 初期メッセージ読み込み
   useEffect(() => {
@@ -99,7 +106,7 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
-  // 送信中ステータス解除制御（旧プランUI用のフラグクリア）
+  // 送信中ステータス解除制御（旧プランUI用）
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -146,13 +153,12 @@ export function OpenAgentChatUI() {
       features={{ clearConversationHistory: true, uploadFiles: false }}
       onMessageAbort={() => {
         setIsSending(false);
-        const inputEle = chatUIRef.current?.getInputTextArea?.();
-        if (inputEle) {
-          inputEle.disabled = false;
-          inputEle.style.cursor = 'auto';
+        const inputEle3 = chatUIRef.current?.getInputTextArea?.();
+        if (inputEle3) {
+          inputEle3.disabled = false;
+          inputEle3.style.cursor = 'auto';
         }
         if (currentAgentFlowIdRef.current) {
-          // 旧 AgentFlow 用の中断イベントも安全に飛ばしておく
           globalEventEmitter.emit(currentAgentFlowIdRef.current, {
             type: 'terminate',
           });
