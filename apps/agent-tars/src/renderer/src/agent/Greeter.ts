@@ -93,39 +93,43 @@ export class Greeter {
    * 全ステップ完了後の最終まとめを取得する
    */
   public async generateFinalSummary(): Promise<string> {
-    // 最終まとめは必ず「テキストのみ」で返すようプロンプトを厳格化
+    // プランと進捗をテキスト化（日本語）
+    const planSummary =
+      this.appContext.agentContext?.plan
+        ?.map((p, i) => `【${i + 1}】${p.title}`)
+        .join('\n') ?? '';
+
     const systemPrompt = `
-あなたは優秀なアシスタントです。以下のユーザーのリクエストに対し、
-もっともわかりやすい「最終回答」を日本語でコンパクトに（200字以内で）提供してください。
-- JSONやマークダウンや番号リスト形式は禁止です
-- 必ず文章のみ（日本語のテキストだけ）で答えてください
+あなたは優秀なアシスタントです。以下のユーザーのリクエストとプラン進捗を参考に、最終的な要約を日本語で200字以内で簡潔に返してください。
+- 回答は必ず通常のテキスト形式（JSONやマークダウンなし）で返してください。
+---
+【ユーザーのリクエスト】
+${this.appContext.request.inputText}
+
+【プラン進捗】
+${planSummary}
     `.trim();
 
-    const userText = `ユーザーのリクエスト: ${this.appContext.request.inputText}`;
-
-    // askLLMToolは通常のmessages形式で投げる
     const raw = await ipcClient.askLLMTool({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userText },
+        {
+          role: 'user',
+          content: 'これまでの流れを踏まえて、結論・まとめを教えてください。',
+        },
       ],
       requestId: uuid(),
     });
 
-    // 返却値（string or { content: string } 形式に両対応）
-    let content: string | undefined =
-      typeof raw === 'string' ? raw : raw?.content;
-
-    // contentが空 or JSONっぽい場合はエラーとして出す
-    if (
-      !content ||
-      /^\s*\{/.test(content.trim()) ||
-      /^\s*\[/.test(content.trim()) ||
-      /("plan"|^\s*\{.*\bplan\b.*\})/i.test(content)
-    ) {
-      return '（最終まとめの出力に失敗しました。要約指示にplan JSONが返ってきました）';
+    // contentがテキストで返ることを期待
+    if (typeof raw === 'string') {
+      return raw.trim();
     }
-    return content.trim();
+    if (typeof raw?.content === 'string') {
+      return raw.content.trim();
+    }
+    // 万一JSONが返る場合のフォールバック
+    return JSON.stringify(raw).trim();
   }
 }
