@@ -1,10 +1,8 @@
-import { v4 as uuid } from 'uuid';
 import { MessageType } from '@vendor/chat-ui';
 import { Message } from '@agent-infra/shared';
-import { ipcClient, onMainStreamEvent } from '@renderer/api';
+import { askLLMTool, ipcClient, onMainStreamEvent } from '@renderer/api';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { globalEventEmitter } from '@renderer/state/chat';
-import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
 
 export class Greeter {
   constructor(
@@ -110,7 +108,8 @@ ${this.appContext.request.inputText}
 ${planSummary}
     `.trim();
 
-    const raw = await ipcClient.askLLMTool({
+    // ブラウザ/Electron を自動切り替えするラッパーを使用
+    const raw = await askLLMTool({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -119,13 +118,9 @@ ${planSummary}
           content: 'これまでの流れを踏まえて、結論・まとめを教えてください。',
         },
       ],
-      requestId: uuid(),
     });
 
-    // プレーンテキスト抽出 & フォールバック
-    if (typeof raw === 'string') {
-      return raw.trim();
-    }
+    // AskLLMResult.content に本文が入る
     if (raw && typeof raw.content === 'string') {
       return raw.content.trim();
     }
