@@ -13,7 +13,7 @@ export class Greeter {
   ) {}
 
   /** 起動時のあいさつをストリーミングで返す */
-  async run() {
+  async run(): Promise<string> {
     try {
       let greetMessage = '';
       const inputText = this.appContext.request.inputText;
@@ -84,24 +84,24 @@ export class Greeter {
         });
       });
     } catch (e) {
-      console.error(e);
+      console.error('[Greeter] run error:', e);
       throw e;
     }
   }
 
-  /**
-   * 全ステップ完了後の最終まとめを取得する
-   */
+  /** 全ステップ完了後の最終まとめをプレーンテキストで取得 */
   public async generateFinalSummary(): Promise<string> {
-    // プランと進捗をテキスト化（日本語）
+    // プランと進捗をプレーンテキスト化
     const planSummary =
       this.appContext.agentContext?.plan
         ?.map((p, i) => `【${i + 1}】${p.title}`)
         .join('\n') ?? '';
 
+    // 要約専用プロンプト（通常テキスト出力）
     const systemPrompt = `
-あなたは優秀なアシスタントです。以下のユーザーのリクエストとプラン進捗を参考に、最終的な要約を日本語で200字以内で簡潔に返してください。
-- 回答は必ず通常のテキスト形式（JSONやマークダウンなし）で返してください。
+あなたはドキュメント要約の専門家です。
+以下のユーザーのリクエストとプラン進捗を参考に、最終的な要約を日本語で500字以内で簡潔に返してください。
+回答は必ず通常のテキスト形式（JSONやマークダウンなし）でお願いします。
 ---
 【ユーザーのリクエスト】
 ${this.appContext.request.inputText}
@@ -122,14 +122,14 @@ ${planSummary}
       requestId: uuid(),
     });
 
-    // contentがテキストで返ることを期待
+    // プレーンテキスト抽出 & フォールバック
     if (typeof raw === 'string') {
       return raw.trim();
     }
-    if (typeof raw?.content === 'string') {
+    if (raw && typeof raw.content === 'string') {
       return raw.content.trim();
     }
-    // 万一JSONが返る場合のフォールバック
-    return JSON.stringify(raw).trim();
+    console.warn('[Greeter] Unexpected summary response:', raw);
+    return JSON.stringify(raw ?? {}).trim();
   }
 }
