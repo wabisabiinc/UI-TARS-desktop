@@ -7,6 +7,7 @@ import {
   getSessions,
   updateSession,
 } from '@renderer/services/chatSessionStorage';
+import { generateSessionTitle } from '@renderer/utils/sessionTitle'; // ←追加
 
 // Create atoms for each app's chat sessions and current session ID
 const createAppAtoms = () => {
@@ -79,8 +80,13 @@ export function useChatSessions({
   );
 
   const addNewSession = useCallback(
-    async (sessionData: Omit<ChatSession, 'id'>) => {
-      const newSession = await createSession(sessionData);
+    async (sessionData: Omit<ChatSession, 'id'> & { prompt?: string }) => {
+      // タイトル自動生成
+      let name = sessionData.name;
+      if (!name || name === 'New session' || name === 'New Session') {
+        name = generateSessionTitle(sessionData.prompt || '');
+      }
+      const newSession = await createSession({ ...sessionData, name });
       setChatSessions((sessions) => [...sessions, newSession]);
       updateCurrentSessionId(newSession.id!);
     },
@@ -135,9 +141,10 @@ export function useChatSessions({
           updateCurrentSessionId(sessions[sessions.length - 1].id!);
         }
       } else {
+        // 初回セッションタイトル自動化
         const defaultSession = await createSession({
           appId,
-          name: 'New session',
+          name: generateSessionTitle(''),
           messageCount: 0,
           origin,
         });

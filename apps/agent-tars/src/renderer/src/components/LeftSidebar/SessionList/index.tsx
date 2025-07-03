@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   isToday,
   isYesterday,
@@ -44,6 +44,18 @@ export function SessionList({
   onDeleteSession,
   onClick,
 }: SessionListProps) {
+  // --- 追加: 検索用のstate ---
+  const [search, setSearch] = useState('');
+
+  // --- 検索ワードに合致するセッションだけ表示 ---
+  const filteredSessions = useMemo(
+    () =>
+      sessions.filter((s) =>
+        s.name.toLowerCase().includes(search.trim().toLowerCase()),
+      ),
+    [sessions, search],
+  );
+
   const groupedSessions = useMemo(() => {
     const groups: GroupedSessions[] = [
       { title: 'Today', sessions: [] },
@@ -56,7 +68,7 @@ export function SessionList({
 
     const lastWeekStart = subWeeks(new Date(), 1);
 
-    sessions.forEach((session) => {
+    filteredSessions.forEach((session) => {
       const date = new Date(session.updatedAt!);
 
       if (isToday(date)) {
@@ -83,7 +95,7 @@ export function SessionList({
     });
 
     return groups.filter((group) => group.sessions.length > 0);
-  }, [sessions]);
+  }, [filteredSessions]);
 
   if (sessions.length === 0) {
     return (
@@ -93,8 +105,36 @@ export function SessionList({
     );
   }
 
+  // --- 検索ボックスとクリアボタンUIを追加 ---
   return (
     <div className="space-y-6">
+      <div className="p-2">
+        <div className="relative">
+          <input
+            type="text"
+            className="w-full rounded px-3 py-1 text-sm border border-gray-300 dark:bg-gray-800 dark:text-white"
+            placeholder="履歴を検索..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              onClick={() => setSearch('')}
+              tabIndex={-1}
+            >
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+
+      {groupedSessions.length === 0 && (
+        <div className="px-3 py-2 text-sm text-gray-400">
+          該当する履歴はありません
+        </div>
+      )}
+
       {groupedSessions.map((group) => (
         <div key={group.title} className="space-y-1">
           <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400">

@@ -1,6 +1,7 @@
 import localforage from 'localforage';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatSession } from '@renderer/components/LeftSidebar/type';
+import { generateSessionTitle } from '@renderer/utils/sessionTitle'; // ←追加
 
 const chatSessionsStore = localforage.createInstance({
   name: 'chatSessions',
@@ -24,8 +25,20 @@ export async function createSession(
   sessionData: Omit<ChatSession, 'id'>,
 ): Promise<ChatSession> {
   try {
+    // ★タイトル自動生成
+    let sessionName = sessionData.name;
+    if (
+      !sessionName ||
+      sessionName === 'New session' ||
+      sessionName === 'New Session'
+    ) {
+      // 「prompt」や「lastMessage」的なフィールドがある場合はここに
+      // 例: const prompt = sessionData.prompt || '';
+      sessionName = '新しいセッション';
+    }
     const newSession: ChatSession = {
       ...sessionData,
+      name: sessionName,
       id: uuidv4(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
