@@ -31,7 +31,7 @@ import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
   const [hasRunFlow, setHasRunFlow] = useState(false);
-  const [showPlanUI, setShowPlanUI] = useState(true);
+  const [showPlanUI, setShowPlanUI] = useState(false); // プランUIは最初から非表示
   const [isInitialized, setIsInitialized] = useState(false);
 
   const addUserMessage = useAddUserMessage();
@@ -58,7 +58,10 @@ export function OpenAgentChatUI() {
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
-      setShowPlanUI(true);
+      // 新しいプロンプト送信時はプランUIを再表示（初回だけ）
+      setShowPlanUI(!hasRunFlow);
+
+      // 入力ロック
       const inputEle = chatUIRef.current?.getInputTextArea?.();
       if (inputEle) {
         inputEle.disabled = true;
@@ -72,6 +75,7 @@ export function OpenAgentChatUI() {
           setHasRunFlow(true);
           await launchAgentFlow(inputText, inputFiles);
         } else {
+          // 2回目以降は通常チャット
           const historyPayload = [
             ...messages.map((m) => ({
               role: m.role === MessageRole.Assistant ? 'assistant' : 'user',

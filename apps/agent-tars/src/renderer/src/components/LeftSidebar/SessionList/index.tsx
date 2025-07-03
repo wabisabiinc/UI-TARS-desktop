@@ -51,7 +51,7 @@ export function SessionList({
   const filteredSessions = useMemo(
     () =>
       sessions.filter((s) =>
-        s.name.toLowerCase().includes(search.trim().toLowerCase()),
+        (s.name || '').toLowerCase().includes(search.trim().toLowerCase()),
       ),
     [sessions, search],
   );
@@ -69,7 +69,9 @@ export function SessionList({
     const lastWeekStart = subWeeks(new Date(), 1);
 
     filteredSessions.forEach((session) => {
-      const date = new Date(session.updatedAt!);
+      // --- updatedAtがなければスキップ ---
+      if (!session.updatedAt) return;
+      const date = new Date(session.updatedAt);
 
       if (isToday(date)) {
         groups[0].sessions.push(session);
@@ -88,8 +90,8 @@ export function SessionList({
 
     groups.forEach((group) => {
       group.sessions.sort((a, b) => {
-        const dateA = new Date(a.updatedAt!).getTime();
-        const dateB = new Date(b.updatedAt!).getTime();
+        const dateA = new Date(a.updatedAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || 0).getTime();
         return dateB - dateA;
       });
     });
