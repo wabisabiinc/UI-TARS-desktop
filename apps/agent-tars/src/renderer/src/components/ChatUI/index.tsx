@@ -43,7 +43,11 @@ export function OpenAgentChatUI() {
   const [planTasks] = useAtom(planTasksAtom);
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
-  const { currentSessionId } = useChatSessions({ appId: DEFAULT_APP_ID });
+
+  // ← ここでuseChatSessionsから関数取得
+  const { currentSessionId, updateChatSession } = useChatSessions({
+    appId: DEFAULT_APP_ID,
+  });
 
   // プラン生成完了／失敗時にプランUIを隠し、送信中フラグをリセット
   useEffect(() => {
@@ -71,16 +75,31 @@ export function OpenAgentChatUI() {
 
       try {
         await addUserMessage(inputText, inputFiles);
+
+        // ←1回目の送信時のみタイトル自動上書き
+        if (!hasRunFlow && currentSessionId) {
+          const newTitle =
+            inputText.trim().slice(0, 24) +
+            (inputText.length > 24 ? '...' : '');
+          await updateChatSession(currentSessionId, { name: newTitle });
+        }
+
         if (!hasRunFlow) {
           setHasRunFlow(true);
           await launchAgentFlow(inputText, inputFiles);
         } else {
           // 2回目以降は通常チャット
           const historyPayload = [
-            ...messages.map((m) => ({
-              role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
-              content: m.content as string,
-            })),
+            ...messages
+              .filter(
+                (m) =>
+                  m.type === MessageType.PlainText &&
+                  typeof m.content === 'string',
+              )
+              .map((m) => ({
+                role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
+                content: m.content,
+              })),
             { role: 'user', content: inputText },
           ];
           const raw = await askLLMTool({
@@ -103,7 +122,14 @@ export function OpenAgentChatUI() {
         }
       }
     },
-    [addUserMessage, launchAgentFlow, hasRunFlow, messages],
+    [
+      addUserMessage,
+      launchAgentFlow,
+      hasRunFlow,
+      messages,
+      currentSessionId,
+      updateChatSession,
+    ],
   );
 
   // 初期メッセージと履歴イベントの読み込み

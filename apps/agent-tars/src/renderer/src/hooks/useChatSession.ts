@@ -7,9 +7,8 @@ import {
   getSessions,
   updateSession,
 } from '@renderer/services/chatSessionStorage';
-import { generateSessionTitle } from '@renderer/utils/sessionTitle'; // ←追加
+import { generateSessionTitle } from '@renderer/utils/sessionTitle';
 
-// Create atoms for each app's chat sessions and current session ID
 const createAppAtoms = () => {
   const chatSessionsAtom = atom<ChatSession[]>([]);
   const currentSessionIdAtom = atom<string | null>(null);
@@ -19,7 +18,6 @@ const createAppAtoms = () => {
   return { chatSessionsAtom, currentSessionIdAtom, initStateRefAtom };
 };
 
-// Create a map to store atoms for each app
 const appAtomsMap = new Map<string, ReturnType<typeof createAppAtoms>>();
 
 export function useChatSessions({
@@ -41,13 +39,12 @@ export function useChatSessions({
   const [currentSessionId, setCurrentSessionId] = useAtom(currentSessionIdAtom);
   const [initStateRef] = useAtom(initStateRefAtom);
 
+  // タイトル未入力時は必ず「新しいセッション」で保存
   const updateChatSession = useCallback(
     async (
       sessionId: string,
       newSessionData: Partial<ChatSession>,
-      options: {
-        shouldSyncRemote: boolean;
-      } = { shouldSyncRemote: true },
+      options: { shouldSyncRemote: boolean } = { shouldSyncRemote: true },
     ) => {
       if (options.shouldSyncRemote) {
         await updateSession(sessionId, newSessionData);
@@ -58,6 +55,11 @@ export function useChatSessions({
             ? {
                 ...session,
                 ...newSessionData,
+                name:
+                  newSessionData.name === undefined ||
+                  newSessionData.name === ''
+                    ? '新しいセッション'
+                    : newSessionData.name,
               }
             : session,
         ),
@@ -81,11 +83,11 @@ export function useChatSessions({
 
   const addNewSession = useCallback(
     async (sessionData: Omit<ChatSession, 'id'> & { prompt?: string }) => {
-      // タイトル自動生成
       let name = sessionData.name;
       if (!name || name === 'New session' || name === 'New Session') {
         name = generateSessionTitle(sessionData.prompt || '');
       }
+      if (!name) name = '新しいセッション';
       const newSession = await createSession({ ...sessionData, name });
       setChatSessions((sessions) => [...sessions, newSession]);
       updateCurrentSessionId(newSession.id!);
@@ -141,7 +143,6 @@ export function useChatSessions({
           updateCurrentSessionId(sessions[sessions.length - 1].id!);
         }
       } else {
-        // 初回セッションタイトル自動化
         const defaultSession = await createSession({
           appId,
           name: generateSessionTitle(''),

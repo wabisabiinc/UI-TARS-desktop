@@ -44,14 +44,14 @@ export function SessionList({
   onDeleteSession,
   onClick,
 }: SessionListProps) {
-  // --- 追加: 検索用のstate ---
   const [search, setSearch] = useState('');
 
-  // --- 検索ワードに合致するセッションだけ表示 ---
   const filteredSessions = useMemo(
     () =>
       sessions.filter((s) =>
-        (s.name || '').toLowerCase().includes(search.trim().toLowerCase()),
+        (s.name || '新しいセッション')
+          .toLowerCase()
+          .includes(search.trim().toLowerCase()),
       ),
     [sessions, search],
   );
@@ -69,7 +69,6 @@ export function SessionList({
     const lastWeekStart = subWeeks(new Date(), 1);
 
     filteredSessions.forEach((session) => {
-      // --- updatedAtがなければスキップ ---
       if (!session.updatedAt) return;
       const date = new Date(session.updatedAt);
 
@@ -107,7 +106,6 @@ export function SessionList({
     );
   }
 
-  // --- 検索ボックスとクリアボタンUIを追加 ---
   return (
     <div className="space-y-6">
       <div className="p-2">
@@ -145,7 +143,7 @@ export function SessionList({
           {group.sessions.map((session) => (
             <SessionItem
               key={session.id}
-              session={session}
+              session={{ ...session, name: session.name || '新しいセッション' }}
               isActive={session.id === currentSessionId}
               isEditing={session.id === editingSessionId}
               removable={sessions.length > 1}
