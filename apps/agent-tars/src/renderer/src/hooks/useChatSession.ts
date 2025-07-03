@@ -21,7 +21,6 @@ const createAppAtoms = () => {
 // Create a map to store atoms for each app
 const appAtomsMap = new Map<string, ReturnType<typeof createAppAtoms>>();
 
-// eslint-disable-next-line max-lines-per-function
 export function useChatSessions({
   appId,
   origin,
@@ -31,7 +30,6 @@ export function useChatSessions({
   origin?: string;
   onSwitchSession?: (session: ChatSession) => void | Promise<void>;
 }) {
-  // Get or create atoms for the current app
   if (!appAtomsMap.has(appId)) {
     appAtomsMap.set(appId, createAppAtoms());
   }
@@ -118,33 +116,25 @@ export function useChatSessions({
 
   const initializeSessions = useCallback(async () => {
     if (initStateRef.current === 'pending') {
-      console.log('初始化 session...');
       initStateRef.current = 'loading';
       const storedCurrentSessionId = localStorage.getItem(
         `${appId}-current-chat-session-id`,
       );
-
-      // Get all sessions from API
       const sessions = await getSessions(appId);
-
       if (sessions.length > 0) {
         setChatSessions(sessions);
-
         if (
           storedCurrentSessionId &&
           sessions.some((s) => s.id === storedCurrentSessionId)
         ) {
-          // Restore previous session if it exists
           setCurrentSessionId(storedCurrentSessionId);
           await onSwitchSession?.(
             sessions.find((s) => s.id === storedCurrentSessionId)!,
           );
         } else {
-          // Use the last session if stored session not found
           updateCurrentSessionId(sessions[sessions.length - 1].id!);
         }
       } else {
-        // Create default session if no sessions exist
         const defaultSession = await createSession({
           appId,
           name: 'New session',

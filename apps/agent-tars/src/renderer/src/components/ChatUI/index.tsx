@@ -25,18 +25,13 @@ import { WelcomeScreen } from '../WelcomeScreen';
 import { StatusBar } from './StatusBar';
 import { PlanTaskStatus } from './PlanTaskStatus';
 import { AgentFlowMessage } from '../AgentFlowMessage';
-// 以下追加インポート
 import { askLLMTool } from '@renderer/api';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
 export function OpenAgentChatUI() {
-  // 送信中フラグ
   const [isSending, setIsSending] = useState(false);
-  // プランモードを最初の1回だけ実行させるフラグ
   const [hasRunFlow, setHasRunFlow] = useState(false);
-  // プランUI（ステップ表示）の表示/非表示
   const [showPlanUI, setShowPlanUI] = useState(true);
-  // 初期読み込みフラグ
   const [isInitialized, setIsInitialized] = useState(false);
 
   const addUserMessage = useAddUserMessage();
@@ -61,13 +56,9 @@ export function OpenAgentChatUI() {
     }
   }, [planTasks, agentStatusTip]);
 
-  /** メッセージ送信ハンドラ */
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
-      // 新しいプロンプト送信時はプランUIを再表示
       setShowPlanUI(true);
-
-      // UI ロック
       const inputEle = chatUIRef.current?.getInputTextArea?.();
       if (inputEle) {
         inputEle.disabled = true;
@@ -76,16 +67,11 @@ export function OpenAgentChatUI() {
       setIsSending(true);
 
       try {
-        // 1) ユーザーバブルを追加
         await addUserMessage(inputText, inputFiles);
-
-        // 2) 初回はAgentFlow／Awareモード、それ以降は簡易チャットモード
         if (!hasRunFlow) {
-          // AgentFlowモード
           setHasRunFlow(true);
           await launchAgentFlow(inputText, inputFiles);
         } else {
-          // シンプルチャットモード
           const historyPayload = [
             ...messages.map((m) => ({
               role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
@@ -104,7 +90,6 @@ export function OpenAgentChatUI() {
           );
         }
       } finally {
-        // アンロック＆フォーカス
         setIsSending(false);
         const inputEle2 = chatUIRef.current?.getInputTextArea?.();
         if (inputEle2) {
