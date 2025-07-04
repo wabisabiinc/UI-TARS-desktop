@@ -34,6 +34,10 @@ app.post('/api/generateMessage', async (req, res) => {
     if (!openaiApiKey) {
       return res.status(400).json({ error: 'OpenAI API key is not configured.' });
     }
+    // ←追加: contents バリデーション
+    if (!contents || !Array.isArray(contents)) {
+      return res.status(400).json({ error: '`contents` is required and must be an array.' });
+    }
     const messages = contents.map(c => ({
       role:    c.role,
       content: (c.content ?? c.parts?.[0]?.text) || '',
