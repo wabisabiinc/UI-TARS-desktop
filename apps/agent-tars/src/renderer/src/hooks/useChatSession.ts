@@ -81,11 +81,18 @@ export function useChatSessions({
     [appId, setCurrentSessionId, chatSessions],
   );
 
+  // promptからタイトル自動生成
   const addNewSession = useCallback(
     async (sessionData: Omit<ChatSession, 'id'> & { prompt?: string }) => {
       let name = sessionData.name;
-      if (!name || name === 'New session' || name === 'New Session') {
-        name = generateSessionTitle(sessionData.prompt || '');
+      // 初回のみ、promptがあればタイトル化
+      if (
+        (!name || name === 'New session' || name === 'New Session') &&
+        sessionData.prompt
+      ) {
+        name =
+          sessionData.prompt.trim().slice(0, 24) +
+          (sessionData.prompt.length > 24 ? '...' : '');
       }
       if (!name) name = '新しいセッション';
       const newSession = await createSession({ ...sessionData, name });

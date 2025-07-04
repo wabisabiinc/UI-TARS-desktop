@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/components/ChatUI/index.tsx
 import { ChatUI as BaseChatUI, InputFile, MessageRole } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';
@@ -31,23 +30,27 @@ import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
   const [hasRunFlow, setHasRunFlow] = useState(false);
-  const [showPlanUI, setShowPlanUI] = useState(false); // プランUIは最初から非表示
+  const [showPlanUI, setShowPlanUI] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const addUserMessage = useAddUserMessage();
   const launchAgentFlow = useAgentFlow();
   const chatUIRef = useRef<any>(null);
   const isDarkMode = useThemeMode();
-  const { initMessages, setMessages, messages } = useAppChat();
+  const { initMessages, setMessages, messages, addMessage } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
-  const [planTasks] = useAtom(planTasksAtom);
+  const [planTasks, setPlanTasks] = useAtom(planTasksAtom);
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
 
-  // ← ここでuseChatSessionsから関数取得
   const { currentSessionId, updateChatSession } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
+
+  // セッション切り替えごとにhasRunFlowリセット
+  useEffect(() => {
+    setHasRunFlow(false);
+  }, [currentSessionId]);
 
   // プラン生成完了／失敗時にプランUIを隠し、送信中フラグをリセット
   useEffect(() => {
@@ -62,7 +65,6 @@ export function OpenAgentChatUI() {
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
-      // 新しいプロンプト送信時はプランUIを再表示（初回だけ）
       setShowPlanUI(!hasRunFlow);
 
       // 入力ロック
@@ -76,7 +78,7 @@ export function OpenAgentChatUI() {
       try {
         await addUserMessage(inputText, inputFiles);
 
-        // ←1回目の送信時のみタイトル自動上書き
+        // 1ターン目のみタイトル自動上書き
         if (!hasRunFlow && currentSessionId) {
           const newTitle =
             inputText.trim().slice(0, 24) +
@@ -107,10 +109,10 @@ export function OpenAgentChatUI() {
             messages: historyPayload,
           });
           const reply = raw.content?.trim() || '（応答が得られませんでした）';
-          await chatUIRef.current?.addMessage(
-            ChatMessageUtil.assistantTextMessage(reply),
-            { shouldSyncStorage: true, shouldScrollToBottom: true },
-          );
+          // addMessageで追加
+          await addMessage(ChatMessageUtil.assistantTextMessage(reply), {
+            shouldSyncStorage: true,
+          });
         }
       } finally {
         setIsSending(false);
@@ -129,6 +131,7 @@ export function OpenAgentChatUI() {
       messages,
       currentSessionId,
       updateChatSession,
+      addMessage,
     ],
   );
 
@@ -178,6 +181,7 @@ export function OpenAgentChatUI() {
       onMessageAbort={() => {
         setShowPlanUI(false);
         setIsSending(false);
+        setPlanTasks([]); // ← plan UIをクリア
         const inputEle = chatUIRef.current?.getInputTextArea?.();
         if (inputEle) {
           inputEle.disabled = false;

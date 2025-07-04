@@ -35,18 +35,13 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
  * 内部： /api プロキシ経由で LLM を呼び出す
  */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
-  // サーバーが期待する contents 形式に変換
-  const contents = opts.messages.map((m) => ({
-    role: m.role,
-    parts: [{ text: m.content }],
-  }));
-
+  // ✅ ここを「messages」に修正（OpenAI互換APIのため）
   const resp = await fetch('/api/generateMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: opts.model,
-      contents,
+      messages: opts.messages, // ← OpenAI chat-completionsそのまま！
       functions: opts.functions,
     }),
   });
@@ -57,7 +52,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   }
 
   const data = await resp.json();
-  // OpenAI のチャット API 形式に合わせてパース
+  // OpenAI の chat API 形式でパース
   const choice = data.choices?.[0]?.message;
   const tool_calls = choice?.function_call
     ? [
