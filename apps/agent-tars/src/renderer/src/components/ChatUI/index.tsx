@@ -41,16 +41,15 @@ export function OpenAgentChatUI() {
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
 
-  const { currentSessionId, updateChatSession } = useChatSessions({
-    appId: DEFAULT_APP_ID,
-  });
+  // useChatSessions から必要な関数を取得
+  const { sessions, currentSessionId, selectSession, updateChatSession } =
+    useChatSessions({ appId: DEFAULT_APP_ID });
 
-  useEffect(() => {
-    setHasRunFlow(false);
-  }, [currentSessionId]);
+  // セッション切り替え時にフローをリセット
+  useEffect(() => setHasRunFlow(false), [currentSessionId]);
 
+  // 任意の条件で isSending を false にできるよう
   useEffect(() => {
-    // 結果後は isSending=false で自動的に StatusBar を隠す
     if (
       planTasks.length > 0 ||
       ['No plan', 'Failed', 'Error', 'Completed'].includes(agentStatusTip)
@@ -71,6 +70,7 @@ export function OpenAgentChatUI() {
       try {
         await addUserMessage(inputText, inputFiles);
 
+        // 初回プロンプトでセッションタイトル更新
         if (!hasRunFlow && currentSessionId) {
           const title =
             inputText.trim().slice(0, 24) +
@@ -82,6 +82,7 @@ export function OpenAgentChatUI() {
           setHasRunFlow(true);
           await launchAgentFlow(inputText, inputFiles);
         } else {
+          // 2回目以降はシンプルチャット
           const historyPayload = [
             ...messages
               .filter(
@@ -127,6 +128,7 @@ export function OpenAgentChatUI() {
     ],
   );
 
+  // 初期ロード & 履歴復元
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -138,6 +140,7 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
+  // sessionId が無ければウェルカム画面
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
@@ -161,6 +164,7 @@ export function OpenAgentChatUI() {
       }
       isDark={isDarkMode.value}
       onMessageSend={sendMessage}
+      onConversationSelect={(id) => selectSession(id)}
       storageDbName={STORAGE_DB_NAME}
       onMessageAbort={() => {
         setIsSending(false);
