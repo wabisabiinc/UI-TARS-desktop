@@ -13,9 +13,9 @@ import { useAtom, useAtomValue } from 'jotai';
 import {
   currentAgentFlowIdRefAtom,
   eventsAtom,
-  globalEventEmitter,
   planTasksAtom,
   agentStatusTipAtom,
+  globalEventEmitter,
 } from '@renderer/state/chat';
 import { useAppChat } from '@renderer/hooks/useAppChat';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
@@ -26,9 +26,17 @@ import { StatusBar } from './StatusBar';
 import { askLLMTool } from '@renderer/api';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
+/**
+ * メインのチャット UI コンポーネント。
+ * - 思考中(isSending)のみ StatusBar を表示
+ * - セッション切り替え＆会話IDに応じた再マウント
+ */
 export function OpenAgentChatUI() {
+  // 思考中フラグ
   const [isSending, setIsSending] = useState(false);
+  // AgentFlow 一回目フロー完了フラグ
   const [hasRunFlow, setHasRunFlow] = useState(false);
+  // 初期メッセージ読み込み完了フラグ
   const [isInitialized, setIsInitialized] = useState(false);
 
   const addUserMessage = useAddUserMessage();
@@ -36,19 +44,20 @@ export function OpenAgentChatUI() {
   const chatUIRef = useRef<any>(null);
   const isDarkMode = useThemeMode();
   const { initMessages, setMessages, messages, addMessage } = useAppChat();
+
   const [, setEvents] = useAtom(eventsAtom);
-  const [planTasks, setPlanTasks] = useAtom(planTasksAtom);
+  const [planTasks] = useAtom(planTasksAtom);
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
 
-  // useChatSessions から必要な関数を取得
+  // セッション情報と selectSession を取得
   const { sessions, currentSessionId, selectSession, updateChatSession } =
     useChatSessions({ appId: DEFAULT_APP_ID });
 
-  // セッション切り替え時にフローをリセット
+  // セッション切り替え時に AgentFlow リセット
   useEffect(() => setHasRunFlow(false), [currentSessionId]);
 
-  // 任意の条件で isSending を false にできるよう
+  // AgentFlow 終了時に思考中フラグクリア
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -58,6 +67,7 @@ export function OpenAgentChatUI() {
     }
   }, [planTasks, agentStatusTip]);
 
+  // メッセージ送信時のハンドラ
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       setIsSending(true);
@@ -66,11 +76,11 @@ export function OpenAgentChatUI() {
         inp.disabled = true;
         inp.style.cursor = 'not-allowed';
       }
-
       try {
+        // ユーザーメッセージを追加
         await addUserMessage(inputText, inputFiles);
 
-        // 初回プロンプトでセッションタイトル更新
+        // 初回のみセッションタイトルを更新
         if (!hasRunFlow && currentSessionId) {
           const title =
             inputText.trim().slice(0, 24) +
@@ -82,7 +92,7 @@ export function OpenAgentChatUI() {
           setHasRunFlow(true);
           await launchAgentFlow(inputText, inputFiles);
         } else {
-          // 2回目以降はシンプルチャット
+          // 2回目以降は通常チャット
           const historyPayload = [
             ...messages
               .filter(
@@ -108,6 +118,7 @@ export function OpenAgentChatUI() {
       } catch (e) {
         console.error(e);
       } finally {
+        // 入力欄を再度有効化
         setIsSending(false);
         const inp2 = chatUIRef.current?.getInputTextArea?.();
         if (inp2) {
@@ -128,7 +139,7 @@ export function OpenAgentChatUI() {
     ],
   );
 
-  // 初期ロード & 履歴復元
+  // 初期メッセージロード＆履歴イベント復元
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -140,13 +151,14 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
-  // sessionId が無ければウェルカム画面
+  // セッションが選択されていなければ Welcome 表示
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
 
   return (
     <BaseChatUI
+      key={currentSessionId}
       styles={{
         container: { height: '100vh', width: '100%' },
         inputContainer: { display: isReportHtmlMode ? 'none' : 'flex' },
@@ -164,11 +176,9 @@ export function OpenAgentChatUI() {
       }
       isDark={isDarkMode.value}
       onMessageSend={sendMessage}
-      onConversationSelect={(id) => selectSession(id)}
       storageDbName={STORAGE_DB_NAME}
       onMessageAbort={() => {
         setIsSending(false);
-        setPlanTasks([]);
         const inp = chatUIRef.current?.getInputTextArea?.();
         if (inp) {
           inp.disabled = false;
