@@ -26,11 +26,6 @@ import { StatusBar } from './StatusBar';
 import { askLLMTool } from '@renderer/api';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
-/**
- * ChatGPT ライク UI:
- * - 思考中(isSending)のみ StatusBar を表示
- * - PlanTaskStatus を完全削除
- */
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -46,12 +41,13 @@ export function OpenAgentChatUI() {
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
 
-  // セッション管理 (サイドバーで selectSession を呼ぶ)
-  const { currentSessionId, updateChatSession } = useChatSessions({
-    appId: DEFAULT_APP_ID,
-  });
+  // サイドバー側で selectSession(id) → currentSessionId を更新
+  const { currentSessionId, updateChatSession, selectSession } =
+    useChatSessions({
+      appId: DEFAULT_APP_ID,
+    });
 
-  // 思考終了後は必ず非表示
+  // 思考完了後は必ずローディングOFF
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -61,7 +57,6 @@ export function OpenAgentChatUI() {
     }
   }, [planTasks, agentStatusTip]);
 
-  // メッセージ送信
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       setIsSending(true);
@@ -72,14 +67,11 @@ export function OpenAgentChatUI() {
       }
       try {
         await addUserMessage(inputText, inputFiles);
-        // 初回のみセッションタイトルを更新
-        if (currentSessionId && messages.length === 0) {
+        if (!messages.length && currentSessionId) {
           const title =
-            inputText.trim().slice(0, 24) +
-            (inputText.length > 24 ? '...' : '');
+            inputText.slice(0, 24) + (inputText.length > 24 ? '...' : '');
           await updateChatSession(currentSessionId, { name: title });
         }
-        // AgentFlow or LLM 実行
         await launchAgentFlow(inputText, inputFiles);
       } catch (e) {
         console.error(e);
@@ -96,7 +88,6 @@ export function OpenAgentChatUI() {
     [addUserMessage, launchAgentFlow, currentSessionId, updateChatSession],
   );
 
-  // 初期ロード & 履歴復元
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -108,7 +99,6 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
-  // セッション未選択時は Welcome 表示
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
@@ -127,6 +117,7 @@ export function OpenAgentChatUI() {
         conversationSelector: true,
         autoSelectLastConversation: true,
       }}
+      onConversationSelect={selectSession}
       customMessageRender={(msg) =>
         renderMessageUI({ message: msg as MessageItem })
       }
@@ -134,6 +125,7 @@ export function OpenAgentChatUI() {
       onMessageSend={sendMessage}
       storageDbName={STORAGE_DB_NAME}
       onMessageAbort={() => {
+        // 思考中のみ中断。過去のメッセージはそのまま
         setIsSending(false);
         const inp = chatUIRef.current?.getInputTextArea?.();
         if (inp) {
