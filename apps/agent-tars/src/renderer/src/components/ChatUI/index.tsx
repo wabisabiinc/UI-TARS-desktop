@@ -1,3 +1,4 @@
+// apps/agent-tars/src/renderer/src/components/ChatUI/index.tsx
 import { ChatUI as BaseChatUI, InputFile, MessageRole } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';
@@ -22,15 +23,12 @@ import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
 import { StatusBar } from './StatusBar';
-import { PlanTaskStatus } from './PlanTaskStatus';
-import { AgentFlowMessage } from '../AgentFlowMessage';
 import { askLLMTool } from '@renderer/api';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
   const [hasRunFlow, setHasRunFlow] = useState(false);
-  const [showPlanUI, setShowPlanUI] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const addUserMessage = useAddUserMessage();
@@ -47,36 +45,32 @@ export function OpenAgentChatUI() {
     appId: DEFAULT_APP_ID,
   });
 
-  // セッションが変わったら Flow リセット
   useEffect(() => {
     setHasRunFlow(false);
   }, [currentSessionId]);
 
-  // PlanUI 完了／失敗で非表示
   useEffect(() => {
+    // 結果後は isSending=false で自動的に StatusBar を隠す
     if (
       planTasks.length > 0 ||
       ['No plan', 'Failed', 'Error', 'Completed'].includes(agentStatusTip)
     ) {
-      setShowPlanUI(false);
       setIsSending(false);
     }
   }, [planTasks, agentStatusTip]);
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
-      setShowPlanUI(!hasRunFlow);
+      setIsSending(true);
       const inp = chatUIRef.current?.getInputTextArea?.();
       if (inp) {
         inp.disabled = true;
         inp.style.cursor = 'not-allowed';
       }
-      setIsSending(true);
 
       try {
         await addUserMessage(inputText, inputFiles);
 
-        // 初回プロンプトでタイトル更新
         if (!hasRunFlow && currentSessionId) {
           const title =
             inputText.trim().slice(0, 24) +
@@ -88,7 +82,6 @@ export function OpenAgentChatUI() {
           setHasRunFlow(true);
           await launchAgentFlow(inputText, inputFiles);
         } else {
-          // 2回目以降は通常チャット
           const historyPayload = [
             ...messages
               .filter(
@@ -108,7 +101,6 @@ export function OpenAgentChatUI() {
           });
           const reply = raw.content?.trim() || '（応答が得られませんでした）';
           await addMessage(ChatMessageUtil.assistantTextMessage(reply), {
-            shouldSyncStorage: true,
             shouldScrollToBottom: true,
           });
         }
@@ -135,7 +127,6 @@ export function OpenAgentChatUI() {
     ],
   );
 
-  // 初期ロード＆履歴イベント
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -165,14 +156,13 @@ export function OpenAgentChatUI() {
         conversationSelector: true,
         autoSelectLastConversation: true,
       }}
-      customMessageRender={(msg) => {
-        return renderMessageUI({ message: msg as MessageItem });
-      }}
+      customMessageRender={(msg) =>
+        renderMessageUI({ message: msg as MessageItem })
+      }
       isDark={isDarkMode.value}
       onMessageSend={sendMessage}
       storageDbName={STORAGE_DB_NAME}
       onMessageAbort={() => {
-        setShowPlanUI(false);
         setIsSending(false);
         setPlanTasks([]);
         const inp = chatUIRef.current?.getInputTextArea?.();
@@ -191,8 +181,11 @@ export function OpenAgentChatUI() {
         beforeMessageList: (
           <>
             <MenuHeader />
-            {showPlanUI && <StatusBar />}
-            {showPlanUI && <PlanTaskStatus />}
+            {isSending && (
+              <div style={{ padding: '0.5rem', textAlign: 'center' }}>
+                <StatusBar />
+              </div>
+            )}
             {isInitialized && messages.length === 0 && <WelcomeScreen />}
           </>
         ),
