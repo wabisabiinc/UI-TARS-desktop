@@ -26,9 +26,13 @@ import { StatusBar } from './StatusBar';
 import { askLLMTool } from '@renderer/api';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
+/**
+ * ChatGPT ライク UI:
+ * - 思考中(isSending)のみ StatusBar を表示
+ * - PlanTaskStatus を完全削除
+ */
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
-  const [hasRunFlow, setHasRunFlow] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const addUserMessage = useAddUserMessage();
@@ -42,15 +46,12 @@ export function OpenAgentChatUI() {
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
 
-  // セッション管理 (LeftSidebar 側で selectSession を呼びます)
+  // セッション管理 (サイドバーで selectSession を呼ぶ)
   const { currentSessionId, updateChatSession } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
 
-  // 会話切り替えで Flow リセット
-  useEffect(() => setHasRunFlow(false), [currentSessionId]);
-
-  // プラン完了／エラーで思考中フラグをオフ
+  // 思考終了後は必ず非表示
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -69,42 +70,17 @@ export function OpenAgentChatUI() {
         inp.disabled = true;
         inp.style.cursor = 'not-allowed';
       }
-
       try {
         await addUserMessage(inputText, inputFiles);
-
-        // 初回のみセッションタイトル更新
-        if (!hasRunFlow && currentSessionId) {
+        // 初回のみセッションタイトルを更新
+        if (currentSessionId && messages.length === 0) {
           const title =
             inputText.trim().slice(0, 24) +
             (inputText.length > 24 ? '...' : '');
           await updateChatSession(currentSessionId, { name: title });
         }
-
-        if (!hasRunFlow) {
-          setHasRunFlow(true);
-          await launchAgentFlow(inputText, inputFiles);
-        } else {
-          // 通常チャット
-          const history = messages
-            .filter(
-              (m) =>
-                m.type === MessageType.PlainText &&
-                typeof m.content === 'string',
-            )
-            .map((m) => ({
-              role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
-              content: m.content as string,
-            }));
-          const raw = await askLLMTool({
-            model: 'gpt-4o',
-            messages: [...history, { role: 'user', content: inputText }],
-          });
-          const reply = raw.content?.trim() || '（応答なし）';
-          await addMessage(ChatMessageUtil.assistantTextMessage(reply), {
-            shouldScrollToBottom: true,
-          });
-        }
+        // AgentFlow or LLM 実行
+        await launchAgentFlow(inputText, inputFiles);
       } catch (e) {
         console.error(e);
       } finally {
@@ -117,18 +93,10 @@ export function OpenAgentChatUI() {
         }
       }
     },
-    [
-      addUserMessage,
-      launchAgentFlow,
-      hasRunFlow,
-      messages,
-      currentSessionId,
-      updateChatSession,
-      addMessage,
-    ],
+    [addUserMessage, launchAgentFlow, currentSessionId, updateChatSession],
   );
 
-  // 初期ロード＆履歴復元
+  // 初期ロード & 履歴復元
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -140,7 +108,7 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
-  // セッション未選択なら Welcome
+  // セッション未選択時は Welcome 表示
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
@@ -166,7 +134,6 @@ export function OpenAgentChatUI() {
       onMessageSend={sendMessage}
       storageDbName={STORAGE_DB_NAME}
       onMessageAbort={() => {
-        // 「思考中のみ停止」、過去の会話はそのまま
         setIsSending(false);
         const inp = chatUIRef.current?.getInputTextArea?.();
         if (inp) {
@@ -184,7 +151,6 @@ export function OpenAgentChatUI() {
         beforeMessageList: (
           <>
             <MenuHeader />
-            {/* 思考中のみ表示 */}
             {isSending && (
               <div style={{ padding: '0.5rem', textAlign: 'center' }}>
                 <StatusBar />
