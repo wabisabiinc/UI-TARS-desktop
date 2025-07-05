@@ -39,29 +39,17 @@ export function useChatSessions({
   const [currentSessionId, setCurrentSessionId] = useAtom(currentSessionIdAtom);
   const [initStateRef] = useAtom(initStateRefAtom);
 
-  // タイトル未入力時は必ず「新しいセッション」で保存
   const updateChatSession = useCallback(
-    async (
-      sessionId: string,
-      newSessionData: Partial<ChatSession>,
-      options: { shouldSyncRemote: boolean } = { shouldSyncRemote: true },
-    ) => {
-      if (options.shouldSyncRemote) {
-        await updateSession(sessionId, newSessionData);
-      }
-      setChatSessions((sessions) =>
-        sessions.map((session) =>
-          session.id === sessionId
-            ? {
-                ...session,
-                ...newSessionData,
-                name:
-                  newSessionData.name === undefined ||
-                  newSessionData.name === ''
-                    ? '新しいセッション'
-                    : newSessionData.name,
-              }
-            : session,
+    async (sessionId: string, data: Partial<ChatSession>) => {
+      // name が空なら自動生成
+      const name =
+        data.name && data.name.trim()
+          ? data.name.trim()
+          : generateSessionTitle('');
+      await updateSession(sessionId, { ...data, name });
+      setChatSessions((s) =>
+        s.map((sess) =>
+          sess.id === sessionId ? { ...sess, ...data, name } : sess,
         ),
       );
     },
@@ -69,108 +57,72 @@ export function useChatSessions({
   );
 
   const updateCurrentSessionId = useCallback(
-    async (newSessionId: string, callback?: () => void) => {
-      setCurrentSessionId(newSessionId);
-      localStorage.setItem(`${appId}-current-chat-session-id`, newSessionId);
-      const targetSession = chatSessions.find(
-        (session) => session.id === newSessionId,
-      );
-      await onSwitchSession?.(targetSession!);
-      callback?.();
+    async (id: string) => {
+      setCurrentSessionId(id);
+      localStorage.setItem(`${appId}-current-chat-session-id`, id);
+      const sess = chatSessions.find((s) => s.id === id)!;
+      await onSwitchSession?.(sess);
     },
-    [appId, setCurrentSessionId, chatSessions],
+    [appId, chatSessions, onSwitchSession],
   );
 
-  // promptからタイトル自動生成
   const addNewSession = useCallback(
-    async (sessionData: Omit<ChatSession, 'id'> & { prompt?: string }) => {
-      let name = sessionData.name;
-      // 初回のみ、promptがあればタイトル化
-      if (
-        (!name || name === 'New session' || name === 'New Session') &&
-        sessionData.prompt
-      ) {
-        name =
-          sessionData.prompt.trim().slice(0, 24) +
-          (sessionData.prompt.length > 24 ? '...' : '');
-      }
-      if (!name) name = '新しいセッション';
-      const newSession = await createSession({ ...sessionData, name });
-      setChatSessions((sessions) => [...sessions, newSession]);
-      updateCurrentSessionId(newSession.id!);
+    async (data: Omit<ChatSession, 'id'> & { prompt?: string }) => {
+      // prompt からタイトル自動生成
+      let name = data.prompt?.trim()
+        ? generateSessionTitle(data.prompt)
+        : '新しいセッション';
+      const newSess = await createSession({ ...data, name });
+      setChatSessions((s) => [...s, newSess]);
+      await updateCurrentSessionId(newSess.id!);
     },
     [setChatSessions, updateCurrentSessionId],
   );
 
   const removeSession = useCallback(
-    async (sessionId: string) => {
-      await deleteSession(sessionId);
-      setChatSessions((sessions) => {
-        const updatedSessions = sessions.filter(
-          (session) => session.id !== sessionId,
-        );
-        if (sessionId === currentSessionId && updatedSessions.length > 0) {
-          updateCurrentSessionId(
-            updatedSessions[updatedSessions.length - 1].id!,
-          );
-        } else if (updatedSessions.length === 0) {
-          setCurrentSessionId(null);
-          localStorage.removeItem(`${appId}-current-chat-session-id`);
-        }
-        return updatedSessions;
-      });
+    async (id: string) => {
+      await deleteSession(id);
+      setChatSessions((s) => s.filter((sess) => sess.id !== id));
+      if (currentSessionId === id && chatSessions.length > 1) {
+        const next = chatSessions.find((sess) => sess.id !== id)!;
+        await updateCurrentSessionId(next.id!);
+      }
     },
-    [
-      appId,
-      currentSessionId,
-      setChatSessions,
-      setCurrentSessionId,
-      updateCurrentSessionId,
-    ],
+    [currentSessionId, chatSessions, updateCurrentSessionId],
   );
 
   const initializeSessions = useCallback(async () => {
-    if (initStateRef.current === 'pending') {
-      initStateRef.current = 'loading';
-      const storedCurrentSessionId = localStorage.getItem(
-        `${appId}-current-chat-session-id`,
-      );
-      const sessions = await getSessions(appId);
-      if (sessions.length > 0) {
-        setChatSessions(sessions);
-        if (
-          storedCurrentSessionId &&
-          sessions.some((s) => s.id === storedCurrentSessionId)
-        ) {
-          setCurrentSessionId(storedCurrentSessionId);
-          await onSwitchSession?.(
-            sessions.find((s) => s.id === storedCurrentSessionId)!,
-          );
-        } else {
-          updateCurrentSessionId(sessions[sessions.length - 1].id!);
-        }
-      } else {
-        const defaultSession = await createSession({
-          appId,
-          name: generateSessionTitle(''),
-          messageCount: 0,
-          origin,
-        });
-        setChatSessions([defaultSession]);
-        updateCurrentSessionId(defaultSession.id!);
-      }
+    if (initStateRef.current !== 'pending') return;
+    initStateRef.current = 'loading';
+
+    const stored = localStorage.getItem(`${appId}-current-chat-session-id`);
+    const list = await getSessions(appId);
+
+    if (list.length) {
+      setChatSessions(list);
+      const toUse =
+        stored && list.some((s) => s.id === stored) ? stored : list[0].id!;
+      await updateCurrentSessionId(toUse);
+    } else {
+      const def = await createSession({
+        appId,
+        name: generateSessionTitle(''),
+        messageCount: 0,
+        origin,
+      });
+      setChatSessions([def]);
+      await updateCurrentSessionId(def.id!);
     }
+
     initStateRef.current = 'finished';
-  }, []);
+  }, [appId, origin, setChatSessions, updateCurrentSessionId, initStateRef]);
 
   return {
+    chatSessions,
     currentSessionId,
     updateChatSession,
-    updateCurrentSessionId,
     addNewSession,
-    chatSessions,
     removeSession,
     initializeSessions,
-    initStateRef,
   };
 }

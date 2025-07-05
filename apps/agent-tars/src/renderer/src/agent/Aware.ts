@@ -16,6 +16,7 @@ export class Aware {
   private signal: AbortSignal;
 
   private readonly prompt = `
+OUTPUT MUST BE STRICT JSON ONLY. DO NOT WRAP IN ANY TEXT.
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
 Return only a raw JSON object with the following keys:
   • reflection (string)
@@ -26,7 +27,7 @@ Return only a raw JSON object with the following keys:
 RULE: When "step" is equal to plan.length, set "status" to "completed".  
 For all other steps, set "status" to "in-progress".  
 Do NOT wrap your output in markdown or include any extra text or explanation.
-  `.trim();
+`.trim();
 
   constructor(
     private appContext: AppContext,
@@ -40,24 +41,41 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
     this.signal = signal;
   }
 
-  /** Markdown フェンスや余計テキストを剥がして JSON を抽出 */
+  /** Markdown フェンスやテキストの飾りを剥がし、純粋な JSON を抽出してパース */
   private static safeParse<T>(text: string): T | null {
-    const match =
-      text.match(/```json\s*([\s\S]*?)```/i) ||
-      text.match(/```([\s\S]*?)```/i) ||
-      text.match(/{[\s\S]*}/);
-    const raw = match ? match[1] || match[0] : text;
+    const trimmed = text.trim();
+
+    // 1) まず丸ごと parse を試みる
+    try {
+      return JSON.parse(trimmed) as T;
+    } catch {
+      // 失敗したらフェンスやインラインを探す
+    }
+
+    // 2) ```json ... ```, ``` ... ```, または { ... } をキャプチャ
+    const fenceJson = trimmed.match(/```json\s*([\s\S]*?)```/i);
+    const fence = trimmed.match(/```([\s\S]*?)```/i);
+    const inline = trimmed.match(/(\{[\s\S]*\})/);
+
+    const raw = fenceJson
+      ? fenceJson[1]
+      : fence
+        ? fence[1]
+        : inline
+          ? inline[1]
+          : trimmed;
+
+    // 3) エスケープ処理を解除して再パース
     const cleaned = raw.replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
+
     try {
       return JSON.parse(cleaned) as T;
-    } catch {
-      const fallback = cleaned.match(/{[\s\S]*}/);
-      if (fallback) {
-        try {
-          return JSON.parse(fallback[0]) as T;
-        } catch {}
-      }
-      console.warn('[Aware.safeParse] failed to parse:', cleaned);
+    } catch (e) {
+      console.warn(
+        '[Aware.safeParse] failed to parse cleaned JSON:',
+        cleaned,
+        e,
+      );
       return null;
     }
   }
@@ -111,7 +129,7 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
     const content = raw?.content?.trim() || '';
     console.log('[Aware] ← askLLMTool content=', content);
 
-    // ★★ safeParse が null を返したら → プレーンテキスト応答とみなしてフォールバック ★★
+    // safeParse が null を返したらフォールバック
     const parsed = Aware.safeParse<AwareResult>(content);
     if (!parsed) {
       return {

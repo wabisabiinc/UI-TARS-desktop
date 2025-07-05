@@ -47,12 +47,12 @@ export function OpenAgentChatUI() {
     appId: DEFAULT_APP_ID,
   });
 
-  // セッション切り替えごとにhasRunFlowリセット
+  // セッションが変わったら Flow リセット
   useEffect(() => {
     setHasRunFlow(false);
   }, [currentSessionId]);
 
-  // プラン生成完了／失敗時にプランUIを隠し、送信中フラグをリセット
+  // PlanUI 完了／失敗で非表示
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -66,24 +66,22 @@ export function OpenAgentChatUI() {
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       setShowPlanUI(!hasRunFlow);
-
-      // 入力ロック
-      const inputEle = chatUIRef.current?.getInputTextArea?.();
-      if (inputEle) {
-        inputEle.disabled = true;
-        inputEle.style.cursor = 'not-allowed';
+      const inp = chatUIRef.current?.getInputTextArea?.();
+      if (inp) {
+        inp.disabled = true;
+        inp.style.cursor = 'not-allowed';
       }
       setIsSending(true);
 
       try {
         await addUserMessage(inputText, inputFiles);
 
-        // 1ターン目のみタイトル自動上書き
+        // 初回プロンプトでタイトル更新
         if (!hasRunFlow && currentSessionId) {
-          const newTitle =
+          const title =
             inputText.trim().slice(0, 24) +
             (inputText.length > 24 ? '...' : '');
-          await updateChatSession(currentSessionId, { name: newTitle });
+          await updateChatSession(currentSessionId, { name: title });
         }
 
         if (!hasRunFlow) {
@@ -100,7 +98,7 @@ export function OpenAgentChatUI() {
               )
               .map((m) => ({
                 role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
-                content: m.content,
+                content: m.content as string,
               })),
             { role: 'user', content: inputText },
           ];
@@ -109,18 +107,20 @@ export function OpenAgentChatUI() {
             messages: historyPayload,
           });
           const reply = raw.content?.trim() || '（応答が得られませんでした）';
-          // addMessageで追加
           await addMessage(ChatMessageUtil.assistantTextMessage(reply), {
             shouldSyncStorage: true,
+            shouldScrollToBottom: true,
           });
         }
+      } catch (e) {
+        console.error(e);
       } finally {
         setIsSending(false);
-        const inputEle2 = chatUIRef.current?.getInputTextArea?.();
-        if (inputEle2) {
-          inputEle2.disabled = false;
-          inputEle2.style.cursor = 'auto';
-          inputEle2.focus();
+        const inp2 = chatUIRef.current?.getInputTextArea?.();
+        if (inp2) {
+          inp2.disabled = false;
+          inp2.style.cursor = 'auto';
+          inp2.focus();
         }
       }
     },
@@ -135,7 +135,7 @@ export function OpenAgentChatUI() {
     ],
   );
 
-  // 初期メッセージと履歴イベントの読み込み
+  // 初期ロード＆履歴イベント
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -165,15 +165,8 @@ export function OpenAgentChatUI() {
         conversationSelector: true,
         autoSelectLastConversation: true,
       }}
-      customMessageRender={(message) => {
-        const msg = message as MessageItem;
-        if (msg.type === MessageType.OmegaAgent) {
-          return <AgentFlowMessage message={msg} />;
-        }
-        if (msg.role === 'assistant') {
-          return renderMessageUI({ message: msg });
-        }
-        return undefined;
+      customMessageRender={(msg) => {
+        return renderMessageUI({ message: msg as MessageItem });
       }}
       isDark={isDarkMode.value}
       onMessageSend={sendMessage}
@@ -181,12 +174,12 @@ export function OpenAgentChatUI() {
       onMessageAbort={() => {
         setShowPlanUI(false);
         setIsSending(false);
-        setPlanTasks([]); // ← plan UIをクリア
-        const inputEle = chatUIRef.current?.getInputTextArea?.();
-        if (inputEle) {
-          inputEle.disabled = false;
-          inputEle.style.cursor = 'auto';
-          inputEle.focus();
+        setPlanTasks([]);
+        const inp = chatUIRef.current?.getInputTextArea?.();
+        if (inp) {
+          inp.disabled = false;
+          inp.style.cursor = 'auto';
+          inp.focus();
         }
         if (currentAgentFlowIdRef.current) {
           globalEventEmitter.emit(currentAgentFlowIdRef.current, {
@@ -194,7 +187,6 @@ export function OpenAgentChatUI() {
           });
         }
       }}
-      onClearConversationHistory={() => {}}
       slots={{
         beforeMessageList: (
           <>
@@ -204,8 +196,6 @@ export function OpenAgentChatUI() {
             {isInitialized && messages.length === 0 && <WelcomeScreen />}
           </>
         ),
-        beforeInputContainer: null,
-        customFeatures: null,
       }}
       classNames={{ messageList: 'scrollbar' }}
       conversationId={currentSessionId || 'default'}
