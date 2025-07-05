@@ -22,28 +22,47 @@ const openai = new OpenAI({ apiKey: openaiApiKey });
 
 // ── テスト用エンドポイント ─────────────────────────────
 app.post('/api/testModelProvider', (_req, res) => {
-  // 本番ではここで openai.chat.completions.create などに
-  // HEAD リクエストを飛ばして応答をチェックしても OK
   return res.json({ success: true });
 });
 
 // ── メッセージ生成 ─────────────────────────────────────
 app.post('/api/generateMessage', async (req, res) => {
   try {
-    const { model, contents } = req.body;
+    const { model } = req.body;
+
+    // 1) 必ずキーは存在するか？
     if (!openaiApiKey) {
       return res.status(400).json({ error: 'OpenAI API key is not configured.' });
     }
-    // ←追加: contents バリデーション
-    if (!contents || !Array.isArray(contents)) {
-      return res.status(400).json({ error: '`contents` is required and must be an array.' });
+
+    // 2) まずは req.body.contents を取ってみる
+    let { contents } = req.body;
+
+    // 3) フォールバック: 古いクライアントが req.body.messages を投げているなら、こちらを変換
+    if (!Array.isArray(contents) && Array.isArray(req.body.messages)) {
+      contents = req.body.messages.map((m) => ({
+        role: m.role,
+        parts: [{ text: m.content ?? '' }],
+      }));
     }
-    const messages = contents.map(c => ({
+
+    // 4) 最終的に contents が配列でなければエラー
+    if (!Array.isArray(contents)) {
+      return res
+        .status(400)
+        .json({ error: '`contents` is required and must be an array.' });
+    }
+
+    // 5) OpenAI 用に整形
+    const messages = contents.map((c) => ({
       role:    c.role,
       content: (c.content ?? c.parts?.[0]?.text) || '',
     }));
+
+    // 6) 実際に OpenAI に投げる
     const completion = await openai.chat.completions.create({ model, messages });
     return res.json(completion);
+
   } catch (err) {
     console.error('OpenAI proxy error:', err);
     return res.status(500).json({ error: err.message || String(err) });
