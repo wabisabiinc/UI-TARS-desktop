@@ -26,11 +26,6 @@ import { StatusBar } from './StatusBar';
 import { askLLMTool } from '@renderer/api';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
-/**
- * メインのチャット UI。
- * - isSending 中のみ思考ローディングを表示
- * - conversationSelector に合わせ、onConversationSelect でセッション切り替え
- */
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
   const [hasRunFlow, setHasRunFlow] = useState(false);
@@ -47,14 +42,15 @@ export function OpenAgentChatUI() {
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
 
-  // セッション管理
-  const { sessions, currentSessionId, selectSession, updateChatSession } =
-    useChatSessions({ appId: DEFAULT_APP_ID });
+  // セッション管理 (LeftSidebar 側で selectSession を呼びます)
+  const { currentSessionId, updateChatSession } = useChatSessions({
+    appId: DEFAULT_APP_ID,
+  });
 
-  // セッション切り替えでフローリセット
+  // 会話切り替えで Flow リセット
   useEffect(() => setHasRunFlow(false), [currentSessionId]);
 
-  // プラン完了で思考フラグクリア
+  // プラン完了／エラーで思考中フラグをオフ
   useEffect(() => {
     if (
       planTasks.length > 0 ||
@@ -73,36 +69,36 @@ export function OpenAgentChatUI() {
         inp.disabled = true;
         inp.style.cursor = 'not-allowed';
       }
+
       try {
         await addUserMessage(inputText, inputFiles);
-        // 初回のみセッション名更新
+
+        // 初回のみセッションタイトル更新
         if (!hasRunFlow && currentSessionId) {
           const title =
             inputText.trim().slice(0, 24) +
             (inputText.length > 24 ? '...' : '');
           await updateChatSession(currentSessionId, { name: title });
         }
+
         if (!hasRunFlow) {
           setHasRunFlow(true);
           await launchAgentFlow(inputText, inputFiles);
         } else {
           // 通常チャット
-          const historyPayload = [
-            ...messages
-              .filter(
-                (m) =>
-                  m.type === MessageType.PlainText &&
-                  typeof m.content === 'string',
-              )
-              .map((m) => ({
-                role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
-                content: m.content as string,
-              })),
-            { role: 'user', content: inputText },
-          ];
+          const history = messages
+            .filter(
+              (m) =>
+                m.type === MessageType.PlainText &&
+                typeof m.content === 'string',
+            )
+            .map((m) => ({
+              role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
+              content: m.content as string,
+            }));
           const raw = await askLLMTool({
             model: 'gpt-4o',
-            messages: historyPayload,
+            messages: [...history, { role: 'user', content: inputText }],
           });
           const reply = raw.content?.trim() || '（応答なし）';
           await addMessage(ChatMessageUtil.assistantTextMessage(reply), {
@@ -144,6 +140,7 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
+  // セッション未選択なら Welcome
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
@@ -167,9 +164,9 @@ export function OpenAgentChatUI() {
       }
       isDark={isDarkMode.value}
       onMessageSend={sendMessage}
-      onConversationSelect={selectSession}
       storageDbName={STORAGE_DB_NAME}
       onMessageAbort={() => {
+        // 「思考中のみ停止」、過去の会話はそのまま
         setIsSending(false);
         const inp = chatUIRef.current?.getInputTextArea?.();
         if (inp) {
@@ -187,6 +184,7 @@ export function OpenAgentChatUI() {
         beforeMessageList: (
           <>
             <MenuHeader />
+            {/* 思考中のみ表示 */}
             {isSending && (
               <div style={{ padding: '0.5rem', textAlign: 'center' }}>
                 <StatusBar />
@@ -197,8 +195,10 @@ export function OpenAgentChatUI() {
         ),
       }}
       classNames={{ messageList: 'scrollbar' }}
-      conversationId={currentSessionId || 'default'}
-      inputPlaceholder={isSending ? '思考中…' : 'メッセージを入力…'}
+      conversationId={currentSessionId}
+      inputPlaceholder={
+        isSending ? '思考中…お待ちください' : 'メッセージを入力…'
+      }
     />
   );
 }
