@@ -24,12 +24,10 @@ import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
 import { StatusBar } from './StatusBar';
-import { askLLMTool } from '@renderer/api';
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
 export function OpenAgentChatUI() {
   const [isSending, setIsSending] = useState(false);
-  const [hasRunFlow, setHasRunFlow] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const addUserMessage = useAddUserMessage();
@@ -38,7 +36,7 @@ export function OpenAgentChatUI() {
   const isDarkMode = useThemeMode();
   const { initMessages, setMessages, messages, addMessage } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
-  const [planTasks, setPlanTasks] = useAtom(planTasksAtom);
+  const [, setPlanTasks] = useAtom(planTasksAtom);
   const [agentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
 
@@ -46,22 +44,24 @@ export function OpenAgentChatUI() {
     appId: DEFAULT_APP_ID,
   });
 
-  // セッション切り替えでフロー未実行フラグをリセット
-  useEffect(() => {
-    setHasRunFlow(false);
-  }, [currentSessionId]);
-
   // ────────────────────────────────────────────────────────────
-  // 【修正】「Completed / Failed / Error / No plan」受信時のみ送信ボタンをリセット
+  // 「Completed / Failed / Error / No plan」受信時にボタン＆入力欄を自動リセット
   useEffect(() => {
     if (['Completed', 'Failed', 'Error', 'No plan'].includes(agentStatusTip)) {
       setIsSending(false);
+      const inp = chatUIRef.current?.getInputTextArea?.();
+      if (inp) {
+        inp.disabled = false;
+        inp.style.cursor = 'auto';
+        inp.focus();
+      }
     }
   }, [agentStatusTip]);
   // ────────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
+      // 毎回ボタンを「思考中」に
       setIsSending(true);
       const inp = chatUIRef.current?.getInputTextArea?.();
       if (inp) {
@@ -70,48 +70,23 @@ export function OpenAgentChatUI() {
       }
 
       try {
+        // ユーザーメッセージを追加
         await addUserMessage(inputText, inputFiles);
 
-        // 初回フロー実行前にセッションタイトルを更新
-        if (!hasRunFlow && currentSessionId) {
+        // 初回のみセッションタイトル自動更新
+        if (messages.length === 0 && currentSessionId) {
           const title =
             inputText.trim().slice(0, 24) +
             (inputText.length > 24 ? '...' : '');
           await updateChatSession(currentSessionId, { name: title });
         }
 
-        // フロー実行
-        if (!hasRunFlow) {
-          setHasRunFlow(true);
-          await launchAgentFlow(inputText, inputFiles);
-        } else {
-          // 追加プロンプトは通常の LLM 呼び出し
-          const historyPayload = [
-            ...messages
-              .filter(
-                (m) =>
-                  m.type === MessageType.PlainText &&
-                  typeof m.content === 'string',
-              )
-              .map((m) => ({
-                role: m.role === MessageRole.Assistant ? 'assistant' : 'user',
-                content: m.content as string,
-              })),
-            { role: 'user', content: inputText },
-          ];
-          const raw = await askLLMTool({
-            model: 'gpt-4o',
-            messages: historyPayload,
-          });
-          const reply = raw.content?.trim() || '（応答が得られませんでした）';
-          await addMessage(ChatMessageUtil.assistantTextMessage(reply), {
-            shouldScrollToBottom: true,
-          });
-        }
+        // 毎回AgentFlowを実行（プラン生成→ステップ→完了→Summary）
+        await launchAgentFlow(inputText, inputFiles);
       } catch (e) {
         console.error(e);
       } finally {
-        // 万一のフォールバックでも OFF に
+        // フォールバックでボタンOFFはEffect側で制御
         setIsSending(false);
         const inp2 = chatUIRef.current?.getInputTextArea?.();
         if (inp2) {
@@ -124,7 +99,6 @@ export function OpenAgentChatUI() {
     [
       addUserMessage,
       launchAgentFlow,
-      hasRunFlow,
       messages,
       currentSessionId,
       updateChatSession,
@@ -144,6 +118,7 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
+  // セッション未選択時はウェルカム画面
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
