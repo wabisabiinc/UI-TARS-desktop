@@ -1,4 +1,5 @@
 // apps/agent-tars/src/renderer/src/components/ChatUI/index.tsx
+
 import { ChatUI as BaseChatUI, InputFile, MessageRole } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';
@@ -45,19 +46,19 @@ export function OpenAgentChatUI() {
     appId: DEFAULT_APP_ID,
   });
 
+  // セッション切り替えでフロー未実行フラグをリセット
   useEffect(() => {
     setHasRunFlow(false);
   }, [currentSessionId]);
 
+  // ────────────────────────────────────────────────────────────
+  // 【修正】「Completed / Failed / Error / No plan」受信時のみ送信ボタンをリセット
   useEffect(() => {
-    // 結果後は isSending=false で自動的に StatusBar を隠す
-    if (
-      planTasks.length > 0 ||
-      ['No plan', 'Failed', 'Error', 'Completed'].includes(agentStatusTip)
-    ) {
+    if (['Completed', 'Failed', 'Error', 'No plan'].includes(agentStatusTip)) {
       setIsSending(false);
     }
-  }, [planTasks, agentStatusTip]);
+  }, [agentStatusTip]);
+  // ────────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
@@ -71,6 +72,7 @@ export function OpenAgentChatUI() {
       try {
         await addUserMessage(inputText, inputFiles);
 
+        // 初回フロー実行前にセッションタイトルを更新
         if (!hasRunFlow && currentSessionId) {
           const title =
             inputText.trim().slice(0, 24) +
@@ -78,10 +80,12 @@ export function OpenAgentChatUI() {
           await updateChatSession(currentSessionId, { name: title });
         }
 
+        // フロー実行
         if (!hasRunFlow) {
           setHasRunFlow(true);
           await launchAgentFlow(inputText, inputFiles);
         } else {
+          // 追加プロンプトは通常の LLM 呼び出し
           const historyPayload = [
             ...messages
               .filter(
@@ -107,6 +111,7 @@ export function OpenAgentChatUI() {
       } catch (e) {
         console.error(e);
       } finally {
+        // 万一のフォールバックでも OFF に
         setIsSending(false);
         const inp2 = chatUIRef.current?.getInputTextArea?.();
         if (inp2) {
@@ -127,6 +132,7 @@ export function OpenAgentChatUI() {
     ],
   );
 
+  // 会話履歴の初期化＆復元
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
