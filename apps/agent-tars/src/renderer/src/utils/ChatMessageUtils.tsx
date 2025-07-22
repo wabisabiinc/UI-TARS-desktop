@@ -1,3 +1,4 @@
+// apps/agent-tars/src/renderer/src/utils/ChatMessageUtils.ts
 import { MessageRole } from '@vendor/chat-ui';
 import {
   MessageItem,
@@ -18,13 +19,17 @@ export class ChatMessageUtil {
     };
   }
 
+  /**
+   * Ωメッセージは text を描画しない。events 等は content(=OmegaAgentData)に保持して
+   * UI 側で必要なら個別描画する。
+   */
   static assistantOmegaMessage(
-    content: OmegaAgentData,
+    data: OmegaAgentData, // { events: EventItem[] } など
     type = MessageType.OmegaAgent,
   ): MessageItem {
     return {
       role: MessageRole.Assistant,
-      content,
+      content: data,          // ★ JSONを文字列化しない
       type,
       timestamp: Date.now(),
       showCopyButton: false,
@@ -38,7 +43,6 @@ export class ChatMessageUtil {
       type: MessageType.PlainText,
       timestamp: Date.now(),
       showCopyButton: false,
-      // avatar: logo,
     };
   }
 

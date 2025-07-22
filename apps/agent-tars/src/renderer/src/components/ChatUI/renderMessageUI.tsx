@@ -1,11 +1,16 @@
-// apps/agent-tars/src/renderer/src/components/ChatUI/renderMessageUI.tsx
-
+\// apps/agent-tars/src/renderer/src/components/ChatUI/renderMessageUI.tsx
 import { MarkdownRenderer } from '@vendor/chat-ui';
-import { MessageItem } from '@renderer/type/chatMessage';
+import { MessageItem, MessageType } from '@renderer/type/chatMessage';
 
+/**
+ * Ωメッセージは画面に出さない（StatusBar等で可視化しているため）
+ * どうしてもデバッグで見たい場合はここで折りたたみUIを実装する。
+ */
 export function renderMessageUI({ message }: { message: MessageItem }) {
-  // content が文字列かオブジェクトかを判定し、
-  // オブジェクトは JSON 文字列に変換して表示
+  if (message.type === MessageType.OmegaAgent) {
+    return null;
+  }
+
   const raw =
     typeof message.content === 'string'
       ? message.content

@@ -6,11 +6,10 @@ import { Aware, AwareResult } from './Aware';
 import { Executor } from './Executor';
 import { PlanTask, PlanTaskStatus } from '@renderer/type/agent';
 import { EventManager } from './EventManager';
-import { ipcClient } from '@renderer/api';
 import { GlobalEvent, globalEventEmitter } from '@renderer/state/chat';
 import { Greeter } from './Greeter';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
-import { EventItem, EventType } from '@renderer/type/event';
+import { EventItem } from '@renderer/type/event';
 import { MessageRole } from '@vendor/chat-ui';
 
 export interface AgentContext {
@@ -39,11 +38,10 @@ export class AgentFlow {
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // 1) 初期化
+    // 初期化
     setPlanTasks([]);
     setAgentStatusTip('Thinking');
 
-    // 2) コンテキスト生成
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
@@ -69,37 +67,40 @@ export class AgentFlow {
       async (e: GlobalEvent) => {
         if (e.type === 'terminate') {
           this.abortController.abort();
-          await this.eventManager.addEndEvent(
-            'Agent flow has been terminated.',
-          );
+          await this.eventManager.addEndEvent('Agent flow has been terminated.');
         }
       },
     );
 
-    // 3) Greeter → Omega バブル描画
+    // ΩメッセージIDを保持
+    let omegaMsgId: string | null = null;
+
+    // Greeter → Ωメッセージ描画
     const preparePromise = greeter.run().then(async () => {
-      const omegaMsg = await chatUtils.addMessage(
+      const omega = await chatUtils.addMessage(
         ChatMessageUtil.assistantOmegaMessage({
-          events: this.eventManager.getVisibleEvents(), // ★ フィルタ済み
+          events: this.eventManager.getVisibleEvents(),
         }),
         { shouldSyncStorage: true },
       );
+      omegaMsgId = omega.id;
 
-      this.eventManager.setUpdateCallback(async (_events) => {
-        // ★ 表示用にフィルタして流す
+      this.eventManager.setUpdateCallback(async () => {
         const visible = [
           ...this.eventManager.getHistoryEvents(),
           ...this.eventManager.getVisibleEvents(),
         ];
         setEvents(visible);
-        await chatUtils.updateMessage(
-          ChatMessageUtil.assistantOmegaMessage({ events: visible }),
-          {
-            messageId: omegaMsg.id,
-            shouldSyncStorage: true,
-            shouldScrollToBottom: true,
-          },
-        );
+        if (omegaMsgId) {
+          await chatUtils.updateMessage(
+            ChatMessageUtil.assistantOmegaMessage({ events: visible }),
+            {
+              messageId: omegaMsgId,
+              shouldSyncStorage: true,
+              shouldScrollToBottom: true,
+            },
+          );
+        }
       });
 
       globalEventEmitter.addListener(
@@ -112,22 +113,24 @@ export class AgentFlow {
               ...this.eventManager.getHistoryEvents(),
               ...this.eventManager.getVisibleEvents(),
             ];
-            await chatUtils.updateMessage(
-              ChatMessageUtil.assistantOmegaMessage({ events: visible }),
-              {
-                messageId: omegaMsg.id,
-                shouldSyncStorage: true,
-              },
-            );
+            if (omegaMsgId) {
+              await chatUtils.updateMessage(
+                ChatMessageUtil.assistantOmegaMessage({ events: visible }),
+                {
+                  messageId: omegaMsgId,
+                  shouldSyncStorage: true,
+                },
+              );
+            }
           }
         },
       );
     });
 
-    // 4) メインループ
+    // メインループ
     await Promise.all([
       preparePromise,
-      this.launchAgentLoop(executor, aware, agentContext),
+      this.launchAgentLoop(executor, aware, agentContext, omegaMsgId),
     ]);
   }
 
@@ -135,6 +138,7 @@ export class AgentFlow {
     executor: Executor,
     aware: Aware,
     agentContext: AgentContext,
+    omegaMsgId: string | null,
   ) {
     const { setPlanTasks, setAgentStatusTip, setEvents, chatUtils } =
       this.appContext;
@@ -146,7 +150,7 @@ export class AgentFlow {
 
       const result: AwareResult = await aware.run();
 
-      // ★ 完了判定
+      // 完了判定
       if (
         Array.isArray(result.plan) &&
         result.plan.length > 0 &&
@@ -155,7 +159,7 @@ export class AgentFlow {
       ) {
         this.hasFinished = true;
 
-        // 1) 全タスク Done
+        // 全タスク Done
         setPlanTasks(
           result.plan.map((p, i) => ({
             id: p.id ?? `${i + 1}`,
@@ -164,20 +168,11 @@ export class AgentFlow {
           })),
         );
 
-        // 2) AgentStatus と End を追加
         await this.eventManager.addAgentStatus('done');
-        await this.eventManager.addEndEvent(
-          'completed',
-          result.plan,
-          result.step,
-        );
+        await this.eventManager.addEndEvent('completed', result.plan, result.step);
 
-        // 3) 最終まとめを描画
         setTimeout(async () => {
-          const greeter = new Greeter(
-            this.appContext,
-            this.abortController.signal,
-          );
+          const greeter = new Greeter(this.appContext, this.abortController.signal);
           const finalResp = await greeter.generateFinalSummary();
           await chatUtils.addMessage(
             ChatMessageUtil.assistantTextMessage(finalResp),
@@ -187,7 +182,15 @@ export class AgentFlow {
             },
           );
 
-          // 4) UIリセット（送信ボタン復帰）
+          // Ωメッセージを空化
+          if (omegaMsgId) {
+            await chatUtils.updateMessage(
+              ChatMessageUtil.assistantOmegaMessage({ events: [] }),
+              { messageId: omegaMsgId, shouldSyncStorage: true },
+            );
+          }
+
+          // UIリセット
           setPlanTasks([]);
           setAgentStatusTip('');
           setEvents([]);
@@ -217,7 +220,7 @@ export class AgentFlow {
       console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
       const calls = (await executor.run(result.status)).filter(Boolean);
       for (const call of calls) {
-        // ツール呼び出しロジック（省略）
+        // ツール呼び出しロジック
       }
     }
   }
@@ -258,7 +261,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
 `.trim();
   }
 
-  private normalizePlan(result: AwareResult, ctx: AgentContext): PlanTask[] {
+  private normalizePlan(result: AwareResult): PlanTask[] {
     if (!result?.plan?.length) {
       return [
         {
@@ -283,8 +286,8 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
         i < s - 1
           ? PlanTaskStatus.Done
           : i === s - 1
-            ? PlanTaskStatus.Doing
-            : PlanTaskStatus.Todo,
+          ? PlanTaskStatus.Doing
+          : PlanTaskStatus.Todo,
     }));
   }
 
