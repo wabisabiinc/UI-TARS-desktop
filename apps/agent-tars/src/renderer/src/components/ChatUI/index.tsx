@@ -17,6 +17,7 @@ import {
   globalEventEmitter,
   planTasksAtom,
   agentStatusTipAtom,
+  isAgentRunningAtom, // ★ 追加
 } from '@renderer/state/chat';
 import { useAppChat } from '@renderer/hooks/useAppChat';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
@@ -24,56 +25,31 @@ import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '../LeftSidebar';
 import { WelcomeScreen } from '../WelcomeScreen';
 import { StatusBar } from './StatusBar';
-import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 
 export function OpenAgentChatUI() {
-  const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const addUserMessage = useAddUserMessage();
   const launchAgentFlow = useAgentFlow();
   const chatUIRef = useRef<any>(null);
   const isDarkMode = useThemeMode();
-  const { initMessages, setMessages, messages, addMessage } = useAppChat();
+  const { initMessages, setMessages, messages } = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
   const [, setPlanTasks] = useAtom(planTasksAtom);
-  const [agentStatusTip] = useAtom(agentStatusTipAtom);
+  const [agentStatusTip, setAgentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
+  const isRunning = useAtomValue(isAgentRunningAtom); // ★ Atomで状態取得
 
   const { currentSessionId, updateChatSession } = useChatSessions({
     appId: DEFAULT_APP_ID,
   });
 
-  // ────────────────────────────────────────────────────────────
-  // 「Completed / Failed / Error / No plan」受信時にボタン＆入力欄を自動リセット
-  useEffect(() => {
-    if (['Completed', 'Failed', 'Error', 'No plan'].includes(agentStatusTip)) {
-      setIsSending(false);
-      const inp = chatUIRef.current?.getInputTextArea?.();
-      if (inp) {
-        inp.disabled = false;
-        inp.style.cursor = 'auto';
-        inp.focus();
-      }
-    }
-  }, [agentStatusTip]);
-  // ────────────────────────────────────────────────────────────
-
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
-      // 毎回ボタンを「思考中」に
-      setIsSending(true);
-      const inp = chatUIRef.current?.getInputTextArea?.();
-      if (inp) {
-        inp.disabled = true;
-        inp.style.cursor = 'not-allowed';
-      }
-
       try {
-        // ユーザーメッセージを追加
         await addUserMessage(inputText, inputFiles);
 
-        // 初回のみセッションタイトル自動更新
+        // 初回のみセッションタイトル自動生成
         if (messages.length === 0 && currentSessionId) {
           const title =
             inputText.trim().slice(0, 24) +
@@ -81,19 +57,12 @@ export function OpenAgentChatUI() {
           await updateChatSession(currentSessionId, { name: title });
         }
 
-        // 毎回AgentFlowを実行（プラン生成→ステップ→完了→Summary）
         await launchAgentFlow(inputText, inputFiles);
       } catch (e) {
         console.error(e);
-      } finally {
-        // フォールバックでボタンOFFはEffect側で制御
-        setIsSending(false);
-        const inp2 = chatUIRef.current?.getInputTextArea?.();
-        if (inp2) {
-          inp2.disabled = false;
-          inp2.style.cursor = 'auto';
-          inp2.focus();
-        }
+        // フォールバックで UI 解放
+        setAgentStatusTip('');
+        setPlanTasks([]);
       }
     },
     [
@@ -102,23 +71,24 @@ export function OpenAgentChatUI() {
       messages,
       currentSessionId,
       updateChatSession,
-      addMessage,
+      setAgentStatusTip,
+      setPlanTasks,
     ],
   );
 
-  // 会話履歴の初期化＆復元
+  // 履歴初期化
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
       const msgs =
-        window.__OMEGA_REPORT_DATA__?.messages ?? (await initMessages());
+        (window as any).__OMEGA_REPORT_DATA__?.messages ??
+        (await initMessages());
       setMessages(msgs || []);
       setEvents(extractHistoryEvents(msgs as MessageItem[]));
       setIsInitialized(true);
     })();
   }, [currentSessionId]);
 
-  // セッション未選択時はウェルカム画面
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
@@ -129,7 +99,7 @@ export function OpenAgentChatUI() {
         container: { height: '100vh', width: '100%' },
         inputContainer: { display: isReportHtmlMode ? 'none' : 'flex' },
       }}
-      disableInput={isReportHtmlMode}
+      disableInput={isReportHtmlMode || isRunning} // ★ 実行中は入力禁止
       ref={chatUIRef}
       features={{
         clearConversationHistory: false,
@@ -144,14 +114,9 @@ export function OpenAgentChatUI() {
       onMessageSend={sendMessage}
       storageDbName={STORAGE_DB_NAME}
       onMessageAbort={() => {
-        setIsSending(false);
+        // ユーザー中断
         setPlanTasks([]);
-        const inp = chatUIRef.current?.getInputTextArea?.();
-        if (inp) {
-          inp.disabled = false;
-          inp.style.cursor = 'auto';
-          inp.focus();
-        }
+        setAgentStatusTip('');
         if (currentAgentFlowIdRef.current) {
           globalEventEmitter.emit(currentAgentFlowIdRef.current, {
             type: 'terminate',
@@ -162,7 +127,7 @@ export function OpenAgentChatUI() {
         beforeMessageList: (
           <>
             <MenuHeader />
-            {isSending && (
+            {isRunning && (
               <div style={{ padding: '0.5rem', textAlign: 'center' }}>
                 <StatusBar />
               </div>
@@ -174,7 +139,7 @@ export function OpenAgentChatUI() {
       classNames={{ messageList: 'scrollbar' }}
       conversationId={currentSessionId || 'default'}
       inputPlaceholder={
-        isSending ? '思考中…お待ちください' : 'メッセージを入力…'
+        isRunning ? '思考中…お待ちください' : 'メッセージを入力…'
       }
     />
   );

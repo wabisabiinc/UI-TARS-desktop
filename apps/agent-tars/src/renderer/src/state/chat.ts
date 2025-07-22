@@ -2,7 +2,7 @@
 import { EventItem } from '@renderer/type/event';
 import { atom } from 'jotai';
 import EventEmitter from 'eventemitter3';
-import { PlanTask } from '@renderer/type/agent';
+import { PlanTask, PlanTaskStatus } from '@renderer/type/agent';
 
 export interface UserInterruptEvent {
   type: 'user-interrupt';
@@ -15,7 +15,7 @@ export interface TernimateEvent {
 
 export type GlobalEvent = UserInterruptEvent | TernimateEvent;
 
-// 全体のイベント列を保持する Atom
+// 全体のイベント列を保持
 export const eventsAtom = atom<EventItem[]>([]);
 
 export const currentEventIdAtom = atom<string | null>(null);
@@ -26,10 +26,8 @@ export const currentAgentFlowIdRefAtom = atom<{ current: string | null }>({
 
 export const agentStatusTipAtom = atom('');
 
-// 現在は eventsAtom 経由で planTasks を取得します
-// planTasksAtom はデバッグ用途で残すか、将来的に削除検討
+// planTasks はUI制御にも使う
 export const planTasksAtom = atom<PlanTask[]>([]);
-
 console.log(
   '[定義] planTasksAtom',
   planTasksAtom,
@@ -42,4 +40,10 @@ export const globalEventEmitter = new EventEmitter<{
   [key: string]: (event: GlobalEvent) => void;
 }>();
 
-// ------------------------------------------------------
+// ★ 追加: 実行中かどうかを算出する Atom
+export const isAgentRunningAtom = atom((get) => {
+  const tasks = get(planTasksAtom);
+  const tip = get(agentStatusTipAtom);
+  const doing = tasks.some((t) => t.status === PlanTaskStatus.Doing);
+  return doing || Boolean(tip);
+});

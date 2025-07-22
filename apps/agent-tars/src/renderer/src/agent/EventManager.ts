@@ -1,3 +1,4 @@
+// apps/agent-tars/src/renderer/src/agent/EventManager.ts
 import { v4 as uuidv4 } from 'uuid';
 import {
   EventItem,
@@ -34,6 +35,17 @@ export class EventManager {
 
   public getAllEvents(): EventItem[] {
     return [...this.events];
+  }
+
+  // ★ 追加: UIに表示したいイベントだけ返す
+  public getVisibleEvents(): EventItem[] {
+    const HIDDEN = new Set<EventType>([
+      EventType.PlanUpdate,
+      EventType.AgentStatus,
+      EventType.LoadingStatus,
+      EventType.Observation,
+    ]);
+    return this.events.filter((e) => !HIDDEN.has(e.type));
   }
 
   private async addEvent<T extends EventType>(
@@ -149,7 +161,7 @@ export class EventManager {
     return this.addEvent(EventType.UserInterruption, { text });
   }
 
-  // ★ ここを強化！plan, stepもevent内容に含める
+  // ★ 強化: End に plan/step を含める
   public async addEndEvent(
     message: string,
     plan?: PlanTask[],
