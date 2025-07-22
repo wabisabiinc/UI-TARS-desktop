@@ -1,6 +1,6 @@
 // apps/agent-tars/src/renderer/src/components/ChatUI/index.tsx
 
-import { ChatUI as BaseChatUI, InputFile, MessageRole } from '@vendor/chat-ui';
+import { ChatUI as BaseChatUI, InputFile } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';
 import { isReportHtmlMode, STORAGE_DB_NAME } from '@renderer/constants';
@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAddUserMessage } from '@renderer/hooks/useAddUserMessage';
 import { useAgentFlow } from '@renderer/hooks/useAgentFlow';
 import { renderMessageUI } from './renderMessageUI';
-import { MessageItem, MessageType } from '@renderer/type/chatMessage';
+import { MessageItem } from '@renderer/type/chatMessage';
 import { useThemeMode } from '@renderer/hooks/useThemeMode';
 import { useAtom, useAtomValue } from 'jotai';
 import {
@@ -17,7 +17,7 @@ import {
   globalEventEmitter,
   planTasksAtom,
   agentStatusTipAtom,
-  isAgentRunningAtom, // ★ 追加
+  isAgentRunningAtom,
 } from '@renderer/state/chat';
 import { useAppChat } from '@renderer/hooks/useAppChat';
 import { extractHistoryEvents } from '@renderer/utils/extractHistoryEvents';
@@ -38,7 +38,7 @@ export function OpenAgentChatUI() {
   const [, setPlanTasks] = useAtom(planTasksAtom);
   const [agentStatusTip, setAgentStatusTip] = useAtom(agentStatusTipAtom);
   const currentAgentFlowIdRef = useAtomValue(currentAgentFlowIdRefAtom);
-  const isRunning = useAtomValue(isAgentRunningAtom); // ★ Atomで状態取得
+  const isRunning = useAtomValue(isAgentRunningAtom);
 
   const { currentSessionId, updateChatSession } = useChatSessions({
     appId: DEFAULT_APP_ID,
@@ -46,10 +46,10 @@ export function OpenAgentChatUI() {
 
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
+      if (isRunning) return; // 実行中は無視
       try {
         await addUserMessage(inputText, inputFiles);
 
-        // 初回のみセッションタイトル自動生成
         if (messages.length === 0 && currentSessionId) {
           const title =
             inputText.trim().slice(0, 24) +
@@ -60,7 +60,6 @@ export function OpenAgentChatUI() {
         await launchAgentFlow(inputText, inputFiles);
       } catch (e) {
         console.error(e);
-        // フォールバックで UI 解放
         setAgentStatusTip('');
         setPlanTasks([]);
       }
@@ -71,6 +70,7 @@ export function OpenAgentChatUI() {
       messages,
       currentSessionId,
       updateChatSession,
+      isRunning,
       setAgentStatusTip,
       setPlanTasks,
     ],
@@ -89,6 +89,19 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
+  // 中国語プレースホルダ対策：DOM直書き
+  useEffect(() => {
+    const ta = chatUIRef.current?.getInputTextArea?.();
+    if (!ta) return;
+    ta.placeholder = isRunning ? '思考中…お待ちください' : 'メッセージを入力…';
+    ta.disabled = isReportHtmlMode ? true : false; // レポートモードのみ無効化
+    // ライブラリ側が出す tip を上書き/非表示
+    const tip = ta.parentElement?.querySelector('.input-disabled-tip');
+    if (tip) {
+      (tip as HTMLElement).innerText = isRunning ? '思考中…お待ちください' : '';
+    }
+  }, [isRunning]);
+
   if (!isReportHtmlMode && !currentSessionId) {
     return <WelcomeScreen />;
   }
@@ -99,7 +112,7 @@ export function OpenAgentChatUI() {
         container: { height: '100vh', width: '100%' },
         inputContainer: { display: isReportHtmlMode ? 'none' : 'flex' },
       }}
-      disableInput={isReportHtmlMode || isRunning} // ★ 実行中は入力禁止
+      // disableInput は使わない（中国語固定文言を避ける）
       ref={chatUIRef}
       features={{
         clearConversationHistory: false,
@@ -114,7 +127,6 @@ export function OpenAgentChatUI() {
       onMessageSend={sendMessage}
       storageDbName={STORAGE_DB_NAME}
       onMessageAbort={() => {
-        // ユーザー中断
         setPlanTasks([]);
         setAgentStatusTip('');
         if (currentAgentFlowIdRef.current) {
