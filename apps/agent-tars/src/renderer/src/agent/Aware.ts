@@ -24,8 +24,8 @@ Return only a raw JSON object with the following keys:
   • status (string)          ← "in-progress" for intermediate steps, "completed" **MUST BE SET if step is equal to the number of items in plan**
   • plan (array of { id: string, title: string })
 
-RULE: When "step" is equal to plan.length, set "status" to "completed".  
-For all other steps, set "status" to "in-progress".  
+RULE: When "step" is equal to plan.length, set "status" to "completed".
+For all other steps, set "status" to "in-progress".
 Do NOT wrap your output in markdown or include any extra text or explanation.
 `.trim();
 
@@ -41,49 +41,62 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
     this.signal = signal;
   }
 
-  /** Markdown フェンスやテキストの飾りを剥がし、純粋な JSON を抽出してパース */
+  /**
+   * できるだけ壊れたJSONを直してパースする。
+   * - 先頭/末尾の `{ ... }` 抽出
+   * - ```json ``` / ``` フェンス内抽出
+   * - 改行/エスケープ調整
+   * - 末尾カンマの除去 など軽微な修正
+   */
   private static safeParse<T>(text: string): T | null {
+    const tryParse = (s: string): T | null => {
+      try {
+        return JSON.parse(s) as T;
+      } catch {
+        return null;
+      }
+    };
+
     const trimmed = text.trim();
 
-    // 1) まず丸ごと parse を試みる
-    try {
-      return JSON.parse(trimmed) as T;
-    } catch {
-      // 失敗したらフェンスやインラインを探す
-    }
+    // 1) そのまま
+    let parsed = tryParse(trimmed);
+    if (parsed) return parsed;
 
-    // 2) ```json ... ```, ``` ... ```, または { ... } をキャプチャ
+    // 2) コードフェンスから抽出
     const fenceJson = trimmed.match(/```json\s*([\s\S]*?)```/i);
-    const fence = trimmed.match(/```([\s\S]*?)```/i);
-    const inline = trimmed.match(/(\{[\s\S]*\})/);
-
-    const raw = fenceJson
-      ? fenceJson[1]
-      : fence
-        ? fence[1]
-        : inline
-          ? inline[1]
-          : trimmed;
-
-    // 3) エスケープ処理を解除して再パース
-    const cleaned = raw.replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
-
-    try {
-      return JSON.parse(cleaned) as T;
-    } catch (e) {
-      console.warn(
-        '[Aware.safeParse] failed to parse cleaned JSON:',
-        cleaned,
-        e,
-      );
-      return null;
+    const fence = fenceJson || trimmed.match(/```([\s\S]*?)```/i);
+    if (fence) {
+      parsed = tryParse(fence[1]);
+      if (parsed) return parsed;
     }
+
+    // 3) 最初と最後の波括弧で囲まれた部分を抜く
+    const start = trimmed.indexOf('{');
+    const end = trimmed.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      const slice = trimmed.slice(start, end + 1);
+
+      // 軽微な修正：\n, \" の戻し・末尾カンマ除去
+      const cleaned = slice
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']')
+        .trim();
+
+      parsed = tryParse(cleaned);
+      if (parsed) return parsed;
+    }
+
+    console.warn('[Aware.safeParse] failed to parse JSON:', trimmed);
+    return null;
   }
 
   private getDefaultResult(): AwareResult {
     return {
       reflection: 'No plan',
-      step: this.agentContext.currentStep,
+      step: this.agentContext.currentStep || 1,
       status: 'in-progress',
       plan: [],
     };
@@ -93,13 +106,13 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
     console.log('[Aware] ▶︎ run start, aborted=', this.signal.aborted);
     if (this.signal.aborted) return this.getDefaultResult();
 
-    // 1) 環境情報取得
+    // 1) 環境情報を取得
     const envInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
 
-    // 2) モデル・ツールリスト準備
+    // 2) モデル・ツール
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
@@ -109,7 +122,7 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
       .map((t) => `${t.name}: ${t.description}`)
       .join(', ');
 
-    // 3) プロンプト組み立て → LLM 呼び出し
+    // 3) LLMへ投げるメッセージ
     const messages = [
       Message.systemMessage(this.prompt),
       Message.systemMessage(`Available tools: ${toolList}`),
@@ -119,6 +132,7 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
       ),
     ];
     console.log('[Aware] → askLLMTool', { model, messages });
+
     const raw = await askLLMTool({
       model,
       messages: messages.map((m) => ({
@@ -126,12 +140,14 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
         content: m.content,
       })),
     });
+
     const content = raw?.content?.trim() || '';
     console.log('[Aware] ← askLLMTool content=', content);
 
-    // safeParse が null を返したらフォールバック
+    // 4) Parse
     const parsed = Aware.safeParse<AwareResult>(content);
     if (!parsed) {
+      // フォールバック：回答自体は content に入っていることが多いので、それを1タスクとして返す
       return {
         reflection: '',
         step: 1,
@@ -139,19 +155,30 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
         plan: [
           {
             id: '1',
-            title: content,
+            title: content.slice(0, 80) || 'Generated answer', // 長すぎる場合は切る
           },
         ],
       };
     }
 
-    // 4) 通常の JSON パース成功時
+    // 5) 正常時の整形
     const resultPlan: PlanTask[] = [];
     let step = parsed.step || 1;
-    let status = parsed.status.toLowerCase();
-    if (['pending', 'executing', 'running', 'in progress'].includes(status)) {
+    let status = (parsed.status || '').toLowerCase();
+
+    if (
+      [
+        'pending',
+        'executing',
+        'running',
+        'in progress',
+        'in-progress',
+      ].includes(status) === false
+    ) {
+      // 想定外は in-progress へ
       status = 'in-progress';
     }
+
     if (parsed.plan) {
       const arr = Array.isArray(parsed.plan) ? parsed.plan : [parsed.plan];
       arr.forEach((t) => {
@@ -163,11 +190,10 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
         }
       });
     }
-    // 最終ステップ到達時は必ず completed
-    if (step >= resultPlan.length && resultPlan.length > 0) {
+
+    // 最終ステップなら completed に補正
+    if (resultPlan.length > 0 && step >= resultPlan.length) {
       status = 'completed';
-    } else if (status === 'completed') {
-      status = 'in-progress';
     }
 
     return {
