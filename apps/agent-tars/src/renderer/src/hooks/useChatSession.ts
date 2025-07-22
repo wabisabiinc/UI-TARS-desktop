@@ -121,6 +121,7 @@ export function useChatSessions({
     chatSessions,
     currentSessionId,
     updateChatSession,
+    updateCurrentSessionId,
     addNewSession,
     removeSession,
     initializeSessions,

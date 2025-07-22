@@ -1,27 +1,15 @@
+// apps/agent-tars/src/renderer/src/components/ChatUI/renderMessageUI.tsx
+
 import { MarkdownRenderer } from '@vendor/chat-ui';
-import { MessageItem, MessageType } from '@renderer/type/chatMessage';
-import { AgentFlowMessage } from '../AgentFlowMessage';
-import { MessageRole } from '@vendor/chat-ui';
-import { extractBulletList } from '../../utils/listUtils';
-import { StepCard } from './StepCard';
+import { MessageItem } from '@renderer/type/chatMessage';
 
 export function renderMessageUI({ message }: { message: MessageItem }) {
-  // OmegaAgent のプランUI
-  if (message.type === MessageType.OmegaAgent) {
-    return <AgentFlowMessage message={message} />;
-  }
-  // Assistant のテキスト応答のみ
-  if (message.role !== MessageRole.Assistant) {
-    return null;
-  }
+  // content が文字列かオブジェクトかを判定し、
+  // オブジェクトは JSON 文字列に変換して表示
+  const raw =
+    typeof message.content === 'string'
+      ? message.content
+      : JSON.stringify(message.content, null, 2);
 
-  const text = message.content as string;
-  // 箇条書きリストを見つけたら StepCard で描画
-  const bullets = extractBulletList(text);
-  if (bullets.length > 1) {
-    return <StepCard steps={bullets} />;
-  }
-
-  // それ以外は普通の Markdown
-  return <MarkdownRenderer content={text} smooth={!message.isFinal} />;
+  return <MarkdownRenderer content={raw} smooth={!message.isFinal} />;
 }
