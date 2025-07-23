@@ -4,7 +4,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
-const EMPTY = path.resolve(__dirname, 'src/renderer/src/shims/empty.ts');
+const EMPTY_DIR = path.resolve(__dirname, 'src/renderer/src/shims/empty');
+const EMPTY = path.resolve(EMPTY_DIR, 'index.ts');
 
 export default defineConfig({
   base: './',
@@ -28,7 +29,6 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/renderer/index.html'),
-      // Electron/Node専用は外す
       external: ['electron', 'fs', 'path'],
       output: {
         manualChunks: undefined,
@@ -48,7 +48,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      // ---- 既存 alias ----
+      // 既存 alias
       '@': path.resolve(__dirname, 'src/renderer'),
       '@vendor/chat-ui': path.resolve(__dirname, 'src/vendor/chat-ui'),
       '@vendor/chat-ui/': path.resolve(__dirname, 'src/vendor/chat-ui') + '/',
@@ -61,29 +61,58 @@ export default defineConfig({
       '@renderer/api': path.resolve(__dirname, 'src/renderer/src/api'),
       '@renderer/api/': path.resolve(__dirname, 'src/renderer/src/api') + '/',
 
-      // ---- Nodeコア/問題児をまとめて空に ----
+      // ---- Node系/問題児まとめて空化 ----
       dotenv: EMPTY,
       crypto: EMPTY,
       fs: EMPTY,
+      'fs/promises': path.resolve(EMPTY_DIR, 'promises.ts'),
+      'node:fs': EMPTY,
+      'node:fs/promises': path.resolve(EMPTY_DIR, 'promises.ts'),
+      path: EMPTY,
+      'node:path': EMPTY,
       os: EMPTY,
+      'node:os': EMPTY,
       http: EMPTY,
       https: EMPTY,
       stream: EMPTY,
+      'node:stream': EMPTY,
       url: EMPTY,
       zlib: EMPTY,
+      util: EMPTY,
+      assert: EMPTY,
+      constants: EMPTY,
+      child_process: EMPTY,
+      'node:child_process': EMPTY,
+      'node:events': EMPTY,
+      'node:process': EMPTY,
+
+      // ライブラリ単位でも空化
       'electron-store': EMPTY,
       'node-fetch': EMPTY,
-      // もし他にも怒られたらここに追記
+      'puppeteer-core': EMPTY,
+      needle: EMPTY,
+      'graceful-fs': EMPTY,
+      which: EMPTY,
+      '@modelcontextprotocol/sdk': EMPTY,
+      // 必要に応じて追加
     },
   },
 
   define: {
-    // renderer で process.env を参照しないよう安全網
     'process.env': {},
+    global: 'globalThis', // 一部ライブラリが global を期待する対策
   },
 
   optimizeDeps: {
-    // 先に読ませない
-    exclude: ['electron-store', 'node-fetch', 'dotenv'],
+    exclude: [
+      'electron-store',
+      'node-fetch',
+      'dotenv',
+      'puppeteer-core',
+      'needle',
+      'graceful-fs',
+      'which',
+      '@modelcontextprotocol/sdk',
+    ],
   },
 });
