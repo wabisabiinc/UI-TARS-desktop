@@ -27,13 +27,48 @@ export class AgentFlow {
   private interruptController = new AbortController();
   private hasFinished = false;
 
+  // ★★★ ここをアロー関数で定義！（thisがバインドされる）
+  getEnvironmentInfo = (
+    appContext: AppContext,
+    agentContext: AgentContext,
+  ): string => {
+    const chatHistory = appContext.chatUtils.messages
+      .map((m) => {
+        const who = m.role === MessageRole.Assistant ? 'Assistant' : 'User';
+        return `${who}: ${m.content}`;
+      })
+      .join('\n');
+
+    const eventText = this.eventManager.normalizeEventsForPrompt();
+    const original = appContext.request.inputText;
+
+    return `
+Chat history:
+${chatHistory}
+
+Event stream result history:
+${eventText}
+
+The user original input: ${original}
+
+${
+  agentContext.plan.length === 0
+    ? 'Plan: None'
+    : `Plan:
+${agentContext.plan.map((p) => `  - [${p.id}] ${p.title}`).join('\n')}
+
+Current step: ${agentContext.currentStep}
+
+Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
+}
+`.trim();
+  };
+
   constructor(private appContext: AppContext) {
-    // 修正: extractHistoryEventsを直接使う
-    const history = extractHistoryEvents(this.appContext.chatUtils.messages);
+    const history = this.parseHistoryEvents();
     this.eventManager = new EventManager(history);
   }
 
-  // inputFiles?: any[] をrunとlaunchAgentLoopに追加
   public async run(inputFiles?: any[]) {
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
@@ -45,7 +80,7 @@ export class AgentFlow {
       plan: [],
       currentStep: 0,
       memory: {},
-      getEnvironmentInfo: this.getEnvironmentInfo,
+      getEnvironmentInfo: this.getEnvironmentInfo, // ←ここでアロー関数なのでOK！
       eventManager: this.eventManager,
     };
     const aware = new Aware(
@@ -133,7 +168,7 @@ export class AgentFlow {
         aware,
         agentContext,
         omegaMsgId,
-        inputFiles, // ★ここでinputFilesを渡す
+        inputFiles, // inputFilesを渡す
       ),
     ]);
   }
@@ -143,7 +178,7 @@ export class AgentFlow {
     aware: Aware,
     agentContext: AgentContext,
     omegaMsgId: string | null,
-    inputFiles?: any[], // ここも追加
+    inputFiles?: any[],
   ) {
     const { setPlanTasks, setAgentStatusTip, setEvents, chatUtils } =
       this.appContext;
@@ -255,5 +290,39 @@ export class AgentFlow {
     }
   }
 
-  // getEnvironmentInfo、normalizePlan、parseHistoryEventsは変更なし
+  private normalizePlan(result: AwareResult): PlanTask[] {
+    if (!result?.plan?.length) {
+      return [
+        {
+          id: '1',
+          title: `「${this.appContext.request.inputText}」へのAI回答`,
+          status: PlanTaskStatus.Doing,
+        },
+      ];
+    }
+    const s = result.step > 0 ? result.step : 1;
+    if (result.status === 'completed') {
+      return result.plan.map((p, i) => ({
+        id: p.id ?? `${i + 1}`,
+        title: p.title!,
+        status: PlanTaskStatus.Done,
+      }));
+    }
+    return result.plan.map((p, i) => ({
+      id: p.id ?? `${i + 1}`,
+      title: p.title!,
+      status:
+        i < s - 1
+          ? PlanTaskStatus.Done
+          : i === s - 1
+            ? PlanTaskStatus.Doing
+            : PlanTaskStatus.Todo,
+    }));
+  }
+
+  private parseHistoryEvents(): EventItem[] {
+    const evts = extractHistoryEvents(this.appContext.chatUtils.messages);
+    this.appContext.setEvents(evts);
+    return evts;
+  }
 }
