@@ -6,8 +6,10 @@ export enum ExecutorToolType {
   Commands = MCPServerName.Commands,
   Idle = 'idle',
   ChatMessage = 'chat-message',
+  AnalyzeImage = 'analyzeImage', // ★ 画像認識ツール追加
 }
 
+// Idleツール
 export const idleTool: ChatCompletionTool = {
   type: 'function',
   function: {
@@ -21,6 +23,7 @@ export const idleTool: ChatCompletionTool = {
   },
 };
 
+// チャット応答ツール
 export const chatMessageTool: ChatCompletionTool = {
   type: 'function',
   function: {
@@ -50,6 +53,25 @@ export const chatMessageTool: ChatCompletionTool = {
         },
       },
       required: ['text'],
+    },
+  },
+};
+
+// ★ 画像認識ツール（Vision API用）
+export const analyzeImageTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: ExecutorToolType.AnalyzeImage,
+    description: 'Analyze an image and describe its content in text.',
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'The file path of the image to analyze.',
+        },
+      },
+      required: ['path'],
     },
   },
 };

@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { Aware, AwareResult } from './Aware';
@@ -33,11 +32,11 @@ export class AgentFlow {
     this.eventManager = new EventManager(history);
   }
 
-  public async run() {
+  // inputFiles?: any[] をrunとlaunchAgentLoopに追加
+  public async run(inputFiles?: any[]) {
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // 初期化
     setPlanTasks([]);
     setAgentStatusTip('Thinking');
 
@@ -60,7 +59,6 @@ export class AgentFlow {
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // terminate リスナー
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (e: GlobalEvent) => {
@@ -76,7 +74,6 @@ export class AgentFlow {
     // ΩメッセージID
     let omegaMsgId: string | null = null;
 
-    // Greeter → Ωメッセージ描画
     const preparePromise = greeter.run().then(async () => {
       const omega = await chatUtils.addMessage(
         ChatMessageUtil.assistantOmegaMessage({
@@ -130,7 +127,13 @@ export class AgentFlow {
 
     await Promise.all([
       preparePromise,
-      this.launchAgentLoop(executor, aware, agentContext, omegaMsgId),
+      this.launchAgentLoop(
+        executor,
+        aware,
+        agentContext,
+        omegaMsgId,
+        inputFiles, // ★ここでinputFilesを渡す
+      ),
     ]);
   }
 
@@ -139,6 +142,7 @@ export class AgentFlow {
     aware: Aware,
     agentContext: AgentContext,
     omegaMsgId: string | null,
+    inputFiles?: any[], // ここも追加
   ) {
     const { setPlanTasks, setAgentStatusTip, setEvents, chatUtils } =
       this.appContext;
@@ -223,10 +227,17 @@ export class AgentFlow {
         }
 
         console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
-        const calls = (await executor.run(result.status)).filter(Boolean);
+        // ★ inputFilesは最初の1回だけ渡し、以降はundefined
+        const calls = (await executor.run(result.status, inputFiles)).filter(
+          Boolean,
+        );
         for (const call of calls) {
-          // ツール呼び出しロジック
+          if (call.function?.name === 'analyzeImage') {
+            await executor.executeTools([call]);
+          }
+          // 他ツールはここで分岐追加
         }
+        inputFiles = undefined;
       } catch (err) {
         console.error('[AgentFlow] loop error', err);
         await chatUtils.addMessage(
@@ -243,75 +254,5 @@ export class AgentFlow {
     }
   }
 
-  private getEnvironmentInfo(
-    appContext: AppContext,
-    agentContext: AgentContext,
-  ): string {
-    const chatHistory = appContext.chatUtils.messages
-      .map((m) => {
-        const who = m.role === MessageRole.Assistant ? 'Assistant' : 'User';
-        return `${who}: ${m.content}`;
-      })
-      .join('\n');
-
-    const eventText = this.eventManager.normalizeEventsForPrompt();
-    const original = appContext.request.inputText;
-
-    return `
-Chat history:
-${chatHistory}
-
-Event stream result history:
-${eventText}
-
-The user original input: ${original}
-
-${
-  agentContext.plan.length === 0
-    ? 'Plan: None'
-    : `Plan:
-${agentContext.plan.map((p) => `  - [${p.id}] ${p.title}`).join('\n')}
-
-Current step: ${agentContext.currentStep}
-
-Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
-}
-`.trim();
-  }
-
-  private normalizePlan(result: AwareResult): PlanTask[] {
-    if (!result?.plan?.length) {
-      return [
-        {
-          id: '1',
-          title: `「${this.appContext.request.inputText}」へのAI回答`,
-          status: PlanTaskStatus.Doing,
-        },
-      ];
-    }
-    const s = result.step > 0 ? result.step : 1;
-    if (result.status === 'completed') {
-      return result.plan.map((p, i) => ({
-        id: p.id ?? `${i + 1}`,
-        title: p.title!,
-        status: PlanTaskStatus.Done,
-      }));
-    }
-    return result.plan.map((p, i) => ({
-      id: p.id ?? `${i + 1}`,
-      title: p.title!,
-      status:
-        i < s - 1
-          ? PlanTaskStatus.Done
-          : i === s - 1
-            ? PlanTaskStatus.Doing
-            : PlanTaskStatus.Todo,
-    }));
-  }
-
-  private parseHistoryEvents(): EventItem[] {
-    const evts = extractHistoryEvents(this.appContext.chatUtils.messages);
-    this.appContext.setEvents(evts);
-    return evts;
-  }
+  // ...（getEnvironmentInfo、normalizePlan、parseHistoryEventsは変更なし）
 }

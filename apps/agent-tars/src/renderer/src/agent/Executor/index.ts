@@ -10,16 +10,32 @@ function getCurrentPlanTask(agentContext: AgentContext) {
   return agentContext.plan[agentContext.currentStep - 1];
 }
 
-// Utility: toolcall生成（必要に応じて拡張可）
+// Utility: toolcall生成（画像添付に対応）
 function createToolCalls(
   agentContext: AgentContext,
   status: string,
+  inputFiles?: any[], // 画像ファイル配列
 ): ToolCall[] {
   const plan = agentContext.plan;
   const currentStep = agentContext.currentStep;
   const currentTask = getCurrentPlanTask(agentContext);
 
-  // 例1: すべてのPlanTaskがDoneならidle toolを返す
+  // 画像ファイルがある場合 analyzeImage toolcallを返す
+  if (inputFiles && inputFiles.length > 0) {
+    return [
+      {
+        function: {
+          name: ExecutorToolType.AnalyzeImage, // ツール名
+          arguments: JSON.stringify({
+            path: inputFiles[0].path, // 1枚目画像のpath
+          }),
+        },
+        id: `toolcall-analyzeImage-${Date.now()}`,
+      },
+    ];
+  }
+
+  // すべてのPlanTaskがDoneならidle tool
   if (plan.length > 0 && plan.every((task) => task.status === 'Done')) {
     return [
       {
@@ -32,7 +48,7 @@ function createToolCalls(
     ];
   }
 
-  // 例2: 通常はchatMessage toolcallを返す（plan内容を使う）
+  // 通常はchatMessage toolcall
   if (currentTask && currentTask.title) {
     return [
       {
@@ -48,7 +64,7 @@ function createToolCalls(
     ];
   }
 
-  // 例3: 何もない場合は空配列
+  // 何もない場合は空配列
   return [];
 }
 
@@ -58,7 +74,6 @@ export class Executor {
     private agentContext: AgentContext,
     private abortSignal: AbortSignal,
   ) {
-    // ★絶対に1回は出るログ
     console.log('[DEBUG] Executor constructor called!', {
       appContext,
       agentContext,
@@ -69,11 +84,10 @@ export class Executor {
     this.abortSignal = abortSignal;
   }
 
-  async run(status: string) {
+  // ★ inputFilesをrunに渡せる
+  async run(status: string, inputFiles?: any[]) {
     console.log('[DEBUG] Executor.run called with status:', status);
-
-    // ↓ ユーティリティ関数でToolCallリストを返す（テスト時はダミーでOK）
-    return createToolCalls(this.agentContext, status);
+    return createToolCalls(this.agentContext, status, inputFiles);
   }
 
   async executeTools(toolCalls: ToolCall[]) {
@@ -81,7 +95,23 @@ export class Executor {
       throw new DOMException('Aborted', 'AbortError');
     }
 
-    // toolCallsの1件目がchatMessageなら「成功」レスポンスを強制返却
+    // analyzeImage toolへの分岐
+    if (
+      toolCalls &&
+      toolCalls[0] &&
+      toolCalls[0].function?.name === 'analyzeImage'
+    ) {
+      const args = JSON.parse(toolCalls[0].function.arguments || '{}');
+      const result = await ipcClient.tools.analyzeImage(args.path);
+      return [
+        {
+          content: { text: result },
+          isError: false,
+        },
+      ];
+    }
+
+    // chatMessage toolのダミー
     if (
       toolCalls &&
       toolCalls[0] &&
@@ -95,7 +125,8 @@ export class Executor {
       ];
     }
 
-    // 通常時は従来処理
-    // ...省略（従来通り）
+    // 他ツールはここに追加
+
+    return [];
   }
 }

@@ -1,5 +1,3 @@
-// apps/agent-tars/src/renderer/src/components/ChatUI/index.tsx
-
 import { ChatUI as BaseChatUI, InputFile } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';
@@ -73,7 +71,6 @@ export function OpenAgentChatUI() {
     async (inputText: string, inputFiles: InputFile[]) => {
       if (isReportHtmlMode) return;
       if (isRunning) {
-        // 実行中はキューへ積む
         setPending((p) => [...p, { text: inputText, files: inputFiles }]);
         return;
       }
@@ -169,7 +166,7 @@ export function OpenAgentChatUI() {
         ref={chatUIRef}
         features={{
           clearConversationHistory: false,
-          uploadFiles: false,
+          uploadFiles: true, // ★ここをtrueにして画像添付を有効化
           conversationSelector: true,
           autoSelectLastConversation: true,
         }}

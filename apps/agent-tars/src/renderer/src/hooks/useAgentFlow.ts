@@ -1,4 +1,3 @@
-// src/renderer/useAgentFlow.ts
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
 import { InputFile, MessageRole } from '@vendor/chat-ui';
@@ -20,7 +19,6 @@ import { DEFAULT_APP_ID } from '@renderer/components/LeftSidebar';
 import { ipcClient } from '@renderer/api';
 import { Message } from '@agent-infra/shared';
 
-// デバッグ: Atom のインポート先を確認
 console.log(
   '[import先] planTasksAtom in useAgentFlow.ts',
   planTasksAtom,
@@ -86,11 +84,11 @@ export function useAgentFlow() {
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
-  // 最重要！planTasksセット関数を「マージ」→「空配列は強制リセット」に分岐
+  // planTasksセット関数
   const setPlanTasksMerged = useCallback(
     (tasks: PlanTask[]) => {
       if (!tasks || tasks.length === 0) {
-        setPlanTasks([]); // 強制クリア
+        setPlanTasks([]);
         return;
       }
       const safeTasks = Array.isArray(tasks) ? tasks : [];
@@ -108,8 +106,7 @@ export function useAgentFlow() {
       const agentFlowId = uuid();
       currentAgentFlowIdRef.current = agentFlowId;
 
-      // 初期化：プランをクリア
-      setPlanTasks([]); // ←最初は空に
+      setPlanTasks([]); // 初期化
 
       const agentFlow = new AgentFlow({
         chatUtils,
@@ -125,8 +122,11 @@ export function useAgentFlow() {
         },
       });
 
-      // 並行実行: AgentFlow とセッションタイトル生成
-      await Promise.all([agentFlow.run(), updateSessionTitle(inputText)]);
+      // ★ inputFilesを渡して実行！
+      await Promise.all([
+        agentFlow.run(inputFiles),
+        updateSessionTitle(inputText),
+      ]);
     },
     [
       chatUtils,
