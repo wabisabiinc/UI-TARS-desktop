@@ -107,17 +107,15 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 }
 
 /* -------------------------------------------------
- * Electron IPC クライアント
+ * Electron IPC クライアント（遅延初期化で TLA を回避）
  * ------------------------------------------------- */
 export let ipcClient: any = null;
 
-if (isElectron) {
+async function initIpcClient() {
+  if (ipcClient || !isElectron) return;
   try {
-    // 型だけ import（runtime には含まれない）
     type Router = import('../../../main/ipcRoutes').Router;
-
     const { createClient } = await import('@ui-tars/electron-ipc/renderer');
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const { ipcRenderer } = window.electron!;
     ipcClient = createClient<Router>({
@@ -128,10 +126,15 @@ if (isElectron) {
   }
 }
 
+async function ensureIpcReady() {
+  await initIpcClient();
+}
+
 /* -------------------------------------------------
  * 公開関数
  * ------------------------------------------------- */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
+  if (isElectron) await ensureIpcReady();
   if (isElectron && ipcClient) return ipcClient.askLLMTool(opts as any);
   return fetchLLM(opts);
 }
@@ -139,8 +142,8 @@ export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
 export async function listTools(): Promise<
   { name: string; description: string }[]
 > {
-  if (isElectron && ipcClient) return ipcClient.listTools();
-  return [];
+  if (isElectron) await ensureIpcReady();
+  return isElectron && ipcClient ? ipcClient.listTools() : [];
 }
 
 export const onMainStreamEvent = (
@@ -166,6 +169,8 @@ export const onMainStreamEvent = (
 };
 
 export async function getAvailableProviders(): Promise<string[]> {
-  if (isElectron && ipcClient) return ipcClient.getAvailableProviders();
-  return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
+  if (isElectron) await ensureIpcReady();
+  return isElectron && ipcClient
+    ? ipcClient.getAvailableProviders()
+    : ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
