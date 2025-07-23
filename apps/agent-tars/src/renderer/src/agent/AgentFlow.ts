@@ -264,9 +264,9 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
 
         console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
         // inputFilesは最初の1回だけ渡し、以降はundefined
-        const calls = (await executor.run(result.status, inputFiles)).filter(
-          Boolean,
-        );
+        const toolCalls = await executor.run(result.status, inputFiles);
+        const calls = Array.isArray(toolCalls) ? toolCalls.filter(Boolean) : [];
+
         for (const call of calls) {
           if (call.function?.name === 'analyzeImage') {
             await executor.executeTools([call]);

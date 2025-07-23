@@ -1,5 +1,4 @@
 // src/renderer/hooks/useAppSettings.ts
-
 import { useEffect, useRef } from 'react';
 import {
   AppSettings,
@@ -8,7 +7,7 @@ import {
   SearchSettings,
   SearchProvider,
 } from '@agent-infra/shared';
-import { ipcClient } from '@renderer/api';
+import { ipcClient, ensureIpcReady } from '@renderer/api';
 import { isReportHtmlMode } from '@renderer/constants';
 import { atom, useAtom } from 'jotai';
 import toast from 'react-hot-toast';
@@ -29,50 +28,56 @@ export function useAppSettings() {
   // 初回マウント時にメインプロセスから設定を読み込む
   useEffect(() => {
     if (isReportHtmlMode) return;
+    if (initializationRef.current) return;
 
-    if (!initializationRef.current) {
-      (async () => {
-        try {
-          const s = await ipcClient.getSettings();
-          // 不正データ時も必ずDEFAULT補完
-          console.log('[Setting] initial value', s);
+    (async () => {
+      try {
+        // Electron以外 or ipc未初期化ならフォールバック
+        await ensureIpcReady();
+        const s =
+          (ipcClient?.getSettings && (await ipcClient.getSettings())) || null;
 
-          setSettings({
-            model: s?.model ?? DEFAULT_MODEL_SETTINGS,
-            fileSystem: s?.fileSystem ?? DEFAULT_FILESYSTEM_SETTINGS,
-            search: s?.search ?? DEFAULT_SEARCH_SETTINGS,
-            mcp: s?.mcp ?? DEFAULT_MCP_SETTINGS,
-          });
-        } catch (e) {
-          // 取得失敗も必ずDEFAULT
-          console.error('[Setting] 設定取得失敗、デフォルトで初期化', e);
-          setSettings({
-            model: DEFAULT_MODEL_SETTINGS,
-            fileSystem: DEFAULT_FILESYSTEM_SETTINGS,
-            search: DEFAULT_SEARCH_SETTINGS,
-            mcp: DEFAULT_MCP_SETTINGS,
-          });
-        }
-      })();
+        console.log('[Setting] initial value', s);
 
-      const onUpdate = (newSettings: AppSettings) => {
-        // 設定がnull/undefinedになるケースも守る
-        if (!newSettings) {
-          console.warn('[Setting] store updated: 値がnull→DEFAULTで補完');
-          setSettings(DEFAULT_SETTINGS);
-        } else {
-          console.log('[Setting] store updated', newSettings);
-          setSettings(newSettings);
-        }
-      };
+        setSettings({
+          model: s?.model ?? DEFAULT_MODEL_SETTINGS,
+          fileSystem: s?.fileSystem ?? DEFAULT_FILESYSTEM_SETTINGS,
+          search: s?.search ?? DEFAULT_SEARCH_SETTINGS,
+          mcp: s?.mcp ?? DEFAULT_MCP_SETTINGS,
+        });
+      } catch (e) {
+        console.error('[Setting] 設定取得失敗、デフォルトで初期化', e);
+        setSettings({
+          model: DEFAULT_MODEL_SETTINGS,
+          fileSystem: DEFAULT_FILESYSTEM_SETTINGS,
+          search: DEFAULT_SEARCH_SETTINGS,
+          mcp: DEFAULT_MCP_SETTINGS,
+        });
+      }
+    })();
 
-      window.api.on('setting-updated', onUpdate);
-      initializationRef.current = true;
-      return () => window.api.off('setting-updated', onUpdate);
-    }
-  }, []);
+    const onUpdate = (newSettings: AppSettings) => {
+      if (!newSettings) {
+        console.warn('[Setting] store updated: 値がnull→DEFAULTで補完');
+        setSettings(DEFAULT_SETTINGS);
+      } else {
+        console.log('[Setting] store updated', newSettings);
+        setSettings(newSettings);
+      }
+    };
 
-  // バリデーション関数群
+    // window.api が無いケースに備えてガード
+    // @ts-ignore
+    window?.api?.on?.('setting-updated', onUpdate);
+    initializationRef.current = true;
+
+    return () => {
+      // @ts-ignore
+      window?.api?.off?.('setting-updated', onUpdate);
+    };
+  }, [setSettings]);
+
+  // ----------------- バリデーション -----------------
   const validateModelSettings = (ms: ModelSettings): string | null => {
     if (!ms || typeof ms !== 'object') return 'モデル設定が不正';
     if (!ms.provider) return 'Provider is required';
@@ -115,7 +120,7 @@ export function useAppSettings() {
     return { hasError: false, errorTab: null };
   };
 
-  // Test Model Provider
+  // ----------------- API 呼び出しラッパ -----------------
   const testModelProvider = async (modelName: string): Promise<boolean> => {
     try {
       const res = await fetch('/api/testModelProvider', {
@@ -123,9 +128,7 @@ export function useAppSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: modelName }),
       });
-      if (!res.ok) {
-        throw new Error(`ステータス ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`ステータス ${res.status}`);
       const json = (await res.json()) as { success: boolean };
       return json.success;
     } catch (err: any) {
@@ -134,12 +137,15 @@ export function useAppSettings() {
     }
   };
 
-  // 設定を保存
   const saveSettings = async (): Promise<boolean> => {
     const v = validateSettings();
     if (v.hasError) return false;
+
     try {
-      await ipcClient.updateAppSettings(settings);
+      await ensureIpcReady();
+      if (ipcClient?.updateAppSettings) {
+        await ipcClient.updateAppSettings(settings);
+      }
       toast.success('Settings saved successfully');
       return true;
     } catch (err: any) {
@@ -148,7 +154,6 @@ export function useAppSettings() {
     }
   };
 
-  // デフォルトにリセット
   const resetToDefaults = async (): Promise<boolean> => {
     try {
       const currentDirs = settings.fileSystem?.availableDirectories ?? [];
@@ -158,7 +163,11 @@ export function useAppSettings() {
         availableDirectories: currentDirs,
       };
       setSettings(def);
-      await ipcClient.updateAppSettings(def);
+
+      await ensureIpcReady();
+      if (ipcClient?.updateAppSettings) {
+        await ipcClient.updateAppSettings(def);
+      }
       toast.success('Settings reset to defaults');
       return true;
     } catch (err: any) {
