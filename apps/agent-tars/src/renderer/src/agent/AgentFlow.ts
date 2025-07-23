@@ -27,7 +27,7 @@ export class AgentFlow {
   private interruptController = new AbortController();
   private hasFinished = false;
 
-  // ★★★ ここをアロー関数で定義！（thisがバインドされる）
+  // --- prompt 用環境情報生成（this バインド済み）
   getEnvironmentInfo = (
     appContext: AppContext,
     agentContext: AgentContext,
@@ -69,20 +69,31 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
     this.eventManager = new EventManager(history);
   }
 
+  /**
+   * 2回目以降の実行でも前回状態を引きずらないように
+   * ここで毎回完全に初期化する
+   */
   public async run(inputFiles?: any[]) {
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
+    // ---- ★ フロー状態のリセット ----
+    this.abortController = new AbortController();
+    this.interruptController = new AbortController();
+    this.hasFinished = false;
+    this.eventManager = new EventManager(this.parseHistoryEvents());
     setPlanTasks([]);
+    setEvents([]);
     setAgentStatusTip('Thinking');
 
     const agentContext: AgentContext = {
       plan: [],
       currentStep: 0,
       memory: {},
-      getEnvironmentInfo: this.getEnvironmentInfo, // ←ここでアロー関数なのでOK！
+      getEnvironmentInfo: this.getEnvironmentInfo,
       eventManager: this.eventManager,
     };
+
     const aware = new Aware(
       this.appContext,
       agentContext,
@@ -95,6 +106,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
+    // terminate イベント
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (e: GlobalEvent) => {
@@ -137,6 +149,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
         }
       });
 
+      // user-interrupt
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (e: GlobalEvent) => {
@@ -168,7 +181,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
         aware,
         agentContext,
         omegaMsgId,
-        inputFiles, // inputFilesを渡す
+        inputFiles,
       ),
     ]);
   }
@@ -191,7 +204,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
 
         const result: AwareResult = await aware.run();
 
-        // 完了判定
+        // ---- 完了判定
         if (
           Array.isArray(result.plan) &&
           result.plan.length > 0 &&
@@ -244,7 +257,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
           break;
         }
 
-        // 進行中
+        // ---- 進行中
         agentContext.currentStep = result.step > 0 ? result.step : 1;
         agentContext.plan = this.normalizePlan(result);
         setPlanTasks([...agentContext.plan]);
@@ -263,7 +276,6 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
         }
 
         console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
-        // inputFilesは最初の1回だけ渡し、以降はundefined
         const toolCalls = await executor.run(result.status, inputFiles);
         const calls = Array.isArray(toolCalls) ? toolCalls.filter(Boolean) : [];
 
@@ -271,7 +283,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
           if (call.function?.name === 'analyzeImage') {
             await executor.executeTools([call]);
           }
-          // 他ツールはここで分岐追加
+          // 他ツール追加時はここで分岐
         }
         inputFiles = undefined;
       } catch (err) {

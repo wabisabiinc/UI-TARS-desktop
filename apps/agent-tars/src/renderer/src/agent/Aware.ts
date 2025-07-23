@@ -20,13 +20,10 @@ OUTPUT MUST BE STRICT JSON ONLY. DO NOT WRAP IN ANY TEXT.
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
 Return only a raw JSON object with the following keys:
   • reflection (string)
-  • step (number)            ← current step, starting at 1
-  • status (string)          ← "in-progress" for intermediate steps, "completed" **MUST BE SET if step is equal to the number of items in plan**
+  • step (number)
+  • status (string)  ← "in-progress" normally, "completed" when step == plan.length
   • plan (array of { id: string, title: string })
-
-RULE: When "step" is equal to plan.length, set "status" to "completed".
-For all other steps, set "status" to "in-progress".
-Do NOT wrap your output in markdown or include any extra text or explanation.
+Do NOT include markdown fences.
 `.trim();
 
   constructor(
@@ -42,11 +39,7 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
   }
 
   /**
-   * できるだけ壊れたJSONを直してパースする。
-   * - 先頭/末尾の `{ ... }` 抽出
-   * - ```json ``` / ``` フェンス内抽出
-   * - 改行/エスケープ調整
-   * - 末尾カンマの除去 など軽微な修正
+   * ガチガチ JSON パーサ
    */
   private static safeParse<T>(text: string): T | null {
     const tryParse = (s: string): T | null => {
@@ -57,34 +50,32 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
       }
     };
 
-    const trimmed = text.trim();
+    const trimmed = text?.trim() ?? '';
+    if (!trimmed) return null;
 
     // 1) そのまま
     let parsed = tryParse(trimmed);
     if (parsed) return parsed;
 
-    // 2) コードフェンスから抽出
+    // 2) ```json``` or ``` フェンス
     const fenceJson = trimmed.match(/```json\s*([\s\S]*?)```/i);
-    const fence = fenceJson || trimmed.match(/```([\s\S]*?)```/i);
-    if (fence) {
-      parsed = tryParse(fence[1]);
+    const fenceAny = fenceJson || trimmed.match(/```([\s\S]*?)```/i);
+    if (fenceAny) {
+      parsed = tryParse(fenceAny[1]);
       if (parsed) return parsed;
     }
 
-    // 3) 最初と最後の波括弧で囲まれた部分を抜く
+    // 3) 最初と最後の { } のみ抜き
     const start = trimmed.indexOf('{');
     const end = trimmed.lastIndexOf('}');
     if (start >= 0 && end > start) {
       const slice = trimmed.slice(start, end + 1);
-
-      // 軽微な修正：\n, \" の戻し・末尾カンマ除去
       const cleaned = slice
         .replace(/\\n/g, '\n')
         .replace(/\\"/g, '"')
         .replace(/,\s*}/g, '}')
         .replace(/,\s*]/g, ']')
         .trim();
-
       parsed = tryParse(cleaned);
       if (parsed) return parsed;
     }
@@ -106,7 +97,7 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
     console.log('[Aware] ▶︎ run start, aborted=', this.signal.aborted);
     if (this.signal.aborted) return this.getDefaultResult();
 
-    // 1) 環境情報を取得
+    // 1) 環境情報
     const envInfo = await this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
@@ -118,20 +109,21 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
       : import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o';
     const available = (await listTools()) || [];
-    const toolList = available
-      .map((t) => `${t.name}: ${t.description}`)
-      .join(', ');
+    const toolList =
+      available.length > 0
+        ? available.map((t) => `${t.name}: ${t.description}`).join(', ')
+        : 'none';
 
-    // 3) LLMへ投げるメッセージ
+    // 3) プロンプト
     const messages = [
       Message.systemMessage(this.prompt),
       Message.systemMessage(`Available tools: ${toolList}`),
       Message.userMessage(envInfo),
       Message.userMessage(
-        'Please analyze the environment and plan the next step in JSON format.',
+        'Analyze the environment and plan the next step in JSON.',
       ),
     ];
-    console.log('[Aware] → askLLMTool', { model, messages });
+    console.log('[Aware] → askLLMTool', { model });
 
     const raw = await askLLMTool({
       model,
@@ -142,12 +134,11 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
     });
 
     const content = raw?.content?.trim() || '';
-    console.log('[Aware] ← askLLMTool content=', content);
+    console.log('[Aware] ← askLLMTool content =', content);
 
-    // 4) Parse
     const parsed = Aware.safeParse<AwareResult>(content);
     if (!parsed) {
-      // フォールバック：回答自体は content に入っていることが多いので、それを1タスクとして返す
+      // fallback: content を 1 タスクとして返す
       return {
         reflection: '',
         step: 1,
@@ -155,13 +146,13 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
         plan: [
           {
             id: '1',
-            title: content.slice(0, 80) || 'Generated answer', // 長すぎる場合は切る
+            title: content.slice(0, 80) || 'Generated answer',
           },
         ],
       };
     }
 
-    // 5) 正常時の整形
+    // 整形
     const resultPlan: PlanTask[] = [];
     let step = parsed.step || 1;
     let status = (parsed.status || '').toLowerCase();
@@ -175,7 +166,6 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
         'in-progress',
       ].includes(status) === false
     ) {
-      // 想定外は in-progress へ
       status = 'in-progress';
     }
 
@@ -191,7 +181,6 @@ Do NOT wrap your output in markdown or include any extra text or explanation.
       });
     }
 
-    // 最終ステップなら completed に補正
     if (resultPlan.length > 0 && step >= resultPlan.length) {
       status = 'completed';
     }
