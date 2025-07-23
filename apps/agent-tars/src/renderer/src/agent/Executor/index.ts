@@ -1,9 +1,12 @@
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { AgentContext } from '../AgentFlow';
 import { ipcClient } from '@renderer/api';
-import { MCPServerName, ToolCall } from '@agent-infra/shared';
+import { ToolCall } from '@agent-infra/shared';
 import { chatMessageTool, idleTool } from './tools';
 import { ExecutorToolType } from './tools';
+
+const isElectron =
+  typeof window !== 'undefined' && !!window.electron?.ipcRenderer?.invoke;
 
 // Utility: 現在のStepのPlanTaskを取得
 function getCurrentPlanTask(agentContext: AgentContext) {
@@ -14,7 +17,7 @@ function getCurrentPlanTask(agentContext: AgentContext) {
 function createToolCalls(
   agentContext: AgentContext,
   status: string,
-  inputFiles?: any[], // 画像ファイル配列
+  inputFiles?: any[],
 ): ToolCall[] {
   const plan = agentContext.plan;
   const currentStep = agentContext.currentStep;
@@ -25,9 +28,9 @@ function createToolCalls(
     return [
       {
         function: {
-          name: ExecutorToolType.AnalyzeImage, // ツール名
+          name: ExecutorToolType.AnalyzeImage,
           arguments: JSON.stringify({
-            path: inputFiles[0].path, // 1枚目画像のpath
+            path: inputFiles[0].path,
           }),
         },
         id: `toolcall-analyzeImage-${Date.now()}`,
@@ -35,7 +38,7 @@ function createToolCalls(
     ];
   }
 
-  // すべてのPlanTaskがDoneならidle tool
+  // すべてDoneなら idle
   if (plan.length > 0 && plan.every((task) => task.status === 'Done')) {
     return [
       {
@@ -48,7 +51,7 @@ function createToolCalls(
     ];
   }
 
-  // 通常はchatMessage toolcall
+  // 通常は chatMessage
   if (currentTask && currentTask.title) {
     return [
       {
@@ -64,7 +67,6 @@ function createToolCalls(
     ];
   }
 
-  // 何もない場合は空配列
   return [];
 }
 
@@ -84,39 +86,59 @@ export class Executor {
     this.abortSignal = abortSignal;
   }
 
-  // ★ inputFilesをrunに渡せる
+  /** LLM側が返した status と inputFiles から toolCall を決める */
   async run(status: string, inputFiles?: any[]) {
     console.log('[DEBUG] Executor.run called with status:', status);
     return createToolCalls(this.agentContext, status, inputFiles);
   }
 
+  /** ツール実行。null/undefined安全化 */
   async executeTools(toolCalls: ToolCall[]) {
     if (this.abortSignal.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
+    if (!Array.isArray(toolCalls) || toolCalls.length === 0) return [];
 
-    // analyzeImage toolへの分岐
-    if (
-      toolCalls &&
-      toolCalls[0] &&
-      toolCalls[0].function?.name === 'analyzeImage'
-    ) {
-      const args = JSON.parse(toolCalls[0].function.arguments || '{}');
-      const result = await ipcClient.tools.analyzeImage(args.path);
-      return [
-        {
-          content: { text: result },
-          isError: false,
-        },
-      ];
+    const first = toolCalls[0];
+    const fnName = first?.function?.name;
+
+    // analyzeImage
+    if (fnName === ExecutorToolType.AnalyzeImage) {
+      if (!isElectron || !ipcClient?.tools?.analyzeImage) {
+        console.warn(
+          '[Executor] analyzeImage tool is not available (web mode)',
+        );
+        return [
+          {
+            content: {
+              text: '画像解析ツールはこの環境では使用できません。',
+            },
+            isError: false,
+          } as any,
+        ];
+      }
+      try {
+        const args = JSON.parse(first.function!.arguments || '{}');
+        const result = await ipcClient.tools.analyzeImage(args.path);
+        return [
+          {
+            content: { text: result },
+            isError: false,
+          },
+        ];
+      } catch (e) {
+        console.error('[Executor] analyzeImage error', e);
+        return [
+          {
+            content: { text: `analyzeImage failed: ${String(e)}` },
+            isError: true,
+          },
+        ];
+      }
     }
 
-    // chatMessage toolのダミー
-    if (
-      toolCalls &&
-      toolCalls[0] &&
-      toolCalls[0].function?.name === 'chatMessage'
-    ) {
+    // chatMessage (ダミー)
+    if (fnName === ExecutorToolType.ChatMessage) {
       return [
         {
           content: { text: '【ダミーToolCall実行成功】' },
@@ -125,7 +147,7 @@ export class Executor {
       ];
     }
 
-    // 他ツールはここに追加
+    // Idle 等追加ツールはここで分岐
 
     return [];
   }
