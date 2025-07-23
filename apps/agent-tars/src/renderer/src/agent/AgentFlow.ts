@@ -28,7 +28,8 @@ export class AgentFlow {
   private hasFinished = false;
 
   constructor(private appContext: AppContext) {
-    const history = this.parseHistoryEvents();
+    // 修正: extractHistoryEventsを直接使う
+    const history = extractHistoryEvents(this.appContext.chatUtils.messages);
     this.eventManager = new EventManager(history);
   }
 
@@ -227,7 +228,7 @@ export class AgentFlow {
         }
 
         console.log('[AgentFlow] ▶ Executor.run with status:', result.status);
-        // ★ inputFilesは最初の1回だけ渡し、以降はundefined
+        // inputFilesは最初の1回だけ渡し、以降はundefined
         const calls = (await executor.run(result.status, inputFiles)).filter(
           Boolean,
         );
@@ -254,5 +255,5 @@ export class AgentFlow {
     }
   }
 
-  // ...（getEnvironmentInfo、normalizePlan、parseHistoryEventsは変更なし）
+  // getEnvironmentInfo、normalizePlan、parseHistoryEventsは変更なし
 }
