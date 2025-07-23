@@ -48,7 +48,6 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      // 既存 alias
       '@': path.resolve(__dirname, 'src/renderer'),
       '@vendor/chat-ui': path.resolve(__dirname, 'src/vendor/chat-ui'),
       '@vendor/chat-ui/': path.resolve(__dirname, 'src/vendor/chat-ui') + '/',
@@ -61,7 +60,7 @@ export default defineConfig({
       '@renderer/api': path.resolve(__dirname, 'src/renderer/src/api'),
       '@renderer/api/': path.resolve(__dirname, 'src/renderer/src/api') + '/',
 
-      // ---- Node系/問題児まとめて空化 ----
+      // Nodeコア & 問題児
       dotenv: EMPTY,
       crypto: EMPTY,
       fs: EMPTY,
@@ -86,7 +85,6 @@ export default defineConfig({
       'node:events': EMPTY,
       'node:process': EMPTY,
 
-      // ライブラリ単位でも空化
       'electron-store': EMPTY,
       'node-fetch': EMPTY,
       'puppeteer-core': EMPTY,
@@ -94,13 +92,18 @@ export default defineConfig({
       'graceful-fs': EMPTY,
       which: EMPTY,
       '@modelcontextprotocol/sdk': EMPTY,
-      // 必要に応じて追加
+
+      // 念のため main/ipcRoutes を空化
+      '@main/ipcRoutes': EMPTY,
+      '@main/ipcRoutes/': EMPTY,
+      '../../main/ipcRoutes': EMPTY,
+      '../../main/ipcRoutes/': EMPTY,
     },
   },
 
   define: {
     'process.env': {},
-    global: 'globalThis', // 一部ライブラリが global を期待する対策
+    global: 'globalThis',
   },
 
   optimizeDeps: {

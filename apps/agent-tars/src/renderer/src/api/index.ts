@@ -1,6 +1,5 @@
 /**
  * クライアント側 LLM 呼び出しインターフェース
- * apps/agent-tars/src/renderer/src/api/index.ts
  */
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -30,21 +29,21 @@ export interface AskLLMResult {
 }
 
 /* -------------------------------------------------
- *  環境判定
+ * 環境判定
  * ------------------------------------------------- */
 const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
 
 /* -------------------------------------------------
- *  ブラウザ時のキー警告
+ * ブラウザ時のキー警告
  * ------------------------------------------------- */
 if (!isElectron && !import.meta.env?.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
 }
 
 /* -------------------------------------------------
- *  /api プロキシ経由で LLM 呼び出し（ブラウザ用）
+ * /api プロキシ経由で LLM 呼び出し（Web）
  * ------------------------------------------------- */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const resp = await fetch('/api/generateMessage', {
@@ -64,8 +63,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 
   const data = await resp.json();
 
-  // ---- OpenAI / Responses API / ChatCompletion など色々来る可能性があるので吸収 ----
-  // OpenAI ChatCompletion 形式
   const choice = data.choices?.[0]?.message ?? data.output?.[0]?.content?.[0];
   let content = '';
 
@@ -73,16 +70,13 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
     content =
       typeof choice.content === 'string'
         ? choice.content
-        : // responses.create の場合 array になる
-          choice.content.map((c: any) => c.text ?? '').join('');
+        : choice.content.map((c: any) => c.text ?? '').join('');
   } else if (data.output_text) {
-    // responses.create のショートカット
     content = data.output_text;
   }
 
   let tool_calls: ToolCall[] = [];
 
-  // ChatCompletionToolCalls (gpt-4o 系)
   if (choice?.tool_calls?.length) {
     tool_calls = choice.tool_calls.map((t: any) => ({
       id: t.id,
@@ -91,7 +85,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
     }));
   }
 
-  // function_call (旧)
   if (choice?.function_call) {
     tool_calls.push({
       name: choice.function_call.name,
@@ -99,7 +92,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
     });
   }
 
-  // responses.create の "tool" 出力に対応
   if (Array.isArray(data.output)) {
     const tools = data.output.filter((o: any) => o.type === 'tool_call');
     if (tools.length) {
@@ -115,19 +107,20 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 }
 
 /* -------------------------------------------------
- *  Electron IPC クライアント
+ * Electron IPC クライアント
  * ------------------------------------------------- */
 let ipcClient: any = null;
+
 if (isElectron) {
-  // lazy import 防止用 try-catch
   try {
+    // 型だけ import（runtime には含まれない）
+    type Router = import('../../../main/ipcRoutes').Router;
+
     const { createClient } = await import('@ui-tars/electron-ipc/renderer');
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const { ipcRenderer } = window.electron!;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Router } = await import('../../../main/ipcRoutes'); // 型だけ参照したい場合は typeof import(...) に変更可
-    ipcClient = createClient<typeof Router>({
+    ipcClient = createClient<Router>({
       ipcInvoke: ipcRenderer.invoke.bind(ipcRenderer),
     });
   } catch (e) {
@@ -136,31 +129,20 @@ if (isElectron) {
 }
 
 /* -------------------------------------------------
- *  公開関数：askLLMTool
+ * 公開関数
  * ------------------------------------------------- */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
-  if (isElectron && ipcClient) {
-    return ipcClient.askLLMTool(opts as any);
-  }
+  if (isElectron && ipcClient) return ipcClient.askLLMTool(opts as any);
   return fetchLLM(opts);
 }
 
-/* -------------------------------------------------
- *  ツール一覧
- * ------------------------------------------------- */
 export async function listTools(): Promise<
   { name: string; description: string }[]
 > {
-  if (isElectron && ipcClient) {
-    return ipcClient.listTools();
-  }
-  // ブラウザのみの場合はバックエンド無し想定なので空
+  if (isElectron && ipcClient) return ipcClient.listTools();
   return [];
 }
 
-/* -------------------------------------------------
- *  ストリームイベント購読（Electronのみ）
- * ------------------------------------------------- */
 export const onMainStreamEvent = (
   streamId: string,
   handlers: {
@@ -183,13 +165,7 @@ export const onMainStreamEvent = (
   };
 };
 
-/* -------------------------------------------------
- *  利用可能プロバイダー取得
- * ------------------------------------------------- */
 export async function getAvailableProviders(): Promise<string[]> {
-  if (isElectron && ipcClient) {
-    return ipcClient.getAvailableProviders();
-  }
-  // ブラウザ実行のみのときは固定
+  if (isElectron && ipcClient) return ipcClient.getAvailableProviders();
   return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
