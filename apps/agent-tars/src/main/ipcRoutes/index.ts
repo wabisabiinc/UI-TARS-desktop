@@ -7,10 +7,12 @@ import { fileSystemRoute } from './filesystem';
 import { searchRoute } from './search';
 import { settingsRoute } from './settings';
 import { mcpRoute } from './mcp';
+import { toolsRoute } from './tools'; // ←これを追加
 
 const t = initIpc.create();
 
 export const ipcRoutes = t.router({
+  ...toolsRoute, // ←この行を必ず最上段 or 適切な位置に追加
   ...agentRoute,
   ...llmRoute,
   ...actionRoute,
