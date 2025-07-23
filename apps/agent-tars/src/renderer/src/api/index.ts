@@ -126,7 +126,7 @@ async function initIpcClient() {
   }
 }
 
-async function ensureIpcReady() {
+export async function ensureIpcReady() {
   await initIpcClient();
 }
 
