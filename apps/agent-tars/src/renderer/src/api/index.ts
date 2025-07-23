@@ -109,7 +109,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 /* -------------------------------------------------
  * Electron IPC クライアント
  * ------------------------------------------------- */
-let ipcClient: any = null;
+export let ipcClient: any = null;
 
 if (isElectron) {
   try {
