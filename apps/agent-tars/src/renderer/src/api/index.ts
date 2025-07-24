@@ -1,3 +1,5 @@
+// src/renderer/src/api/index.ts
+
 /**
  * クライアント側 LLM 呼び出しインターフェース
  */
@@ -24,14 +26,23 @@ export interface AskLLMResult {
   content: string;
 }
 
+/* -------------------------------------------------
+ * 環境判定
+ * ------------------------------------------------- */
 export const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
 
+/* -------------------------------------------------
+ * ブラウザ時のキー警告
+ * ------------------------------------------------- */
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
 }
 
+/* -------------------------------------------------
+ * /api プロキシ経由で LLM 呼び出し（Web）
+ * ------------------------------------------------- */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const resp = await fetch('/api/generateMessage', {
     method: 'POST',
@@ -56,41 +67,84 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   return { tool_calls, content };
 }
 
+/* -------------------------------------------------
+ * Electron IPC クライアント（遅延初期化）
+ * ------------------------------------------------- */
 export let ipcClient: any = null;
+
 async function initIpcClient() {
   if (ipcClient || !isElectron) return;
   try {
+    type Router = import('../../../main/ipcRoutes').Router;
     const { createClient } = await import('@ui-tars/electron-ipc/renderer');
     // @ts-ignore
     const { ipcRenderer } = window.electron!;
-    ipcClient = createClient({
+    ipcClient = createClient<Router>({
       ipcInvoke: ipcRenderer.invoke.bind(ipcRenderer),
     });
   } catch (e) {
-    console.error('[api] ipc init failed:', e);
+    console.error('[api] ipc client init failed:', e);
   }
 }
 
+/* -------------------------------------------------
+ * IPC 準備ユーティリティ
+ * ------------------------------------------------- */
 export async function ensureIpcReady() {
   await initIpcClient();
 }
 
+/* -------------------------------------------------
+ * 公開関数：LLM 呼び出し
+ * ------------------------------------------------- */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   if (isElectron) {
     await ensureIpcReady();
-    if (ipcClient) return ipcClient.askLLMTool(opts);
+    if (ipcClient) return ipcClient.askLLMTool(opts as any);
   }
   return fetchLLM(opts);
 }
 
-export async function listTools() {
+/* -------------------------------------------------
+ * 利用可能プロバイダー取得
+ * ------------------------------------------------- */
+export async function getAvailableProviders(): Promise<string[]> {
   if (isElectron) {
     await ensureIpcReady();
-    if (ipcClient) return ipcClient.listTools();
+    if (ipcClient) return ipcClient.getAvailableProviders();
   }
-  return [];
+  // Web 環境では固定リストを返す
+  return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
 
+/* -------------------------------------------------
+ * ストリームイベント購読（Electron のみ）
+ * ------------------------------------------------- */
+export const onMainStreamEvent = (
+  streamId: string,
+  handlers: {
+    onData: (chunk: string) => void;
+    onError: (error: Error) => void;
+    onEnd: () => void;
+  },
+) => {
+  if (!isElectron || !window.api) return () => {};
+  const onData = (d: string) => handlers.onData(d);
+  const onError = (e: Error) => handlers.onError(e);
+  const onEnd = () => handlers.onEnd();
+  window.api.on(`llm:stream:${streamId}:data`, onData);
+  window.api.on(`llm:stream:${streamId}:error`, onError);
+  window.api.on(`llm:stream:${streamId}:end`, onEnd);
+  return () => {
+    window.api.off(`llm:stream:${streamId}:data`, onData);
+    window.api.off(`llm:stream:${streamId}:error`, onError);
+    window.api.off(`llm:stream:${streamId}:end`, onEnd);
+  };
+};
+
+/* -------------------------------------------------
+ * ブラウザ用画像解析エンドポイントラッパー
+ * ------------------------------------------------- */
 export async function analyzeImageWeb(imageBase64: string): Promise<string> {
   const resp = await fetch('/api/analyzeImage', {
     method: 'POST',
@@ -103,7 +157,7 @@ export async function analyzeImageWeb(imageBase64: string): Promise<string> {
   }
   const data = await resp.json();
   if (!data.success) {
-    throw new Error(data.error || 'analyzeImage failure');
+    throw new Error(data.error || 'analyzeImage 解析失敗');
   }
-  return data.content;
+  return data.content as string;
 }
