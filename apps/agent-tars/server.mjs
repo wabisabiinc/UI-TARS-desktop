@@ -11,11 +11,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app = express();
-// CORS 有効化 （フロント側 /api 呼び出しを許可）
+// CORS 許可
 app.use(cors());
 // JSON ボディのサイズ上限を 50MB に設定
 app.use(express.json({ limit: '50mb' }));
-// URLエンコードも同じく拡張
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ── OpenAI クライアント初期化 ────────────────────────
@@ -39,7 +38,7 @@ app.post('/api/generateMessage', async (req, res) => {
     }
 
     let contents = req.body.contents;
-    // 古いクライアント互換
+    // 旧クライアント互換
     if (!Array.isArray(contents) && Array.isArray(req.body.messages)) {
       contents = req.body.messages.map(m => ({
         role: m.role,
@@ -50,13 +49,15 @@ app.post('/api/generateMessage', async (req, res) => {
       return res.status(400).json({ error: '`contents` is required and must be an array.' });
     }
 
-    // ChatCompletion 用に整形
     const messages = contents.map(c => ({
       role: c.role,
       content: (c.content || c.parts?.[0]?.text) || '',
     }));
 
-    const completion = await openai.chat.completions.create({ model, messages });
+    const completion = await openai.chat.completions.create({
+      model,
+      messages,
+    });
     res.json(completion);
   } catch (err) {
     console.error('generateMessage error:', err);
@@ -64,45 +65,45 @@ app.post('/api/generateMessage', async (req, res) => {
   }
 });
 
-// ── 画像解析エンドポイント ─────────────────────────────
+// ── 画像解析エンドポイント（GPT-4o Vision） ───────────────────
 app.post('/api/analyzeImage', async (req, res) => {
   try {
-    // image または imageBase64 の両方に対応
-    const payload = req.body;
+    // クライアントが送る Base64 部分文字列 or dataURL の両方に対応
+    const { imageBase64, image } = req.body;
     let dataUrl;
-
-    if (typeof payload.image === 'string') {
-      dataUrl = payload.image;
-    } else if (typeof payload.imageBase64 === 'string') {
-      dataUrl = payload.imageBase64.startsWith('data:')
-        ? payload.imageBase64
-        : `data:image/png;base64,${payload.imageBase64}`;
+    if (typeof image === 'string') {
+      dataUrl = image;
+    } else if (typeof imageBase64 === 'string') {
+      dataUrl = imageBase64.startsWith('data:')
+        ? imageBase64
+        : `data:image/png;base64,${imageBase64}`;
     }
-
     if (!dataUrl) {
-      return res.status(400).json({ success: false, error: 'No image provided in request.' });
+      return res.status(400).json({ success: false, error: 'No image provided.' });
     }
 
-    // Base64 部分のみ取り出して Buffer に
-    const base64 = dataUrl.split(',')[1];
-    const buffer = Buffer.from(base64, 'base64');
-
-    // GPT-4o Vision で解析（日本語で説明）
+    // ■ここがポイント■
+    // GPT-4o Vision モデルでは、base64 をプロンプトに埋め込むのではなく
+    // 「type: 'image_url'」として渡すとトークンカウントに含まれません。
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
           role: 'user',
-          content: `以下の画像を日本語で説明してください。\n${dataUrl}`,
-        },
+          content: [
+            { type: 'text', text: '以下の画像を日本語で説明してください。' },
+            { type: 'image_url', image_url: { url: dataUrl } }
+          ]
+        }
       ],
+      max_tokens: 1000  // 必要に応じて調整
     });
 
     const text = completion.choices?.[0]?.message?.content || '';
-    res.json({ success: true, content: text });
+    return res.json({ success: true, content: text });
   } catch (err) {
     console.error('analyzeImage error:', err);
-    res.status(500).json({ success: false, error: err.message || String(err) });
+    return res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
 
