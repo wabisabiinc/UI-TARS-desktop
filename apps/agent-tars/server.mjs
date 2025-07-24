@@ -1,4 +1,5 @@
 // apps/agent-tars/server.mjs
+
 import 'dotenv/config';            // .env の自動読み込み（OPENAI_API_KEY）
 import express from 'express';
 import cors from 'cors';
@@ -10,8 +11,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app = express();
+// CORS 有効化（Web クライアントからの呼び出しを許可）
 app.use(cors());
-app.use(express.json());
+// JSON ボディのサイズ上限を 50MB に設定
+app.use(express.json({ limit: '50mb' }));
+// URLエンコードボディも同様に拡張
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ── OpenAI クライアント初期化 ────────────────────────
 const openaiApiKey =
@@ -65,7 +70,7 @@ app.post('/api/generateMessage', async (req, res) => {
     });
     return res.json(completion);
   } catch (err) {
-    console.error('OpenAI proxy error:', err);
+    console.error('generateMessage error:', err);
     return res
       .status(500)
       .json({ error: err.message || String(err) });
@@ -75,17 +80,31 @@ app.post('/api/generateMessage', async (req, res) => {
 // ── 画像解析エンドポイント ─────────────────────────────
 app.post('/api/analyzeImage', async (req, res) => {
   try {
-    const { imageBase64 } = req.body;
-    if (!imageBase64) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'imageBase64 が指定されていません。' });
+    // クライアントが送るキー名は２パターン対応
+    const payload = req.body;
+    let dataUrl: string | undefined;
+
+    if (typeof payload.image === 'string') {
+      // 既に data:… 付きの文字列ならそのまま使う
+      dataUrl = payload.image;
+    } else if (typeof payload.imageBase64 === 'string') {
+      // 純粋な Base64 部分文字列の場合は prefix を付与
+      dataUrl = payload.imageBase64.startsWith('data:')
+        ? payload.imageBase64
+        : `data:image/png;base64,${payload.imageBase64}`;
     }
 
-    // data URL に整形
-    const dataUrl = `data:image/png;base64,${imageBase64}`;
+    if (!dataUrl) {
+      return res
+        .status(400)
+        .json({ success: false, error: 'No image provided in request.' });
+    }
 
-    // GPT-4o Vision で解析
+    // dataUrl から Base64 部分のみ取り出し
+    const base64 = dataUrl.split(',')[1];
+    const buffer = Buffer.from(base64, 'base64');
+
+    // GPT-4o Vision を使って日本語で説明を生成
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -96,7 +115,7 @@ app.post('/api/analyzeImage', async (req, res) => {
       ],
     });
 
-    const text = completion.choices?.[0]?.message?.content ?? '';
+    const text = completion.choices?.[0]?.message?.content || '';
     return res.json({ success: true, content: text });
   } catch (err) {
     console.error('analyzeImage error:', err);
@@ -113,7 +132,7 @@ app.get('/api/models', async (_req, res) => {
     const names = list.data.map((m) => m.id);
     return res.json({ success: true, models: names });
   } catch (err) {
-    console.error('Error listing models:', err);
+    console.error('models list error:', err);
     const status = err.status || 500;
     return res.status(status).json({ success: false, error: err.message });
   }
