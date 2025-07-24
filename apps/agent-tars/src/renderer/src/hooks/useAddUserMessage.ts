@@ -12,6 +12,7 @@ export function useAddUserMessage() {
 
   const addUserMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
+      // まずはテキスト
       await addMessage(
         {
           type: MessageType.PlainText,
@@ -24,29 +25,25 @@ export function useAddUserMessage() {
         },
       );
 
-      if (inputFiles.length > 0) {
-        for (const file of inputFiles) {
-          const normalizedFile =
-            file.type === InputFileType.Image
-              ? file
-              : {
-                  ...file,
-                  content: '',
-                };
+      // 画像ファイルは content を空にして履歴上に表示しない
+      for (const file of inputFiles) {
+        const normalizedFile =
+          file.type === InputFileType.Image
+            ? { ...file, content: '' }
+            : { ...file, content: '' };
 
-          await addMessage(
-            {
-              role: MessageRole.User,
-              type: MessageType.File,
-              content: normalizedFile,
-              isFinal: true,
-              timestamp: Date.now(),
-            },
-            {
-              shouldSyncStorage: true,
-            },
-          );
-        }
+        await addMessage(
+          {
+            role: MessageRole.User,
+            type: MessageType.File,
+            content: normalizedFile,
+            isFinal: true,
+            timestamp: Date.now(),
+          },
+          {
+            shouldSyncStorage: true,
+          },
+        );
       }
     },
     [addMessage],
