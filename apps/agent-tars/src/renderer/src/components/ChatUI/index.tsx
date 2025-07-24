@@ -1,8 +1,8 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatUI as BaseChatUI, InputFile } from '@vendor/chat-ui';
 import './index.scss';
 import { MenuHeader } from './MenuHeader';
 import { isReportHtmlMode, STORAGE_DB_NAME } from '@renderer/constants';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAddUserMessage } from '@renderer/hooks/useAddUserMessage';
 import { useAgentFlow } from '@renderer/hooks/useAgentFlow';
 import { renderMessageUI } from './renderMessageUI';
@@ -44,7 +44,7 @@ export function OpenAgentChatUI() {
     appId: DEFAULT_APP_ID,
   });
 
-  // 実際の送信処理を関数化
+  // 実際の送信処理
   const realSend = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       await addUserMessage(inputText, inputFiles);
@@ -66,7 +66,7 @@ export function OpenAgentChatUI() {
     ],
   );
 
-  // ユーザーが送信ボタンを押したとき
+  // 送信ボタン
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       if (isReportHtmlMode) return;
@@ -85,7 +85,7 @@ export function OpenAgentChatUI() {
     [isRunning, realSend, setPending, setAgentStatusTip, setPlanTasks],
   );
 
-  // フロー完了後に pending があれば自動送信
+  // pending 自動送信
   useEffect(() => {
     if (!isRunning && pending.length > 0) {
       const next = pending[0];
@@ -109,19 +109,19 @@ export function OpenAgentChatUI() {
     })();
   }, [currentSessionId]);
 
-  // 中国語プレースホルダ対策：DOM直書き
+  // プレースホルダ制御
   useEffect(() => {
     const ta = chatUIRef.current?.getInputTextArea?.();
     if (!ta) return;
     ta.placeholder = isRunning ? '思考中…お待ちください' : 'メッセージを入力…';
-    ta.disabled = isReportHtmlMode ? true : false;
+    ta.disabled = isReportHtmlMode;
     const tip = ta.parentElement?.querySelector('.input-disabled-tip');
     if (tip) {
       (tip as HTMLElement).innerText = isRunning ? '思考中…お待ちください' : '';
     }
   }, [isRunning]);
 
-  // 停止ボタン（シンプルに fixed）
+  // 停止ボタン
   const StopButton = () =>
     isRunning ? (
       <button
@@ -162,11 +162,10 @@ export function OpenAgentChatUI() {
           container: { height: '100vh', width: '100%' },
           inputContainer: { display: isReportHtmlMode ? 'none' : 'flex' },
         }}
-        // disableInput は使わない
         ref={chatUIRef}
         features={{
           clearConversationHistory: false,
-          uploadFiles: true, // ★ここをtrueにして画像添付を有効化
+          uploadFiles: true,
           conversationSelector: true,
           autoSelectLastConversation: true,
         }}

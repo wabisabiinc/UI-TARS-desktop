@@ -49,7 +49,8 @@ app.post('/api/generateMessage', async (req, res) => {
     const systemPrompt = {
       role: 'system',
       content:
-        'You are a domain‐expert AI assistant. Provide concise, authoritative, and richly detailed answers. Cite examples or data where possible.',
+        'You are a domain‑expert AI assistant. Provide concise, authoritative, ' +
+        'and richly detailed answers. Cite examples or data where possible.',
     };
 
     const chatMessages = Array.isArray(messages)
@@ -74,25 +75,23 @@ app.post('/api/generateMessage', async (req, res) => {
   }
 });
 
-// ── 画像解析エンドポイント（GPT-4o Vision） ──────────────────
+// ── 画像解析エンドポイント（GPT‑4o Vision） ──────────────────
 app.post('/api/analyzeImage', async (req, res) => {
   try {
-    const { image, imageBase64 } = req.body;
-    // data URL を組み立て
-    const dataUrl = typeof image === 'string'
-      ? image
-      : `data:image/png;base64,${imageBase64}`;
-    if (!dataUrl) {
+    // クライアントからは { image: 'data:image/...;base64,...' } を受け取る
+    const { image } = req.body;
+    if (typeof image !== 'string' || !image.startsWith('data:')) {
       return res
         .status(400)
-        .json({ success: false, error: 'No image provided.' });
+        .json({ success: false, error: 'Invalid image format.' });
     }
 
     // 画像解析用 system プロンプト
     const systemPrompt = {
       role: 'system',
       content:
-        'You are a world‑class visual reasoning AI. Describe what you see in 3–5 structured paragraphs, focusing on objects, relationships, and context.',
+        'You are a world‑class visual reasoning AI. Describe what you see in 3–5 ' +
+        'structured paragraphs, focusing on objects, relationships, and context.',
     };
 
     // attachments 形式で渡し、Base64 をトークン計算から除外
@@ -104,7 +103,7 @@ app.post('/api/analyzeImage', async (req, res) => {
           role: 'user',
           content: '以下の画像を説明してください。',
           attachments: [
-            { type: 'image_url', image_url: { url: dataUrl } },
+            { type: 'image_url', image_url: { url: image } },
           ],
         },
       ],

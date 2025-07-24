@@ -34,14 +34,14 @@ export const isElectron =
   navigator.userAgent.toLowerCase().includes('electron');
 
 /* -------------------------------------------------
- * ブラウザ時のキー警告
+ * ブラウザ時の API キー警告
  * ------------------------------------------------- */
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
 }
 
 /* -------------------------------------------------
- * /api プロキシ経由で LLM 呼び出し（Web）
+ * /api/generateMessage プロキシ呼び出し（Web）
  * ------------------------------------------------- */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const resp = await fetch('/api/generateMessage', {
@@ -71,7 +71,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
  * Electron IPC クライアント（遅延初期化）
  * ------------------------------------------------- */
 export let ipcClient: any = null;
-
 async function initIpcClient() {
   if (ipcClient || !isElectron) return;
   try {
@@ -95,12 +94,14 @@ export async function ensureIpcReady() {
 }
 
 /* -------------------------------------------------
- * 公開関数：LLM 呼び出し
+ * askLLMTool（Electron/Web 両対応）
  * ------------------------------------------------- */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   if (isElectron) {
     await ensureIpcReady();
-    if (ipcClient) return ipcClient.askLLMTool(opts as any);
+    if (ipcClient) {
+      return ipcClient.askLLMTool(opts as any);
+    }
   }
   return fetchLLM(opts);
 }
@@ -115,7 +116,7 @@ export async function listTools(): Promise<
     await ensureIpcReady();
     if (ipcClient) return ipcClient.listTools();
   }
-  // Web 環境では固定リスト or 空配列
+  // Web 環境では空配列
   return [];
 }
 
@@ -156,13 +157,16 @@ export const onMainStreamEvent = (
 };
 
 /* -------------------------------------------------
- * ブラウザ用画像解析エンドポイントラッパー
+ * analyzeImageWeb（Web 版画像解析ラッパー）
  * ------------------------------------------------- */
-export async function analyzeImageWeb(imageBase64: string): Promise<string> {
+/**
+ * @param image 'data:image/...;base64,…' 形式の完全な Data URL
+ */
+export async function analyzeImageWeb(image: string): Promise<string> {
   const resp = await fetch('/api/analyzeImage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageBase64 }),
+    body: JSON.stringify({ image }),
   });
   if (!resp.ok) {
     const txt = await resp.text();
