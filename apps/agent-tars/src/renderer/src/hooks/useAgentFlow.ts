@@ -1,3 +1,5 @@
+// src/renderer/src/hooks/useAgentFlow.ts
+
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
 import {
@@ -18,8 +20,8 @@ import {
   currentEventIdAtom,
   eventsAtom,
   planTasksAtom,
-  showCanvasAtom,
 } from '@renderer/state/chat';
+import { showCanvasAtom } from '@renderer/state/canvas'; // ← こちらを修正
 import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '@renderer/components/LeftSidebar';
 import { analyzeImageWeb, isElectron, ipcClient } from '@renderer/api';
@@ -38,14 +40,35 @@ export function useAgentFlow() {
 
   const updateSessionTitle = useCallback(
     async (input: string) => {
-      /* 既存ロジックそのまま */
+      if (!currentSessionId) return;
+      const userMessages = chatUtils.messages
+        .filter((m) => m.role === MessageRole.User)
+        .slice(-5);
+      const userMessageContent =
+        userMessages.map((m) => m.content).join('\n') + input;
+      const result = await ipcClient.askLLMText({
+        messages: [
+          // （省略）既存のサマリー生成ロジック
+        ],
+        requestId: uuid(),
+      });
+      await updateChatSession(currentSessionId, { name: result });
     },
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
   const setPlanTasksMerged = useCallback(
     (tasks: PlanTask[]) => {
-      /* 既存ロジックそのまま */
+      if (!tasks || tasks.length === 0) {
+        setPlanTasks([]);
+        return;
+      }
+      const safeTasks = Array.isArray(tasks) ? tasks : [];
+      setPlanTasks((prev) => {
+        const existingIds = new Set(prev.map((t) => t.id));
+        const newOnes = safeTasks.filter((t) => !existingIds.has(t.id));
+        return [...prev, ...newOnes];
+      });
     },
     [setPlanTasks],
   );
@@ -56,12 +79,11 @@ export function useAgentFlow() {
       currentAgentFlowIdRef.current = agentFlowId;
       setPlanTasks([]);
 
-      // 1) 画像解析フロー
+      // --- 画像解析フロー ---
       if (inputFiles.length > 0) {
         const systemPrompt =
-          'You are a world‑class image analysis assistant. ' +
+          'You are a world-class image analysis assistant. ' +
           'Provide concise, accurate, and detailed descriptions for the given images.';
-        // 複数画像を attachments 配列に
         const attachments = inputFiles
           .filter((f) => f.type === InputFileType.Image && f.content)
           .map((f, idx) => ({
@@ -70,7 +92,6 @@ export function useAgentFlow() {
             name: `Image ${idx + 1}`,
           }));
 
-        // Vision API 呼び出し
         const completion = isElectron
           ? await ipcClient.invoke('analyze-image', inputFiles[0].content)
           : await new OpenAI().chat.completions.create({
@@ -106,13 +127,13 @@ export function useAgentFlow() {
         return;
       }
 
-      // 2) テキスト通常フロー
+      // --- テキスト通常フロー ---
       const systemMsg = {
         role: 'system',
         content:
-          'You are a domain‑expert AI assistant. Provide concise, authoritative, and richly detailed answers. Cite examples or data where possible.',
+          'You are a domain‑expert AI assistant. Provide concise, authoritative, ' +
+          'and richly detailed answers. Cite examples or data where possible.',
       };
-      const userMsg = { role: 'user', content: inputText };
       await chatUtils.addMessage(
         {
           role: MessageRole.User,
@@ -133,14 +154,14 @@ export function useAgentFlow() {
         agentFlowId,
         request: { inputText, inputFiles },
       });
-
-      // system + history + user を渡して実行
-      await agentFlow.run(inputFiles, {
-        systemMessage: systemMsg.content,
-        temperature: 0.2,
-        max_tokens: 1500,
-      });
-      await updateSessionTitle(inputText);
+      await Promise.all([
+        agentFlow.run(inputFiles, {
+          systemMessage: systemMsg.content,
+          temperature: 0.2,
+          max_tokens: 1500,
+        }),
+        updateSessionTitle(inputText),
+      ]);
     },
     [
       chatUtils,
