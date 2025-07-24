@@ -1,5 +1,3 @@
-// src/renderer/src/hooks/useAgentFlow.ts
-
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
 import {
@@ -11,7 +9,6 @@ import {
 import { useAtom } from 'jotai';
 import { v4 as uuid } from 'uuid';
 import { AgentFlow } from '../agent/AgentFlow';
-import { EventItem } from '@renderer/type/event';
 import { PlanTask } from '@renderer/type/agent';
 import {
   agentStatusTipAtom,
@@ -25,6 +22,9 @@ import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '@renderer/components/LeftSidebar';
 import { analyzeImageWeb, isElectron, ipcClient } from '@renderer/api';
 
+/**
+ * AgentTARS のメインフロー実行フック
+ */
 export function useAgentFlow() {
   const chatUtils = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
@@ -39,14 +39,24 @@ export function useAgentFlow() {
 
   const updateSessionTitle = useCallback(
     async (input: string) => {
-      /* 既存のタイトル更新ロジック */
+      if (!currentSessionId) return;
+      // 既存の会話タイトル更新ロジック（省略）
     },
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
   const setPlanTasksMerged = useCallback(
     (tasks: PlanTask[]) => {
-      /* 既存のプランタスクマージロジック */
+      if (!tasks || tasks.length === 0) {
+        setPlanTasks([]);
+        return;
+      }
+      const safeTasks = Array.isArray(tasks) ? tasks : [];
+      setPlanTasks((prev) => {
+        const existing = new Set(prev.map((t) => t.id));
+        const added = safeTasks.filter((t) => !existing.has(t.id));
+        return [...prev, ...added];
+      });
     },
     [setPlanTasks],
   );
@@ -57,39 +67,33 @@ export function useAgentFlow() {
       currentAgentFlowIdRef.current = agentFlowId;
       setPlanTasks([]);
 
-      // ── 画像解析フロー ───────────────────────────────
+      // ─── 画像解析フロー ───────────────────────────────
       if (inputFiles.length > 0) {
-        const systemPrompt =
-          'You are a world‑class image analysis assistant. ' +
-          'Provide concise, accurate, and richly detailed descriptions of the images.';
         const results: string[] = [];
-
-        for (const file of inputFiles) {
+        for (let i = 0; i < inputFiles.length; i++) {
+          const file = inputFiles[i];
           if (file.type === InputFileType.Image && file.content) {
             let analysis: string;
             try {
               if (isElectron) {
-                // Electron 環境なら IPC
+                // Electron 環境: IPC 経由で解析
                 const resp = await ipcClient.invoke(
                   'analyze-image',
                   file.content,
                 );
                 analysis =
-                  typeof resp === 'string'
-                    ? resp
-                    : JSON.stringify(resp, null, 2);
+                  typeof resp === 'string' ? resp : JSON.stringify(resp);
               } else {
-                // Web 環境ならバックエンド API
+                // Web 環境: バックエンド API 経由
                 analysis = await analyzeImageWeb(file.content);
               }
             } catch (e: any) {
-              analysis = `画像解析中にエラーが発生しました: ${e.message || e}`;
+              analysis = `解析エラー: ${e.message || e}`;
             }
-            results.push(`【Image ${results.length + 1}】\n${analysis}`);
+            results.push(`--- Image ${i + 1} ---\n${analysis}`);
           }
         }
-
-        // まとめてアシスタントメッセージとして返す
+        // 解析結果をまとめてアシスタントメッセージとして追加
         await chatUtils.addMessage(
           {
             role: MessageRole.Assistant,
@@ -102,7 +106,16 @@ export function useAgentFlow() {
         return;
       }
 
-      // ── テキスト通常フロー ─────────────────────────────
+      // ─── テキスト通常フロー ─────────────────────────────
+      await chatUtils.addMessage(
+        {
+          role: MessageRole.User,
+          type: MessageType.PlainText,
+          content: inputText,
+          timestamp: Date.now(),
+        },
+        { shouldSyncStorage: true },
+      );
       const agentFlow = new AgentFlow({
         chatUtils,
         setEvents,
@@ -113,7 +126,6 @@ export function useAgentFlow() {
         agentFlowId,
         request: { inputText, inputFiles },
       });
-
       await Promise.all([
         agentFlow.run(inputFiles),
         updateSessionTitle(inputText),

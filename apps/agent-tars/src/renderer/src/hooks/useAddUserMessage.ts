@@ -1,18 +1,22 @@
+import { useCallback } from 'react';
+import { useAppChat } from './useAppChat';
 import {
   InputFile,
   InputFileType,
   MessageRole,
   MessageType,
 } from '@vendor/chat-ui';
-import { useAppChat } from './useAppChat';
-import { useCallback } from 'react';
 
+/**
+ * ユーザー入力メッセージを履歴に追加します。
+ * ChatGPT 方式に合わせ、テキストも画像も履歴に残します。
+ */
 export function useAddUserMessage() {
   const { addMessage } = useAppChat();
 
   const addUserMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
-      // まずはテキスト
+      // 1) テキストメッセージ
       await addMessage(
         {
           type: MessageType.PlainText,
@@ -20,30 +24,24 @@ export function useAddUserMessage() {
           role: MessageRole.User,
           timestamp: Date.now(),
         },
-        {
-          shouldSyncStorage: true,
-        },
+        { shouldSyncStorage: true },
       );
 
-      // 画像ファイルは content を空にして履歴上に表示しない
+      // 2) 画像ファイルメッセージ
       for (const file of inputFiles) {
-        const normalizedFile =
-          file.type === InputFileType.Image
-            ? { ...file, content: '' }
-            : { ...file, content: '' };
-
-        await addMessage(
-          {
-            role: MessageRole.User,
-            type: MessageType.File,
-            content: normalizedFile,
-            isFinal: true,
-            timestamp: Date.now(),
-          },
-          {
-            shouldSyncStorage: true,
-          },
-        );
+        if (file.type === InputFileType.Image) {
+          // そのままファイルオブジェクトを content に渡す
+          await addMessage(
+            {
+              type: MessageType.File,
+              content: file,
+              role: MessageRole.User,
+              isFinal: true,
+              timestamp: Date.now(),
+            },
+            { shouldSyncStorage: true },
+          );
+        }
       }
     },
     [addMessage],
