@@ -1,6 +1,6 @@
 // apps/agent-tars/server.mjs
 
-import 'dotenv/config';            // .env の自動読み込み
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -40,12 +40,10 @@ app.post('/api/generateMessage', async (req, res) => {
     } = req.body;
 
     if (!openaiApiKey) {
-      return res
-        .status(400)
-        .json({ error: 'OpenAI API key is not configured.' });
+      return res.status(400).json({ error: 'API key is not configured.' });
     }
 
-    // 高精度プロンプトを先頭に追加
+    // ドメイン専門家プロンプトを先頭に追加
     const systemPrompt = {
       role: 'system',
       content:
@@ -69,9 +67,7 @@ app.post('/api/generateMessage', async (req, res) => {
     res.json(completion);
   } catch (err) {
     console.error('generateMessage error:', err);
-    res
-      .status(500)
-      .json({ error: err.message || String(err) });
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -94,19 +90,15 @@ app.post('/api/analyzeImage', async (req, res) => {
         'structured paragraphs, focusing on objects, relationships, and context.',
     };
 
-    // attachments 形式で渡し、Base64 をトークン計算から除外
+    // Data URL を本文に埋め込む
+    const userMessage = {
+      role: 'user',
+      content: `以下の画像を解析してください：\n${image}`,
+    };
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      messages: [
-        systemPrompt,
-        {
-          role: 'user',
-          content: '以下の画像を説明してください。',
-          attachments: [
-            { type: 'image_url', image_url: { url: image } },
-          ],
-        },
-      ],
+      messages: [systemPrompt, userMessage],
       temperature: 0.2,
       max_tokens: 1000,
     });
@@ -117,7 +109,7 @@ app.post('/api/analyzeImage', async (req, res) => {
     console.error('analyzeImage error:', err);
     res
       .status(500)
-      .json({ success: false, error: err.message || String(err) });
+      .json({ success: false, error: String(err) });
   }
 });
 
@@ -129,8 +121,7 @@ app.get('/api/models', async (_req, res) => {
     res.json({ success: true, models: names });
   } catch (err) {
     console.error('models list error:', err);
-    const status = err.status || 500;
-    res.status(status).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 

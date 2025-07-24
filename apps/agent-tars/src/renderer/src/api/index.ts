@@ -26,23 +26,17 @@ export interface AskLLMResult {
   content: string;
 }
 
-/* -------------------------------------------------
- * 環境判定
- * ------------------------------------------------- */
+/* 環境判定 */
 export const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
 
-/* -------------------------------------------------
- * ブラウザ時の API キー警告
- * ------------------------------------------------- */
+/* ブラウザ時の API キー警告 */
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
 }
 
-/* -------------------------------------------------
- * /api/generateMessage プロキシ呼び出し（Web）
- * ------------------------------------------------- */
+/* /api/generateMessage プロキシ呼び出し（Web） */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const resp = await fetch('/api/generateMessage', {
     method: 'POST',
@@ -55,7 +49,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   }
   const data = await resp.json();
   const choice = data.choices?.[0]?.message;
-
   const content = choice?.content ?? data.output_text ?? '';
   const tool_calls: { name: string; arguments: string; id?: string }[] = [];
   if (choice?.function_call) {
@@ -67,9 +60,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   return { tool_calls, content };
 }
 
-/* -------------------------------------------------
- * Electron IPC クライアント（遅延初期化）
- * ------------------------------------------------- */
+/* Electron IPC クライアント（遅延初期化） */
 export let ipcClient: any = null;
 async function initIpcClient() {
   if (ipcClient || !isElectron) return;
@@ -85,30 +76,20 @@ async function initIpcClient() {
     console.error('[api] ipc client init failed:', e);
   }
 }
-
-/* -------------------------------------------------
- * IPC 準備ユーティリティ
- * ------------------------------------------------- */
 export async function ensureIpcReady() {
   await initIpcClient();
 }
 
-/* -------------------------------------------------
- * askLLMTool（Electron/Web 両対応）
- * ------------------------------------------------- */
+/* askLLMTool（Electron/Web 両対応） */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   if (isElectron) {
     await ensureIpcReady();
-    if (ipcClient) {
-      return ipcClient.askLLMTool(opts as any);
-    }
+    if (ipcClient) return ipcClient.askLLMTool(opts as any);
   }
   return fetchLLM(opts);
 }
 
-/* -------------------------------------------------
- * 利用可能ツール一覧取得
- * ------------------------------------------------- */
+/* 利用可能ツール一覧取得 */
 export async function listTools(): Promise<
   { name: string; description: string }[]
 > {
@@ -116,13 +97,10 @@ export async function listTools(): Promise<
     await ensureIpcReady();
     if (ipcClient) return ipcClient.listTools();
   }
-  // Web 環境では空配列
   return [];
 }
 
-/* -------------------------------------------------
- * 利用可能プロバイダー取得
- * ------------------------------------------------- */
+/* 利用可能プロバイダー取得 */
 export async function getAvailableProviders(): Promise<string[]> {
   if (isElectron) {
     await ensureIpcReady();
@@ -131,9 +109,7 @@ export async function getAvailableProviders(): Promise<string[]> {
   return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
 
-/* -------------------------------------------------
- * ストリームイベント購読（Electron のみ）
- * ------------------------------------------------- */
+/* ストリームイベント購読（Electron のみ） */
 export const onMainStreamEvent = (
   streamId: string,
   handlers: {
@@ -156,11 +132,9 @@ export const onMainStreamEvent = (
   };
 };
 
-/* -------------------------------------------------
- * analyzeImageWeb（Web 版画像解析ラッパー）
- * ------------------------------------------------- */
+/* analyzeImageWeb（Web 版画像解析ラッパー） */
 /**
- * @param image 'data:image/...;base64,…' 形式の完全な Data URL
+ * @param image 完全な Data URL ('data:image/png;base64,...') を渡してください
  */
 export async function analyzeImageWeb(image: string): Promise<string> {
   const resp = await fetch('/api/analyzeImage', {
