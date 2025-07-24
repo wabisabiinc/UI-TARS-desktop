@@ -13,8 +13,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// API キー取得
-const openaiApiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+// ── OpenAI クライアント初期化 ────────────────────────
+const openaiApiKey =
+  process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
 if (!openaiApiKey) {
   console.error('⚠️ OpenAI API key is not set in environment variables.');
 }
@@ -30,15 +31,15 @@ app.post('/api/generateMessage', async (req, res) => {
   try {
     const { model } = req.body;
 
-    // 1) 必ずキーは存在するか？
     if (!openaiApiKey) {
-      return res.status(400).json({ error: 'OpenAI API key is not configured.' });
+      return res
+        .status(400)
+        .json({ error: 'OpenAI API key is not configured.' });
     }
 
-    // 2) まずは req.body.contents を取ってみる
     let { contents } = req.body;
 
-    // 3) フォールバック: 古いクライアントが req.body.messages を投げているなら、こちらを変換
+    // 古いクライアント互換のためのフォールバック
     if (!Array.isArray(contents) && Array.isArray(req.body.messages)) {
       contents = req.body.messages.map((m) => ({
         role: m.role,
@@ -46,26 +47,62 @@ app.post('/api/generateMessage', async (req, res) => {
       }));
     }
 
-    // 4) 最終的に contents が配列でなければエラー
     if (!Array.isArray(contents)) {
       return res
         .status(400)
         .json({ error: '`contents` is required and must be an array.' });
     }
 
-    // 5) OpenAI 用に整形
+    // OpenAI ChatCompletion 用に整形
     const messages = contents.map((c) => ({
-      role:    c.role,
+      role: c.role,
       content: (c.content ?? c.parts?.[0]?.text) || '',
     }));
 
-    // 6) 実際に OpenAI に投げる
-    const completion = await openai.chat.completions.create({ model, messages });
+    const completion = await openai.chat.completions.create({
+      model,
+      messages,
+    });
     return res.json(completion);
-
   } catch (err) {
     console.error('OpenAI proxy error:', err);
-    return res.status(500).json({ error: err.message || String(err) });
+    return res
+      .status(500)
+      .json({ error: err.message || String(err) });
+  }
+});
+
+// ── 画像解析エンドポイント ─────────────────────────────
+app.post('/api/analyzeImage', async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) {
+      return res
+        .status(400)
+        .json({ success: false, error: 'imageBase64 が指定されていません。' });
+    }
+
+    // data URL に整形
+    const dataUrl = `data:image/png;base64,${imageBase64}`;
+
+    // GPT-4o Vision で解析
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: `以下の画像を日本語で説明してください。\n${dataUrl}`,
+        },
+      ],
+    });
+
+    const text = completion.choices?.[0]?.message?.content ?? '';
+    return res.json({ success: true, content: text });
+  } catch (err) {
+    console.error('analyzeImage error:', err);
+    return res
+      .status(500)
+      .json({ success: false, error: err.message || String(err) });
   }
 });
 
@@ -73,7 +110,7 @@ app.post('/api/generateMessage', async (req, res) => {
 app.get('/api/models', async (_req, res) => {
   try {
     const list = await openai.models.list();
-    const names = list.data.map(m => m.id);
+    const names = list.data.map((m) => m.id);
     return res.json({ success: true, models: names });
   } catch (err) {
     console.error('Error listing models:', err);

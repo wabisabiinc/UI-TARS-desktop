@@ -48,6 +48,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
+      // アプリ固有エイリアス
       '@': path.resolve(__dirname, 'src/renderer'),
       '@vendor/chat-ui': path.resolve(__dirname, 'src/vendor/chat-ui'),
       '@vendor/chat-ui/': path.resolve(__dirname, 'src/vendor/chat-ui') + '/',
@@ -60,7 +61,7 @@ export default defineConfig({
       '@renderer/api': path.resolve(__dirname, 'src/renderer/src/api'),
       '@renderer/api/': path.resolve(__dirname, 'src/renderer/src/api') + '/',
 
-      // Nodeコア & 問題児
+      // Node コアモジュール・問題ライブラリを空化
       dotenv: EMPTY,
       crypto: EMPTY,
       fs: EMPTY,
@@ -85,15 +86,11 @@ export default defineConfig({
       'node:events': EMPTY,
       'node:process': EMPTY,
 
-      'electron-store': EMPTY,
-      'node-fetch': EMPTY,
-      'puppeteer-core': EMPTY,
-      needle: EMPTY,
-      'graceful-fs': EMPTY,
-      which: EMPTY,
-      '@modelcontextprotocol/sdk': EMPTY,
+      // Electron IPC モジュールを空化
+      '@ui-tars/electron-ipc/renderer': EMPTY,
+      '@ui-tars/electron-ipc/main': EMPTY,
 
-      // 念のため main/ipcRoutes を空化
+      // メイン側ルーター（Electron版）空化
       '@main/ipcRoutes': EMPTY,
       '@main/ipcRoutes/': EMPTY,
       '../../main/ipcRoutes': EMPTY,
@@ -116,6 +113,8 @@ export default defineConfig({
       'graceful-fs',
       'which',
       '@modelcontextprotocol/sdk',
+      '@ui-tars/electron-ipc/renderer',
+      '@ui-tars/electron-ipc/main',
     ],
   },
 });

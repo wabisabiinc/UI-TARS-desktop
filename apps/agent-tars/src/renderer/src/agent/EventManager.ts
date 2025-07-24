@@ -25,11 +25,14 @@ export class EventManager {
     });
   }
 
-  /** 完全初期化：過去の履歴／表示イベントをクリアし、コールバックを解除 */
+  /**
+   * 完全初期化：
+   * - 新しいチャット開始時に呼び出し、直前の会話履歴は保持しながら
+   * - 新たに生成されるイベントだけをクリア
+   */
   public reset(): void {
-    this.historyEvents = [];
     this.events = [];
-    this.onEventsUpdate = undefined;
+    this.notifyUpdate();
   }
 
   public getHistoryEvents(): EventItem[] {
@@ -60,23 +63,15 @@ export class EventManager {
     content: EventContentDescriptor[T],
     willNotifyUpdate = true,
   ): Promise<EventItem> {
-    try {
-      const event: EventItem = {
-        id: uuidv4(),
-        type,
-        content:
-          content as EventContentDescriptor[keyof EventContentDescriptor],
-        timestamp: Date.now(),
-      };
-      this.events.push(event);
-      if (willNotifyUpdate) {
-        this.notifyUpdate();
-      }
-      return event;
-    } catch (err) {
-      console.error('[addEvent/ERROR]', err);
-      throw err;
-    }
+    const event: EventItem = {
+      id: uuidv4(),
+      type,
+      content: content as EventContentDescriptor[keyof EventContentDescriptor],
+      timestamp: Date.now(),
+    };
+    this.events.push(event);
+    if (willNotifyUpdate) this.notifyUpdate();
+    return event;
   }
 
   public async addChatText(
@@ -154,16 +149,6 @@ export class EventManager {
     this.notifyUpdate();
   }
 
-  private notifyUpdate(): void {
-    try {
-      if (this.onEventsUpdate) {
-        this.onEventsUpdate(this.getAllEvents());
-      }
-    } catch (err) {
-      console.error('[EventManager] notifyUpdate ERROR:', err);
-    }
-  }
-
   public async addUserInterruptionInput(text: string): Promise<EventItem> {
     return this.addEvent(EventType.UserInterruption, { text });
   }
@@ -229,10 +214,7 @@ export class EventManager {
             e.content.tool === ToolCallType.WriteFile),
       );
     if (!latest) return;
-    latest.content = {
-      ...latest.content,
-      original: originalContent,
-    };
+    latest.content = { ...latest.content, original: originalContent };
     this.notifyUpdate();
   }
 
@@ -287,10 +269,7 @@ export class EventManager {
       .join('\n');
   }
 
-  private normalizeEvent(event: EventItem): {
-    type: EventType;
-    content: any;
-  } {
+  private normalizeEvent(event: EventItem): { type: EventType; content: any } {
     const base = { type: event.type, content: {} as any };
     switch (event.type) {
       case EventType.ToolUsed: {
@@ -338,14 +317,22 @@ export class EventManager {
     _toolCall: ToolCall,
     message: string,
   ): Promise<void> {
-    const loadevts = this.events
+    const loadingEvts = this.events
       .filter((e) => e.type === EventType.LoadingStatus)
       .reverse();
-    const latest = loadevts[0];
+    const latest = loadingEvts[0];
     if (latest) {
       this.updateEvent(latest.id, { content: { title: message } as any });
     } else {
       await this.addLoadingStatus(message);
+    }
+  }
+
+  private notifyUpdate(): void {
+    try {
+      this.onEventsUpdate?.(this.getAllEvents());
+    } catch (err) {
+      console.error('[EventManager] notifyUpdate ERROR:', err);
     }
   }
 }

@@ -1,3 +1,4 @@
+// apps/agent-tars/src/renderer/src/agent/Aware.ts
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
 import { askLLMTool, listTools } from '../api';
@@ -34,10 +35,12 @@ Do NOT include markdown fences.
     this.signal = abortSignal;
   }
 
+  /** Update the abort signal if interrupted */
   updateSignal(signal: AbortSignal) {
     this.signal = signal;
   }
 
+  /** Try to recover valid JSON from LLM output */
   private static safeParse<T>(text: string): T | null {
     const tryParse = (s: string): T | null => {
       try {
@@ -50,9 +53,11 @@ Do NOT include markdown fences.
     const trimmed = text?.trim() ?? '';
     if (!trimmed) return null;
 
+    // 1) Direct parse
     let parsed = tryParse(trimmed);
     if (parsed) return parsed;
 
+    // 2) Code fences
     const fenceJson = trimmed.match(/```json\s*([\s\S]*?)```/i);
     const fenceAny = fenceJson || trimmed.match(/```([\s\S]*?)```/i);
     if (fenceAny) {
@@ -60,6 +65,7 @@ Do NOT include markdown fences.
       if (parsed) return parsed;
     }
 
+    // 3) Extract JSON object by braces
     const start = trimmed.indexOf('{');
     const end = trimmed.lastIndexOf('}');
     if (start >= 0 && end > start) {
@@ -78,9 +84,10 @@ Do NOT include markdown fences.
     return null;
   }
 
+  /** Default result if aborted or parse fails */
   private getDefaultResult(): AwareResult {
     return {
-      reflection: 'No plan',
+      reflection: '',
       step: this.agentContext.currentStep || 1,
       status: 'in-progress',
       plan: [],
@@ -91,13 +98,13 @@ Do NOT include markdown fences.
     console.log('[Aware] ▶︎ run start, aborted=', this.signal.aborted);
     if (this.signal.aborted) return this.getDefaultResult();
 
-    // 1) 環境情報
+    // 1) Gather environment info
     const envInfo = this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
 
-    // 2) モデル・ツール一覧
+    // 2) Choose model and fetch available tools
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
@@ -108,7 +115,7 @@ Do NOT include markdown fences.
         ? available.map((t) => `${t.name}: ${t.description}`).join(', ')
         : 'none';
 
-    // 3) プロンプト組み立て
+    // 3) Build messages
     const messages = [
       Message.systemMessage(this.prompt),
       Message.systemMessage(`Available tools: ${toolList}`),
@@ -130,22 +137,24 @@ Do NOT include markdown fences.
     const content = raw?.content?.trim() || '';
     console.log('[Aware] ← askLLMTool content =', content);
 
+    // 4) Try to parse JSON
     const parsed = Aware.safeParse<AwareResult>(content);
     if (!parsed) {
+      // Fallback: return the LLM text as a single completed plan step
       return {
         reflection: '',
         step: 1,
-        status: 'in-progress',
+        status: 'completed',
         plan: [
           {
             id: '1',
-            title: content.slice(0, 80) || 'Answer the current user request',
+            title: content.slice(0, 80) || 'Generated answer',
           },
         ],
       };
     }
 
-    // 4) 正常時の整形
+    // 5) Normalize result
     const resultPlan: PlanTask[] = [];
     let step = parsed.step || 1;
     let status = (parsed.status || '').toLowerCase();
@@ -173,6 +182,7 @@ Do NOT include markdown fences.
       });
     }
 
+    // If final step, mark completed
     if (resultPlan.length > 0 && step >= resultPlan.length) {
       status = 'completed';
     }

@@ -1,3 +1,4 @@
+// apps/agent-tars/src/renderer/src/agent/Greeter.ts
 import { MessageType } from '@vendor/chat-ui';
 import { Message } from '@agent-infra/shared';
 import {
@@ -16,6 +17,7 @@ export class Greeter {
     private abortSignal: AbortSignal,
   ) {}
 
+  /** 非Electron環境でのフォールバック（まとめ取得） */
   private async fallbackGreet(
     systemPrompt: string,
     userInput: string,
@@ -30,7 +32,8 @@ export class Greeter {
     return (res?.content ?? '').trim();
   }
 
-  async run(): Promise<string> {
+  /** 起動時のあいさつ */
+  public async run(): Promise<string> {
     const inputText = this.appContext.request.inputText;
     const systemPrompt = `
 You are a highly skilled, empathetic AI assistant specialized in initiating engaging and friendly conversations. Your objectives:
@@ -41,7 +44,7 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
 - Plain text only.
 `.trim();
 
-    // Electron 以外はフォールバック
+    // Electron 以外はまとめ取得
     if (!isElectron) {
       const text = await this.fallbackGreet(systemPrompt, inputText);
       await this.appContext.chatUtils.addMessage(
@@ -51,8 +54,8 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
       return text;
     }
 
+    // Electron 環境: ストリーミング
     await ensureIpcReady();
-
     let greetMessage = '';
     const streamId = await ipcClient.askLLMTextStream({
       messages: [
@@ -62,6 +65,7 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
       requestId: Math.random().toString(36).substring(2),
     });
 
+    // 初期描画用の小休止
     await new Promise((r) => setTimeout(r, 120));
 
     return new Promise<string>((resolve, reject) => {
@@ -71,8 +75,8 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
       }
 
       let aborted = false;
-      const onTerm = (event: any) => {
-        if (event.type === 'terminate') {
+      const onTerm = (e: any) => {
+        if (e.type === 'terminate') {
           ipcClient.abortRequest({ requestId: streamId });
           aborted = true;
           resolve(greetMessage);
@@ -104,6 +108,7 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
     });
   }
 
+  /** 全タスク完了後の最終まとめ */
   public async generateFinalSummary(): Promise<string> {
     const planSummary =
       this.appContext.agentContext?.plan
@@ -116,6 +121,7 @@ You are a world-class professional AI summarizer. Your task:
 - Produce a final summary in Japanese, concise (<= 5000 chars), clear, and actionable.
 - Highlight key takeaways and next actions in numbered or bullet format.
 - Plain text only.
+
 【ユーザーのリクエスト】
 ${this.appContext.request.inputText}
 
@@ -135,6 +141,6 @@ ${planSummary}
       return raw.content.trim();
     }
     console.warn('[Greeter] Unexpected summary response:', raw);
-    return String(raw ?? '').trim();
+    return (raw?.content ?? '').toString().trim();
   }
 }

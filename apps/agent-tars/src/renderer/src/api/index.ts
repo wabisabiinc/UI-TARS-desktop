@@ -62,10 +62,9 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   }
 
   const data = await resp.json();
-
   const choice = data.choices?.[0]?.message ?? data.output?.[0]?.content?.[0];
-  let content = '';
 
+  let content = '';
   if (choice?.content) {
     content =
       typeof choice.content === 'string'
@@ -76,7 +75,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   }
 
   let tool_calls: ToolCall[] = [];
-
   if (choice?.tool_calls?.length) {
     tool_calls = choice.tool_calls.map((t: any) => ({
       id: t.id,
@@ -84,14 +82,12 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
       arguments: t.function?.arguments ?? t.arguments ?? '{}',
     }));
   }
-
   if (choice?.function_call) {
     tool_calls.push({
       name: choice.function_call.name,
       arguments: choice.function_call.arguments,
     });
   }
-
   if (Array.isArray(data.output)) {
     const tools = data.output.filter((o: any) => o.type === 'tool_call');
     if (tools.length) {
@@ -127,14 +123,14 @@ async function initIpcClient() {
 }
 
 /* -------------------------------------------------
- * IPC 準備
+ * IPC 準備ユーティリティ
  * ------------------------------------------------- */
 export async function ensureIpcReady() {
   await initIpcClient();
 }
 
 /* -------------------------------------------------
- * 公開関数
+ * 公開関数：LLM 呼び出し
  * ------------------------------------------------- */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   if (isElectron) await ensureIpcReady();
@@ -152,7 +148,7 @@ export async function listTools(): Promise<
 }
 
 /* -------------------------------------------------
- * ストリームイベント購読（Electronのみ）
+ * ストリームイベント購読（Electron のみ）
  * ------------------------------------------------- */
 export const onMainStreamEvent = (
   streamId: string,
@@ -184,4 +180,28 @@ export async function getAvailableProviders(): Promise<string[]> {
   return isElectron && ipcClient
     ? ipcClient.getAvailableProviders()
     : ['anthropic', 'openai', 'azure_openai', 'deepseek'];
+}
+
+/* -------------------------------------------------
+ * ブラウザ用画像解析エンドポイントラッパー
+ * ------------------------------------------------- */
+/**
+ * imageBase64 に PNG/JPEG の Base64 部分文字列を渡すと、
+ * サーバ側 /api/analyzeImage に投げて説明テキストを返す
+ */
+export async function analyzeImageWeb(imageBase64: string): Promise<string> {
+  const resp = await fetch('/api/analyzeImage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageBase64 }),
+  });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`analyzeImage API error: ${txt}`);
+  }
+  const data = await resp.json();
+  if (!data.success) {
+    throw new Error(data.error || 'analyzeImage 解析失敗');
+  }
+  return data.content as string;
 }
