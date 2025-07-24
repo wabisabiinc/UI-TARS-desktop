@@ -1,6 +1,4 @@
-// apps/agent-tars/server.mjs
-
-import 'dotenv/config';
+import 'dotenv/config';            // .env の自動読み込み
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -40,7 +38,7 @@ app.post('/api/generateMessage', async (req, res) => {
     } = req.body;
 
     if (!openaiApiKey) {
-      return res.status(400).json({ error: 'API key is not configured.' });
+      return res.status(400).json({ error: 'API key not configured.' });
     }
 
     // ドメイン専門家プロンプトを先頭に追加
@@ -48,7 +46,7 @@ app.post('/api/generateMessage', async (req, res) => {
       role: 'system',
       content:
         'You are a domain‑expert AI assistant. Provide concise, authoritative, ' +
-        'and richly detailed answers. Cite examples or data where possible.',
+        'and richly detailed answers. Cite examples or data when appropriate.',
     };
 
     const chatMessages = Array.isArray(messages)
@@ -71,7 +69,7 @@ app.post('/api/generateMessage', async (req, res) => {
   }
 });
 
-// ── 画像解析エンドポイント（GPT‑4o Vision） ──────────────────
+// ── 画像解析エンドポイント（GPT‑4o Vision + attachments）──────────
 app.post('/api/analyzeImage', async (req, res) => {
   try {
     // クライアントからは { image: 'data:image/...;base64,...' } を受け取る
@@ -82,7 +80,7 @@ app.post('/api/analyzeImage', async (req, res) => {
         .json({ success: false, error: 'Invalid image format.' });
     }
 
-    // 画像解析用 system プロンプト
+    // System プロンプト
     const systemPrompt = {
       role: 'system',
       content:
@@ -90,15 +88,19 @@ app.post('/api/analyzeImage', async (req, res) => {
         'structured paragraphs, focusing on objects, relationships, and context.',
     };
 
-    // Data URL を本文に埋め込む
-    const userMessage = {
-      role: 'user',
-      content: `以下の画像を解析してください：\n${image}`,
-    };
-
+    // **attachments** をトップレベルで渡し、Data URL 部分をトークン計算から除外
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      messages: [systemPrompt, userMessage],
+      messages: [
+        systemPrompt,
+        { role: 'user', content: '以下の画像を解析してください。' },
+      ],
+      attachments: [
+        {
+          type: 'image_url',
+          image_url: { url: image },
+        },
+      ],
       temperature: 0.2,
       max_tokens: 1000,
     });

@@ -1,8 +1,6 @@
 // src/renderer/src/api/index.ts
 
-/**
- * クライアント側 LLM 呼び出しインターフェース
- */
+/** LLM 呼び出しの型定義 **/
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
@@ -26,17 +24,20 @@ export interface AskLLMResult {
   content: string;
 }
 
-/* 環境判定 */
+/* -------------------------------------------------
+ * 環境判定 & キー警告
+ * ------------------------------------------------- */
 export const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
 
-/* ブラウザ時の API キー警告 */
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
 }
 
-/* /api/generateMessage プロキシ呼び出し（Web） */
+/* -------------------------------------------------
+ * /api/generateMessage プロキシ呼び出し
+ * ------------------------------------------------- */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const resp = await fetch('/api/generateMessage', {
     method: 'POST',
@@ -60,7 +61,9 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   return { tool_calls, content };
 }
 
-/* Electron IPC クライアント（遅延初期化） */
+/* -------------------------------------------------
+ * Electron IPC クライアント（遅延初期化）
+ * ------------------------------------------------- */
 export let ipcClient: any = null;
 async function initIpcClient() {
   if (ipcClient || !isElectron) return;
@@ -80,7 +83,9 @@ export async function ensureIpcReady() {
   await initIpcClient();
 }
 
-/* askLLMTool（Electron/Web 両対応） */
+/* -------------------------------------------------
+ * askLLMTool（Electron/Web 両対応）
+ * ------------------------------------------------- */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   if (isElectron) {
     await ensureIpcReady();
@@ -89,18 +94,16 @@ export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   return fetchLLM(opts);
 }
 
-/* 利用可能ツール一覧取得 */
-export async function listTools(): Promise<
-  { name: string; description: string }[]
-> {
+/* -------------------------------------------------
+ * listTools / getAvailableProviders
+ * ------------------------------------------------- */
+export async function listTools() {
   if (isElectron) {
     await ensureIpcReady();
     if (ipcClient) return ipcClient.listTools();
   }
   return [];
 }
-
-/* 利用可能プロバイダー取得 */
 export async function getAvailableProviders(): Promise<string[]> {
   if (isElectron) {
     await ensureIpcReady();
@@ -109,7 +112,9 @@ export async function getAvailableProviders(): Promise<string[]> {
   return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
 
-/* ストリームイベント購読（Electron のみ） */
+/* -------------------------------------------------
+ * ストリームイベント購読（Electron のみ）
+ * ------------------------------------------------- */
 export const onMainStreamEvent = (
   streamId: string,
   handlers: {
@@ -132,7 +137,9 @@ export const onMainStreamEvent = (
   };
 };
 
-/* analyzeImageWeb（Web 版画像解析ラッパー） */
+/* -------------------------------------------------
+ * analyzeImageWeb（Web 版画像解析ラッパー）
+ * ------------------------------------------------- */
 /**
  * @param image 完全な Data URL ('data:image/png;base64,...') を渡してください
  */
