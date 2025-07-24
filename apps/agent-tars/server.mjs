@@ -1,3 +1,5 @@
+// apps/agent-tars/server.mjs
+
 import 'dotenv/config';            // .env の自動読み込み
 import express from 'express';
 import cors from 'cors';
@@ -9,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app = express();
+
 // CORS と大きめの JSON ボディを許可
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -69,10 +72,10 @@ app.post('/api/generateMessage', async (req, res) => {
   }
 });
 
-// ── 画像解析エンドポイント（GPT‑4o Vision + attachments）──────────
+// ── 画像解析エンドポイント（GPT‑4o Vision + attachments） ─────────────
 app.post('/api/analyzeImage', async (req, res) => {
   try {
-    // クライアントからは { image: 'data:image/...;base64,...' } を受け取る
+    // クライアントから { image: 'data:image/...;base64,...' } を受け取る
     const { image } = req.body;
     if (typeof image !== 'string' || !image.startsWith('data:')) {
       return res
@@ -80,7 +83,7 @@ app.post('/api/analyzeImage', async (req, res) => {
         .json({ success: false, error: 'Invalid image format.' });
     }
 
-    // System プロンプト
+    // 画像解析用 system プロンプト
     const systemPrompt = {
       role: 'system',
       content:
@@ -88,19 +91,21 @@ app.post('/api/analyzeImage', async (req, res) => {
         'structured paragraphs, focusing on objects, relationships, and context.',
     };
 
-    // **attachments** をトップレベルで渡し、Data URL 部分をトークン計算から除外
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        systemPrompt,
-        { role: 'user', content: '以下の画像を解析してください。' },
-      ],
+    // attachments を【ユーザー】メッセージ内に含める
+    const userMessage = {
+      role: 'user',
+      content: '以下の画像を解析してください。',
       attachments: [
         {
           type: 'image_url',
           image_url: { url: image },
         },
       ],
+    };
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [systemPrompt, userMessage],
       temperature: 0.2,
       max_tokens: 1000,
     });
