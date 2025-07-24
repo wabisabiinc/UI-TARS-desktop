@@ -57,7 +57,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const choice = data.choices?.[0]?.message;
 
   const content = choice?.content ?? data.output_text ?? '';
-  let tool_calls = [];
+  const tool_calls: { name: string; arguments: string; id?: string }[] = [];
   if (choice?.function_call) {
     tool_calls.push({
       name: choice.function_call.name,
@@ -106,6 +106,20 @@ export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
 }
 
 /* -------------------------------------------------
+ * 利用可能ツール一覧取得
+ * ------------------------------------------------- */
+export async function listTools(): Promise<
+  { name: string; description: string }[]
+> {
+  if (isElectron) {
+    await ensureIpcReady();
+    if (ipcClient) return ipcClient.listTools();
+  }
+  // Web 環境では固定リスト or 空配列
+  return [];
+}
+
+/* -------------------------------------------------
  * 利用可能プロバイダー取得
  * ------------------------------------------------- */
 export async function getAvailableProviders(): Promise<string[]> {
@@ -113,7 +127,6 @@ export async function getAvailableProviders(): Promise<string[]> {
     await ensureIpcReady();
     if (ipcClient) return ipcClient.getAvailableProviders();
   }
-  // Web 環境では固定リストを返す
   return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
 
