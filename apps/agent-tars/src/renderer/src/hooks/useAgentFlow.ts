@@ -38,14 +38,14 @@ export function useAgentFlow() {
 
   const updateSessionTitle = useCallback(
     async (input: string) => {
-      // …（既存コードをそのまま）
+      /* 既存ロジックそのまま */
     },
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
   const setPlanTasksMerged = useCallback(
     (tasks: PlanTask[]) => {
-      // …（既存コードをそのまま）
+      /* 既存ロジックそのまま */
     },
     [setPlanTasks],
   );
@@ -56,12 +56,12 @@ export function useAgentFlow() {
       currentAgentFlowIdRef.current = agentFlowId;
       setPlanTasks([]);
 
-      // ★ 画像あり時の新フロー
+      // 1) 画像解析フロー
       if (inputFiles.length > 0) {
-        // System プロンプト
         const systemPrompt =
-          'You are a world-class image analysis assistant. Provide concise, accurate, and detailed descriptions for the given images.';
-        // 画像 URL 配列化
+          'You are a world‑class image analysis assistant. ' +
+          'Provide concise, accurate, and detailed descriptions for the given images.';
+        // 複数画像を attachments 配列に
         const attachments = inputFiles
           .filter((f) => f.type === InputFileType.Image && f.content)
           .map((f, idx) => ({
@@ -70,30 +70,30 @@ export function useAgentFlow() {
             name: `Image ${idx + 1}`,
           }));
 
-        // GPT-4o Vision 呼び出し
-        const completion = await (isElectron
-          ? ipcClient.invoke('analyze-image', inputFiles[0].content)
-          : new OpenAI().chat.completions.create({
+        // Vision API 呼び出し
+        const completion = isElectron
+          ? await ipcClient.invoke('analyze-image', inputFiles[0].content)
+          : await new OpenAI().chat.completions.create({
               model: 'gpt-4o',
               messages: [
                 { role: 'system', content: systemPrompt },
                 {
                   role: 'user',
                   content:
-                    '以下の画像について説明してください：' +
+                    '以下の画像を説明してください：' +
                     attachments.map((a) => a.name).join(', '),
                   attachments,
                 },
               ],
-              max_tokens: 1000,
-            }));
+              temperature: 0.2,
+              max_tokens: 1500,
+            });
 
         const text =
           (completion as any).choices?.[0]?.message?.content ??
           (completion as any).content ??
           '';
 
-        // AI レスポンスを追加
         await chatUtils.addMessage(
           {
             role: MessageRole.Assistant,
@@ -106,7 +106,23 @@ export function useAgentFlow() {
         return;
       }
 
-      // ★ テキストのみ時は既存の AgentFlow 実行
+      // 2) テキスト通常フロー
+      const systemMsg = {
+        role: 'system',
+        content:
+          'You are a domain‑expert AI assistant. Provide concise, authoritative, and richly detailed answers. Cite examples or data where possible.',
+      };
+      const userMsg = { role: 'user', content: inputText };
+      await chatUtils.addMessage(
+        {
+          role: MessageRole.User,
+          type: MessageType.PlainText,
+          content: inputText,
+          timestamp: Date.now(),
+        },
+        { shouldSyncStorage: true },
+      );
+
       const agentFlow = new AgentFlow({
         chatUtils,
         setEvents,
@@ -117,10 +133,14 @@ export function useAgentFlow() {
         agentFlowId,
         request: { inputText, inputFiles },
       });
-      await Promise.all([
-        agentFlow.run(inputFiles),
-        updateSessionTitle(inputText),
-      ]);
+
+      // system + history + user を渡して実行
+      await agentFlow.run(inputFiles, {
+        systemMessage: systemMsg.content,
+        temperature: 0.2,
+        max_tokens: 1500,
+      });
+      await updateSessionTitle(inputText);
     },
     [
       chatUtils,
