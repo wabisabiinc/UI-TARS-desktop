@@ -25,6 +25,13 @@ export class EventManager {
     });
   }
 
+  /** 完全初期化：過去の履歴／表示イベントをクリアし、コールバックを解除 */
+  public reset(): void {
+    this.historyEvents = [];
+    this.events = [];
+    this.onEventsUpdate = undefined;
+  }
+
   public getHistoryEvents(): EventItem[] {
     return this.historyEvents;
   }
@@ -37,7 +44,7 @@ export class EventManager {
     return [...this.events];
   }
 
-  // ★ 追加: UIに表示したいイベントだけ返す
+  /** UIに表示したいイベントだけを返す */
   public getVisibleEvents(): EventItem[] {
     const HIDDEN = new Set<EventType>([
       EventType.PlanUpdate,
@@ -111,12 +118,12 @@ export class EventManager {
   }
 
   public updateEvent(eventId: string, updates: Partial<EventItem>): boolean {
-    const eventIndex = this.events.findIndex((event) => event.id === eventId);
-    if (eventIndex === -1) return false;
-    this.events[eventIndex] = {
-      ...this.events[eventIndex],
+    const idx = this.events.findIndex((e) => e.id === eventId);
+    if (idx === -1) return false;
+    this.events[idx] = {
+      ...this.events[idx],
       ...updates,
-      id: this.events[eventIndex].id,
+      id: this.events[idx].id,
     };
     this.notifyUpdate();
     return true;
@@ -132,14 +139,14 @@ export class EventManager {
   }
 
   public findEventsByType<T extends EventType>(type: T): EventItem[] {
-    return this.events.filter((event) => event.type === type);
+    return this.events.filter((e) => e.type === type);
   }
 
   public findLatestEventByType<T extends EventType>(
     type: T,
   ): EventItem | undefined {
-    const events = this.findEventsByType(type);
-    return events.length > 0 ? events[events.length - 1] : undefined;
+    const filtered = this.findEventsByType(type);
+    return filtered.length ? filtered[filtered.length - 1] : undefined;
   }
 
   public clearEvents(): void {
@@ -161,7 +168,6 @@ export class EventManager {
     return this.addEvent(EventType.UserInterruption, { text });
   }
 
-  // ★ 強化: End に plan/step を含める
   public async addEndEvent(
     message: string,
     plan?: PlanTask[],
@@ -200,7 +206,7 @@ export class EventManager {
     result: any;
     isError: boolean;
   }): Promise<void> {
-    const normalizedInfo = normalizeToolUsedInfo(
+    const normalized = normalizeToolUsedInfo(
       toolName,
       params,
       isError ? ActionStatus.Failed : ActionStatus.Success,
@@ -208,45 +214,42 @@ export class EventManager {
     );
     await this.addEvent(EventType.ToolUsed, {
       actionId: toolCallId,
-      ...normalizedInfo,
+      ...normalized,
     });
     await this.addObservation(JSON.stringify(result));
   }
 
   public async updateFileContentForEdit(originalContent: string) {
-    const latestEditEvent = [...this.events]
+    const latest = [...this.events]
       .reverse()
       .find(
-        (event) =>
-          event.type === EventType.ToolUsed &&
-          (event.content.tool === ToolCallType.EditFile ||
-            event.content.tool === ToolCallType.WriteFile),
+        (e) =>
+          e.type === EventType.ToolUsed &&
+          (e.content.tool === ToolCallType.EditFile ||
+            e.content.tool === ToolCallType.WriteFile),
       );
-    if (!latestEditEvent) return;
-    latestEditEvent.content = {
-      ...latestEditEvent.content,
+    if (!latest) return;
+    latest.content = {
+      ...latest.content,
       original: originalContent,
     };
     this.notifyUpdate();
   }
 
   public async updateScreenshot(screenshotFilePath: string) {
-    const latestBrowserNavigateEvent = [...this.events]
+    const latest = [...this.events]
       .reverse()
       .find(
-        (event) =>
-          event.type === EventType.ToolUsed &&
-          SNAPSHOT_BROWSER_ACTIONS.includes(event.content.tool),
+        (e) =>
+          e.type === EventType.ToolUsed &&
+          SNAPSHOT_BROWSER_ACTIONS.includes(e.content.tool),
       );
-    if (!latestBrowserNavigateEvent) return;
-    latestBrowserNavigateEvent.content = {
-      ...latestBrowserNavigateEvent.content,
+    if (!latest) return;
+    latest.content = {
+      ...latest.content,
       result: [
-        ...latestBrowserNavigateEvent.content.result,
-        {
-          type: 'image',
-          path: screenshotFilePath,
-        },
+        ...latest.content.result,
+        { type: 'image', path: screenshotFilePath },
       ],
     };
     this.notifyUpdate();
@@ -266,95 +269,66 @@ export class EventManager {
   }
 
   public normalizeEventsForPrompt(): string {
-    const recentEvents = [...this.historyEvents, ...this.events]
-      .filter((item) => item.type !== EventType.LoadingStatus)
+    const recent = [...this.historyEvents, ...this.events]
+      .filter((e) => e.type !== EventType.LoadingStatus)
       .slice(-1000);
-    const MAX_CONTEXT_LENGTH = 50 * 1024 * 4;
-    let currentContextLength = 0;
-    const normalizedEvents: {
-      type: EventType;
-      content: Partial<EventContentDescriptor[keyof EventContentDescriptor]>;
-    }[] = [];
-    for (let i = recentEvents.length - 1; i >= 0; i--) {
-      const event = recentEvents[i];
-      const normalizedEvent = this.normalizeEvent(event);
-      const eventContentLength = JSON.stringify(normalizedEvent).length * 4;
-      if (currentContextLength + eventContentLength > MAX_CONTEXT_LENGTH) {
-        break;
-      }
-      normalizedEvents.unshift(normalizedEvent);
-      currentContextLength += eventContentLength;
+    const MAX_LEN = 50 * 1024 * 4;
+    let len = 0;
+    const normalized: { type: EventType; content: any }[] = [];
+    for (const evt of recent.reverse()) {
+      const norm = this.normalizeEvent(evt);
+      const size = JSON.stringify(norm).length * 4;
+      if (len + size > MAX_LEN) break;
+      normalized.unshift(norm);
+      len += size;
     }
-    return normalizedEvents
-      .map((event) => {
-        const { type, content } = event;
-        return `[${type}] ${JSON.stringify(content)}`;
-      })
+    return normalized
+      .map(({ type, content }) => `[${type}] ${JSON.stringify(content)}`)
       .join('\n');
   }
 
   private normalizeEvent(event: EventItem): {
     type: EventType;
-    content: Partial<EventContentDescriptor[keyof EventContentDescriptor]>;
+    content: any;
   } {
-    const base = {
-      type: event.type,
-      content: {},
-    };
+    const base = { type: event.type, content: {} as any };
     switch (event.type) {
-      case EventType.ToolUsed:
-        const content =
-          event.content as EventContentDescriptor[EventType.ToolUsed];
+      case EventType.ToolUsed: {
+        const c = event.content as any;
         return {
           ...base,
-          content: {
-            description: content.description,
-            status: content.status,
-          },
+          content: { description: c.description, status: c.status },
         };
-      case EventType.ToolCallStart:
-        return {
-          ...base,
-          content: {
-            description: (
-              event.content as EventContentDescriptor[EventType.ToolCallStart]
-            ).description,
-          },
-        };
+      }
+      case EventType.ToolCallStart: {
+        const c = event.content as any;
+        return { ...base, content: { description: c.description } };
+      }
       case EventType.ChatText:
       case EventType.AgentStatus:
       case EventType.Observation:
+      case EventType.UserMessage: {
+        return { ...base, content: event.content };
+      }
+      case EventType.NewPlanStep: {
+        const c = event.content as any;
+        return { ...base, content: { step: c.step } };
+      }
+      case EventType.PlanUpdate: {
+        const c = event.content as any;
+        return { ...base, content: { plan: c.plan, step: c.step } };
+      }
+      case EventType.UserInterruption: {
+        const c = event.content as any;
+        return { ...base, content: { text: c.text } };
+      }
+      case EventType.End: {
+        const c = event.content as any;
         return {
           ...base,
-          content: event.content,
+          content: { message: c.message, plan: c.plan, step: c.step },
         };
-      case EventType.NewPlanStep:
-        return {
-          ...base,
-          content: {
-            step: (
-              event.content as EventContentDescriptor[EventType.NewPlanStep]
-            ).step,
-          },
-        };
-      case EventType.UserInterruption:
-        return {
-          ...base,
-          content: {
-            text: (
-              event.content as EventContentDescriptor[EventType.UserInterruption]
-            ).text,
-          },
-        };
-      case EventType.End:
-        return {
-          ...base,
-          content: {
-            message: (event.content as any).message,
-            plan: (event.content as any).plan,
-            step: (event.content as any).step,
-          },
-        };
+      }
       default:
         return base;
     }
@@ -364,14 +338,12 @@ export class EventManager {
     _toolCall: ToolCall,
     message: string,
   ): Promise<void> {
-    const loadingEvents = this.events
+    const loadevts = this.events
       .filter((e) => e.type === EventType.LoadingStatus)
       .reverse();
-    const latestLoadingEvent = loadingEvents[0];
-    if (latestLoadingEvent) {
-      this.updateEvent(latestLoadingEvent.id, {
-        content: { title: message } as any,
-      });
+    const latest = loadevts[0];
+    if (latest) {
+      this.updateEvent(latest.id, { content: { title: message } as any });
     } else {
       await this.addLoadingStatus(message);
     }

@@ -27,40 +27,26 @@ export class AgentFlow {
   private interruptController = new AbortController();
   private hasFinished = false;
 
-  // --- prompt 用環境情報生成（this バインド済み）
+  // 直近 N 発言だけを渡す
   getEnvironmentInfo = (
     appContext: AppContext,
     agentContext: AgentContext,
   ): string => {
-    const chatHistory = appContext.chatUtils.messages
+    const N = 8;
+    const recent = appContext.chatUtils.messages
+      .slice(-N)
       .map((m) => {
         const who = m.role === MessageRole.Assistant ? 'Assistant' : 'User';
         return `${who}: ${m.content}`;
       })
       .join('\n');
 
-    const eventText = this.eventManager.normalizeEventsForPrompt();
-    const original = appContext.request.inputText;
-
     return `
-Chat history:
-${chatHistory}
+Recent conversation (last ${N} messages):
+${recent}
 
-Event stream result history:
-${eventText}
-
-The user original input: ${original}
-
-${
-  agentContext.plan.length === 0
-    ? 'Plan: None'
-    : `Plan:
-${agentContext.plan.map((p) => `  - [${p.id}] ${p.title}`).join('\n')}
-
-Current step: ${agentContext.currentStep}
-
-Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
-}
+Current user request:
+${appContext.request.inputText}
 `.trim();
   };
 
@@ -69,22 +55,23 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
     this.eventManager = new EventManager(history);
   }
 
-  /**
-   * 2回目以降の実行でも前回状態を引きずらないように
-   * ここで毎回完全に初期化する
-   */
   public async run(inputFiles?: any[]) {
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // ---- ★ フロー状態のリセット ----
+    // ---- フロー状態を毎回初期化 ----
     this.abortController = new AbortController();
     this.interruptController = new AbortController();
     this.hasFinished = false;
-    this.eventManager = new EventManager(this.parseHistoryEvents());
+    if (typeof this.eventManager.reset === 'function') {
+      this.eventManager.reset();
+    } else {
+      this.eventManager = new EventManager([]);
+    }
     setPlanTasks([]);
     setEvents([]);
     setAgentStatusTip('Thinking');
+    // ----------------------------------
 
     const agentContext: AgentContext = {
       plan: [],
@@ -149,7 +136,6 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
         }
       });
 
-      // user-interrupt
       globalEventEmitter.addListener(
         this.appContext.agentFlowId,
         async (e: GlobalEvent) => {
@@ -204,7 +190,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
 
         const result: AwareResult = await aware.run();
 
-        // ---- 完了判定
+        // ---- 完了判定 ----
         if (
           Array.isArray(result.plan) &&
           result.plan.length > 0 &&
@@ -257,7 +243,7 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
           break;
         }
 
-        // ---- 進行中
+        // ---- 進行中 ----
         agentContext.currentStep = result.step > 0 ? result.step : 1;
         agentContext.plan = this.normalizePlan(result);
         setPlanTasks([...agentContext.plan]);
@@ -283,7 +269,6 @@ Current task: ${agentContext.plan[agentContext.currentStep - 1]?.title || ''}`
           if (call.function?.name === 'analyzeImage') {
             await executor.executeTools([call]);
           }
-          // 他ツール追加時はここで分岐
         }
         inputFiles = undefined;
       } catch (err) {

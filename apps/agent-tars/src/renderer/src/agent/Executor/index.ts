@@ -1,12 +1,9 @@
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { AgentContext } from '../AgentFlow';
-import { ipcClient } from '@renderer/api';
+import { ipcClient, isElectron } from '@renderer/api';
 import { ToolCall } from '@agent-infra/shared';
 import { chatMessageTool, idleTool } from './tools';
 import { ExecutorToolType } from './tools';
-
-const isElectron =
-  typeof window !== 'undefined' && !!window.electron?.ipcRenderer?.invoke;
 
 // Utility: 現在のStepのPlanTaskを取得
 function getCurrentPlanTask(agentContext: AgentContext) {
@@ -23,23 +20,17 @@ function createToolCalls(
   const currentStep = agentContext.currentStep;
   const currentTask = getCurrentPlanTask(agentContext);
 
-  // 画像ファイルがある場合 analyzeImage toolcallを返す
   if (inputFiles && inputFiles.length > 0) {
-    return [
-      {
-        function: {
-          name: ExecutorToolType.AnalyzeImage,
-          arguments: JSON.stringify({
-            path: inputFiles[0].path,
-          }),
-        },
-        id: `toolcall-analyzeImage-${Date.now()}`,
+    return inputFiles.map((f, idx) => ({
+      function: {
+        name: ExecutorToolType.AnalyzeImage,
+        arguments: JSON.stringify({ path: f.path }),
       },
-    ];
+      id: `toolcall-analyzeImage-${Date.now()}-${idx}`,
+    }));
   }
 
-  // すべてDoneなら idle
-  if (plan.length > 0 && plan.every((task) => task.status === 'Done')) {
+  if (plan.length > 0 && plan.every((t) => t.status === 'Done')) {
     return [
       {
         function: {
@@ -51,7 +42,6 @@ function createToolCalls(
     ];
   }
 
-  // 通常は chatMessage
   if (currentTask && currentTask.title) {
     return [
       {
@@ -86,13 +76,15 @@ export class Executor {
     this.abortSignal = abortSignal;
   }
 
-  /** LLM側が返した status と inputFiles から toolCall を決める */
   async run(status: string, inputFiles?: any[]) {
     console.log('[DEBUG] Executor.run called with status:', status);
+    if (!isElectron) {
+      console.log('[Executor] skip tool calls (web mode)');
+      return [];
+    }
     return createToolCalls(this.agentContext, status, inputFiles);
   }
 
-  /** ツール実行。null/undefined安全化 */
   async executeTools(toolCalls: ToolCall[]) {
     if (this.abortSignal.aborted) {
       throw new DOMException('Aborted', 'AbortError');
@@ -100,9 +92,8 @@ export class Executor {
     if (!Array.isArray(toolCalls) || toolCalls.length === 0) return [];
 
     const first = toolCalls[0];
-    const fnName = first?.function?.name;
+    const fnName = first.function?.name;
 
-    // analyzeImage
     if (fnName === ExecutorToolType.AnalyzeImage) {
       if (!isElectron || !ipcClient?.tools?.analyzeImage) {
         console.warn(
@@ -118,8 +109,8 @@ export class Executor {
         ];
       }
       try {
-        const args = JSON.parse(first.function!.arguments || '{}');
-        const result = await ipcClient.tools.analyzeImage(args.path);
+        const args = JSON.parse(first.function.arguments || '{}');
+        const result = await ipcClient.tools.analyzeImage({ path: args.path });
         return [
           {
             content: { text: result },
@@ -137,7 +128,6 @@ export class Executor {
       }
     }
 
-    // chatMessage (ダミー)
     if (fnName === ExecutorToolType.ChatMessage) {
       return [
         {
@@ -147,8 +137,7 @@ export class Executor {
       ];
     }
 
-    // Idle 等追加ツールはここで分岐
-
+    // 他ツールはここに追加
     return [];
   }
 }

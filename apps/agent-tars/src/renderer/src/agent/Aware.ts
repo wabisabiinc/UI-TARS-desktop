@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/agent/Aware.ts
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
 import { askLLMTool, listTools } from '../api';
@@ -16,6 +15,7 @@ export class Aware {
   private signal: AbortSignal;
 
   private readonly prompt = `
+IGNORE ANY PREVIOUS PLAN OR STEPS UNLESS THE USER EXPLICITLY SAYS "CONTINUE".
 OUTPUT MUST BE STRICT JSON ONLY. DO NOT WRAP IN ANY TEXT.
 You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
 Return only a raw JSON object with the following keys:
@@ -38,9 +38,6 @@ Do NOT include markdown fences.
     this.signal = signal;
   }
 
-  /**
-   * ガチガチ JSON パーサ
-   */
   private static safeParse<T>(text: string): T | null {
     const tryParse = (s: string): T | null => {
       try {
@@ -53,11 +50,9 @@ Do NOT include markdown fences.
     const trimmed = text?.trim() ?? '';
     if (!trimmed) return null;
 
-    // 1) そのまま
     let parsed = tryParse(trimmed);
     if (parsed) return parsed;
 
-    // 2) ```json``` or ``` フェンス
     const fenceJson = trimmed.match(/```json\s*([\s\S]*?)```/i);
     const fenceAny = fenceJson || trimmed.match(/```([\s\S]*?)```/i);
     if (fenceAny) {
@@ -65,7 +60,6 @@ Do NOT include markdown fences.
       if (parsed) return parsed;
     }
 
-    // 3) 最初と最後の { } のみ抜き
     const start = trimmed.indexOf('{');
     const end = trimmed.lastIndexOf('}');
     if (start >= 0 && end > start) {
@@ -98,12 +92,12 @@ Do NOT include markdown fences.
     if (this.signal.aborted) return this.getDefaultResult();
 
     // 1) 環境情報
-    const envInfo = await this.agentContext.getEnvironmentInfo(
+    const envInfo = this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
 
-    // 2) モデル・ツール
+    // 2) モデル・ツール一覧
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
@@ -114,7 +108,7 @@ Do NOT include markdown fences.
         ? available.map((t) => `${t.name}: ${t.description}`).join(', ')
         : 'none';
 
-    // 3) プロンプト
+    // 3) プロンプト組み立て
     const messages = [
       Message.systemMessage(this.prompt),
       Message.systemMessage(`Available tools: ${toolList}`),
@@ -138,25 +132,23 @@ Do NOT include markdown fences.
 
     const parsed = Aware.safeParse<AwareResult>(content);
     if (!parsed) {
-      // fallback: content を 1 タスクとして返す
       return {
         reflection: '',
         step: 1,
-        status: 'completed',
+        status: 'in-progress',
         plan: [
           {
             id: '1',
-            title: content.slice(0, 80) || 'Generated answer',
+            title: content.slice(0, 80) || 'Answer the current user request',
           },
         ],
       };
     }
 
-    // 整形
+    // 4) 正常時の整形
     const resultPlan: PlanTask[] = [];
     let step = parsed.step || 1;
     let status = (parsed.status || '').toLowerCase();
-
     if (
       [
         'pending',

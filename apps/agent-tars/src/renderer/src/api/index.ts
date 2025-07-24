@@ -31,7 +31,7 @@ export interface AskLLMResult {
 /* -------------------------------------------------
  * 環境判定
  * ------------------------------------------------- */
-const isElectron =
+export const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
 
@@ -107,7 +107,7 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
 }
 
 /* -------------------------------------------------
- * Electron IPC クライアント（遅延初期化で TLA を回避）
+ * Electron IPC クライアント（遅延初期化）
  * ------------------------------------------------- */
 export let ipcClient: any = null;
 
@@ -126,6 +126,9 @@ async function initIpcClient() {
   }
 }
 
+/* -------------------------------------------------
+ * IPC 準備
+ * ------------------------------------------------- */
 export async function ensureIpcReady() {
   await initIpcClient();
 }
@@ -135,7 +138,9 @@ export async function ensureIpcReady() {
  * ------------------------------------------------- */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   if (isElectron) await ensureIpcReady();
-  if (isElectron && ipcClient) return ipcClient.askLLMTool(opts as any);
+  if (isElectron && ipcClient) {
+    return ipcClient.askLLMTool(opts as any);
+  }
   return fetchLLM(opts);
 }
 
@@ -146,6 +151,9 @@ export async function listTools(): Promise<
   return isElectron && ipcClient ? ipcClient.listTools() : [];
 }
 
+/* -------------------------------------------------
+ * ストリームイベント購読（Electronのみ）
+ * ------------------------------------------------- */
 export const onMainStreamEvent = (
   streamId: string,
   handlers: {
@@ -168,6 +176,9 @@ export const onMainStreamEvent = (
   };
 };
 
+/* -------------------------------------------------
+ * 利用可能プロバイダー取得
+ * ------------------------------------------------- */
 export async function getAvailableProviders(): Promise<string[]> {
   if (isElectron) await ensureIpcReady();
   return isElectron && ipcClient
