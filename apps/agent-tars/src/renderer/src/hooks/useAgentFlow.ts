@@ -1,6 +1,13 @@
+// src/renderer/src/hooks/useAgentFlow.ts
+
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
-import { InputFile, MessageRole } from '@vendor/chat-ui';
+import {
+  InputFile,
+  InputFileType,
+  MessageRole,
+  MessageType,
+} from '@vendor/chat-ui';
 import { AgentFlow } from '../agent/AgentFlow';
 import { EventItem } from '@renderer/type/event';
 import { useAtom } from 'jotai';
@@ -14,23 +21,9 @@ import {
 import { v4 as uuid } from 'uuid';
 import { PlanTask } from '@renderer/type/agent';
 import { showCanvasAtom } from '@renderer/state/canvas';
-import { useChatSessions } from './useChatSession';
+import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '@renderer/components/LeftSidebar';
-import { ipcClient } from '@renderer/api';
-import { Message } from '@agent-infra/shared';
-
-console.log(
-  '[import先] planTasksAtom in useAgentFlow.ts',
-  planTasksAtom,
-  planTasksAtom.toString(),
-  import.meta.url || __filename,
-);
-if (typeof window !== 'undefined') {
-  console.log(
-    '[import先] Object.is(import, globalThis.__GLOBAL_PLAN_ATOM) in useAgentFlow.ts:',
-    Object.is(planTasksAtom, window.__GLOBAL_PLAN_ATOM),
-  );
-}
+import { analyzeImageWeb, isElectron, ipcClient } from '@renderer/api';
 
 export interface AppContext {
   chatUtils: ReturnType<typeof useAppChat>;
@@ -69,7 +62,7 @@ export function useAgentFlow() {
       const result = await ipcClient.askLLMText({
         messages: [
           Message.systemMessage(
-            `You are conversation summary expert. Please give a title for the coversation topic, the topic should be no more than 20 words. You can only output the topic content, don't output any other words. Use the same with as the language of the user input. The language should be the same as the user input.`,
+            `You are conversation summary expert. Please give a title for the conversation topic, no more than 20 words. Output only the title in the user's language.`,
           ),
           Message.userMessage(
             `user input: ${userMessageContent}, please give me the topic title.`,
@@ -84,7 +77,6 @@ export function useAgentFlow() {
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
-  // planTasksセット関数
   const setPlanTasksMerged = useCallback(
     (tasks: PlanTask[]) => {
       if (!tasks || tasks.length === 0) {
@@ -106,8 +98,48 @@ export function useAgentFlow() {
       const agentFlowId = uuid();
       currentAgentFlowIdRef.current = agentFlowId;
 
-      setPlanTasks([]); // 初期化
+      // １）プランタスク等を初期化
+      setPlanTasks([]);
 
+      // ２）画像ファイルがあれば、解析→即レスポンス
+      if (inputFiles && inputFiles.length > 0) {
+        for (const file of inputFiles) {
+          if (file.type === InputFileType.Image && file.content) {
+            let analysisText: string;
+            try {
+              if (isElectron) {
+                // Electronなら IPC
+                const resp = await ipcClient.invoke(
+                  'analyze-image',
+                  file.content,
+                );
+                analysisText =
+                  typeof resp === 'string'
+                    ? resp
+                    : JSON.stringify(resp, null, 2);
+              } else {
+                // Webなら HTTP エンドポイント
+                analysisText = await analyzeImageWeb(file.content);
+              }
+            } catch (e: any) {
+              analysisText = `画像解析中にエラーが発生しました: ${e.message ?? e}`;
+            }
+            // 結果をアシスタントとして返す
+            await chatUtils.addMessage(
+              {
+                role: MessageRole.Assistant,
+                type: MessageType.PlainText,
+                content: analysisText,
+                timestamp: Date.now(),
+              },
+              { shouldSyncStorage: true },
+            );
+          }
+        }
+        return;
+      }
+
+      // ３）テキスト入力のみ→既存の AgentFlow 実行
       const agentFlow = new AgentFlow({
         chatUtils,
         setEvents,
@@ -122,7 +154,6 @@ export function useAgentFlow() {
         },
       });
 
-      // ★ inputFilesを渡して実行！
       await Promise.all([
         agentFlow.run(inputFiles),
         updateSessionTitle(inputText),
