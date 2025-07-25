@@ -1,4 +1,5 @@
 // apps/agent-tars/server.mjs
+
 import 'dotenv/config';            // .env の自動読み込み
 import express from 'express';
 import cors from 'cors';
@@ -37,13 +38,6 @@ app.post('/api/generateMessage', async (req, res) => {
       temperature = 0.3,
       max_tokens = 1500,
     } = req.body;
-
-    if (!openaiApiKey) {
-      return res
-        .status(400)
-        .json({ error: 'OpenAI API key is not configured.' });
-    }
-
     // ChatGPTライクな system プロンプト
     const systemPrompt = {
       role: 'system',
@@ -52,26 +46,21 @@ app.post('/api/generateMessage', async (req, res) => {
         'Answer in Japanese unless the user requests otherwise. ' +
         'Provide examples or cite sources where appropriate.',
     };
-
     const chatMessages = Array.isArray(messages)
       ? [systemPrompt, ...messages]
       : [systemPrompt];
-
     const completion = await openai.chat.completions.create({
       model,
       messages: chatMessages,
       functions,
-      function_call: 'auto',
+      function_call: functions?.length ? 'auto' : undefined,
       temperature,
       max_tokens,
     });
-
     res.json(completion);
   } catch (err) {
     console.error('generateMessage error:', err);
-    res
-      .status(500)
-      .json({ error: err.message || String(err) });
+    res.status(500).json({ error: err.message || String(err) });
   }
 });
 
@@ -84,7 +73,6 @@ app.post('/api/analyzeImage', async (req, res) => {
         .status(400)
         .json({ success: false, error: 'No image provided.' });
     }
-
     // system プロンプト
     const systemPrompt = {
       role: 'system',
@@ -93,7 +81,6 @@ app.post('/api/analyzeImage', async (req, res) => {
         'You receive a user instruction and an image. ' +
         'Follow the instruction to analyze the image and provide a concise, detailed answer.',
     };
-
     // user メッセージに「テキスト指示」と「attachments」を同梱
     const userMessage = {
       role: 'user',
@@ -102,19 +89,17 @@ app.post('/api/analyzeImage', async (req, res) => {
         { type: 'image_url', image_url: { url: image } },
       ],
     };
-
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [systemPrompt, userMessage],
       temperature: 0.2,
       max_tokens: 1000,
     });
-
     const text = completion.choices?.[0]?.message?.content || '';
-    return res.json({ success: true, content: text });
+    res.json({ success: true, content: text });
   } catch (err) {
     console.error('analyzeImage error:', err);
-    return res
+    res
       .status(500)
       .json({ success: false, error: err.message || String(err) });
   }
@@ -128,14 +113,13 @@ app.get('/api/models', async (_req, res) => {
     res.json({ success: true, models: names });
   } catch (err) {
     console.error('models list error:', err);
-    const status = err.status || 500;
-    res.status(status).json({ success: false, error: err.message });
+    res.status(err.status || 500).json({ success: false, error: err.message });
   }
 });
 
 // ── 静的ファイル & SPA フォールバック ───────────────────────
 app.use(express.static(path.join(__dirname, 'dist/web')));
-app.use((req, res) => {
+app.use((_, res) => {
   res.sendFile(path.join(__dirname, 'dist/web/index.html'));
 });
 

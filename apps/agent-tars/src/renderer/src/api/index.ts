@@ -14,6 +14,7 @@ export interface AskLLMOpts {
     description: string;
     parameters: unknown;
   }[];
+  function_call?: any; // ← function_call を追加
   temperature?: number;
   max_tokens?: number;
 }
@@ -31,6 +32,18 @@ export const isElectron =
 
 if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
+}
+
+/* -------------------------------------------------
+ * function_callとfunctionsの整合性を保証する関数
+ * ------------------------------------------------- */
+function sanitizeLLMOpts(opts: AskLLMOpts): AskLLMOpts {
+  const clean = { ...opts };
+  if (!opts.functions || opts.functions.length === 0) {
+    delete clean.functions;
+    if ((clean as any).function_call) delete (clean as any).function_call;
+  }
+  return clean;
 }
 
 /* -------------------------------------------------
@@ -82,14 +95,15 @@ export async function ensureIpcReady() {
 }
 
 /* -------------------------------------------------
- * askLLMTool（Electron/Web 両対応）
+ * askLLMTool（Electron/Web 両対応、function_call安全化版）
  * ------------------------------------------------- */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
+  const safeOpts = sanitizeLLMOpts(opts);
   if (isElectron) {
     await ensureIpcReady();
-    if (ipcClient) return ipcClient.askLLMTool(opts as any);
+    if (ipcClient) return ipcClient.askLLMTool(safeOpts as any);
   }
-  return fetchLLM(opts);
+  return fetchLLM(safeOpts);
 }
 
 /* -------------------------------------------------

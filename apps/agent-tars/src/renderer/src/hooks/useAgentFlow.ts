@@ -1,3 +1,5 @@
+// src/renderer/src/hooks/useAgentFlow.ts
+
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
 import {
@@ -8,7 +10,7 @@ import {
 } from '@vendor/chat-ui';
 import { useAtom } from 'jotai';
 import { v4 as uuid } from 'uuid';
-import { AgentFlow } from '../agent/AgentFlow'; // ← 追加
+import { AgentFlow } from '../agent/AgentFlow';
 import { PlanTask } from '@renderer/type/agent';
 import {
   agentStatusTipAtom,
@@ -37,15 +39,14 @@ export function useAgentFlow() {
     appId: DEFAULT_APP_ID,
   });
 
-  // 会話名を更新するロジック（省略）
   const updateSessionTitle = useCallback(
     async (input: string) => {
-      /* … */
+      if (!currentSessionId) return;
+      // ここに会話タイトル更新ロジックを記述
     },
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
-  // planTasks を累積マージするヘルパー
   const setPlanTasksMerged = useCallback(
     (tasks: PlanTask[]) => {
       if (!tasks?.length) {
@@ -55,8 +56,7 @@ export function useAgentFlow() {
       const safeTasks = Array.isArray(tasks) ? tasks : [];
       setPlanTasks((prev) => {
         const seen = new Set(prev.map((t) => t.id));
-        const added = safeTasks.filter((t) => !seen.has(t.id));
-        return [...prev, ...added];
+        return [...prev, ...safeTasks.filter((t) => !seen.has(t.id))];
       });
     },
     [setPlanTasks],
@@ -66,37 +66,38 @@ export function useAgentFlow() {
     async (inputText: string, inputFiles: InputFile[]) => {
       const agentFlowId = uuid();
       currentAgentFlowIdRef.current = agentFlowId;
-      setPlanTasks([]); // プラン初期化
+      setPlanTasks([]);
 
-      // ── 画像解析分岐 ───────────────────
+      // ── 画像解析フロー ───────────────────────────────
       if (inputFiles.length > 0) {
-        const analyses: string[] = [];
+        const results: string[] = [];
         for (let i = 0; i < inputFiles.length; i++) {
           const file = inputFiles[i];
           if (file.type === InputFileType.Image && file.content) {
-            let result: string;
+            let analysis: string;
             try {
-              if (isElectron) {
+              if (isElectron && ipcClient) {
                 const resp = await ipcClient.invoke(
                   'analyze-image',
                   file.content,
                 );
-                result = typeof resp === 'string' ? resp : JSON.stringify(resp);
+                analysis =
+                  typeof resp === 'string' ? resp : JSON.stringify(resp);
               } else {
-                result = await analyzeImageWeb(file.content);
+                analysis = await analyzeImageWeb(file.content);
               }
             } catch (e: any) {
-              result = `解析エラー: ${e.message || e.toString()}`;
+              analysis = `解析エラー: ${e.message || String(e)}`;
             }
-            analyses.push(`--- Image ${i + 1} ---\n${result}`);
+            results.push(`--- Image ${i + 1} ---\n${analysis}`);
           }
         }
-        // まとめてアシスタントメッセージとして挿入
+
         await chatUtils.addMessage(
           {
             role: MessageRole.Assistant,
             type: MessageType.PlainText,
-            content: analyses.join('\n\n'),
+            content: results.join('\n\n'),
             timestamp: Date.now(),
           },
           { shouldSyncStorage: true },
@@ -104,7 +105,17 @@ export function useAgentFlow() {
         return;
       }
 
-      // ── テキストのみ／テキスト＋ファイル後のフォールバックは AgentFlow 実行 ───────────────────
+      // ── テキスト通常フロー ─────────────────────────────
+      await chatUtils.addMessage(
+        {
+          role: MessageRole.User,
+          type: MessageType.PlainText,
+          content: inputText,
+          timestamp: Date.now(),
+        },
+        { shouldSyncStorage: true },
+      );
+
       const agentFlow = new AgentFlow({
         chatUtils,
         setEvents,
@@ -115,6 +126,7 @@ export function useAgentFlow() {
         agentFlowId,
         request: { inputText, inputFiles },
       });
+
       await Promise.all([
         agentFlow.run(inputFiles),
         updateSessionTitle(inputText),
