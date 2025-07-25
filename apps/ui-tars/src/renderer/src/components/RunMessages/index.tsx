@@ -1,25 +1,17 @@
-/**
- * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
- * SPDX-License-Identifier: Apache-2.0
- */
 import React, { useEffect, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@renderer/utils';
 import { Button } from '@renderer/components/ui/button';
-
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants';
 import Prompts from '../Prompts';
 import ThoughtChain from '../ThoughtChain';
 import { api } from '@renderer/api';
-
 import ChatInput from '@renderer/components/ChatInput';
-
 import { SidebarTrigger } from '@renderer/components/ui/sidebar';
 import { ShareOptions } from '@/renderer/src/components/RunMessages/ShareOptions';
 import { ClearHistory } from '@/renderer/src/components/RunMessages/ClearHistory';
 import { useStore } from '@renderer/hooks/useStore';
 import { useSession } from '@renderer/hooks/useSession';
-
 import ImageGallery from '../ImageGallery';
 import {
   ErrorMessage,
@@ -30,6 +22,14 @@ import {
 } from './Messages';
 import { WelcomePage } from './Welcome';
 
+import { MessageType } from '@renderer/type/chatMessage'; // 追加
+
+const VISIBLE_TYPES = [
+  MessageType.PlainText,
+  MessageType.File,
+  // 他、ユーザーに見せたいtypeがあればここに追加
+];
+
 const RunMessages = () => {
   const { messages = [], thinking, errorMsg } = useStore();
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -39,9 +39,7 @@ const RunMessages = () => {
   const isWelcome = currentSessionId === '';
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(!isWelcome);
 
-  // console.log('currentSessionId', currentSessionId);
   useEffect(() => {
-    // console.log('useEffect updateMessages', currentSessionId, messages);
     if (currentSessionId && messages.length) {
       const existingMessagesSet = new Set(
         chatMessages.map(
@@ -88,17 +86,23 @@ const RunMessages = () => {
   };
 
   const renderChatList = () => {
+    // ★ filterをここで挟む
+    const filteredMessages = chatMessages
+      ? chatMessages.filter(
+          (message) => message?.type && VISIBLE_TYPES.includes(message.type),
+        )
+      : [];
+
     return (
       <div className="flex-1 w-full px-12 py-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
         <div ref={containerRef}>
-          {!chatMessages?.length && suggestions?.length > 0 && (
+          {!filteredMessages.length && suggestions?.length > 0 && (
             <Prompts suggestions={suggestions} onSelect={handleSelect} />
           )}
 
-          {chatMessages?.map((message, idx) => {
+          {filteredMessages.map((message, idx) => {
             if (message?.from === 'human') {
               if (message?.value === IMAGE_PLACEHOLDER) {
-                // screen shot
                 return (
                   <ScreenshotMessage
                     key={`message-${idx}`}
@@ -118,7 +122,6 @@ const RunMessages = () => {
             const { predictionParsed, screenshotBase64WithElementMarker } =
               message;
 
-            // Find the finished step
             const finishedStep = predictionParsed?.find(
               (step) =>
                 step.action_type === 'finished' &&
@@ -127,8 +130,6 @@ const RunMessages = () => {
                 step.action_inputs.content.trim().length > 0,
             );
 
-            // If there is a finished step, render the thought chain and the final result.
-            // Otherwise, render the thought chain.
             return (
               <div key={idx}>
                 {predictionParsed?.length ? (
@@ -186,7 +187,6 @@ const RunMessages = () => {
         {!isWelcome && renderChatList()}
         <ChatInput />
       </div>
-
       {/* Right Panel */}
       <div
         className={cn(

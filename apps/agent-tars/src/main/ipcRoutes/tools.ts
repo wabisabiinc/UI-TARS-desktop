@@ -5,7 +5,7 @@ const t = initIpc.create();
 
 export const toolsRoute = t.router({
   analyzeImage: t.procedure
-    .input<{ path: string }>() // ← ここをオブジェクト型に
+    .input<{ path: string }>() // path: string型で受け取る
     .handle(async ({ input }) => {
       if (!input?.path) {
         throw new Error('path is required');

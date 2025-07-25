@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { Aware, AwareResult } from './Aware';
@@ -28,7 +27,6 @@ export class AgentFlow {
   private interruptController = new AbortController();
   private hasFinished = false;
 
-  // プロンプト用の環境情報生成（this.bind済み）
   getEnvironmentInfo = (
     appContext: AppContext,
     agentContext: AgentContext,
@@ -75,7 +73,7 @@ ${appContext.request.inputText}
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // ── フロー状態を毎回初期化 ──
+    // フロー状態を毎回初期化
     this.abortController = new AbortController();
     this.interruptController = new AbortController();
     this.hasFinished = false;
@@ -84,7 +82,6 @@ ${appContext.request.inputText}
     setPlanTasks([]);
     setEvents(history);
     setAgentStatusTip('Thinking');
-    // ───────────────────────────
 
     const agentContext: AgentContext = {
       plan: [],
@@ -106,7 +103,7 @@ ${appContext.request.inputText}
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // terminate イベント
+    // terminateイベント
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
       async (e: GlobalEvent) => {
@@ -119,60 +116,33 @@ ${appContext.request.inputText}
       },
     );
 
-    // Ωメッセージを初回に描画
+    // ΩメッセージはaddMessage禁止。必要ならsetEventsで管理
     let omegaMsgId: string | null = null;
-    const preparePromise = greeter.run().then(async () => {
-      const omega = await chatUtils.addMessage(
-        ChatMessageUtil.assistantOmegaMessage({
-          events: this.eventManager.getVisibleEvents(),
-        }),
-        { shouldSyncStorage: true },
-      );
-      omegaMsgId = omega.id;
 
-      // イベント更新時にΩメッセージを更新
-      this.eventManager.setUpdateCallback(async () => {
-        const visible = [
-          ...this.eventManager.getHistoryEvents(),
-          ...this.eventManager.getVisibleEvents(),
-        ];
-        setEvents(visible);
-        if (omegaMsgId) {
-          await chatUtils.updateMessage(
-            ChatMessageUtil.assistantOmegaMessage({ events: visible }),
-            {
-              messageId: omegaMsgId,
-              shouldSyncStorage: true,
-              shouldScrollToBottom: true,
-            },
-          );
-        }
-      });
+    // 初回AI挨拶のみaddMessage。Ωメッセージはチャット欄にaddしない
+    const preparePromise = greeter.run();
 
-      // user-interrupt
-      globalEventEmitter.addListener(
-        this.appContext.agentFlowId,
-        async (e: GlobalEvent) => {
-          if (e.type === 'user-interrupt') {
-            await this.eventManager.addUserInterruptionInput(e.text);
-            this.interruptController.abort();
-            const visible = [
-              ...this.eventManager.getHistoryEvents(),
-              ...this.eventManager.getVisibleEvents(),
-            ];
-            if (omegaMsgId) {
-              await chatUtils.updateMessage(
-                ChatMessageUtil.assistantOmegaMessage({ events: visible }),
-                {
-                  messageId: omegaMsgId,
-                  shouldSyncStorage: true,
-                },
-              );
-            }
-          }
-        },
-      );
+    // Ω進行管理はsetEventsやupdateMessageで十分（addMessageしない）
+    this.eventManager.setUpdateCallback(async () => {
+      const visible = [
+        ...this.eventManager.getHistoryEvents(),
+        ...this.eventManager.getVisibleEvents(),
+      ];
+      setEvents(visible);
+      // Ω情報を別UIで表示したい場合はupdateMessageのみ
+      // if (omegaMsgId) {
+      //   await chatUtils.updateMessage(
+      //     ChatMessageUtil.assistantOmegaMessage({ events: visible }),
+      //     {
+      //       messageId: omegaMsgId,
+      //       shouldSyncStorage: true,
+      //       shouldScrollToBottom: true,
+      //     },
+      //   );
+      // }
     });
+
+    // user-interrupt等もΩメッセージはaddせず進行stateだけ管理
 
     await Promise.all([
       preparePromise,
@@ -204,12 +174,12 @@ ${appContext.request.inputText}
 
         const result: AwareResult = await aware.run();
 
-        // ── reflection をメモリに保存 ──
+        // reflectionをメモリに保存
         if (result.reflection) {
           agentContext.memory.lastReflection = result.reflection;
         }
 
-        // ── 完了判定 ──
+        // 完了判定
         if (
           result.plan.length > 0 &&
           result.step >= result.plan.length &&
@@ -243,12 +213,6 @@ ${appContext.request.inputText}
                 shouldScrollToBottom: true,
               },
             );
-            if (omegaMsgId) {
-              await chatUtils.updateMessage(
-                ChatMessageUtil.assistantOmegaMessage({ events: [] }),
-                { messageId: omegaMsgId, shouldSyncStorage: true },
-              );
-            }
             setPlanTasks([]);
             setAgentStatusTip('');
             setEvents([]);
@@ -257,7 +221,7 @@ ${appContext.request.inputText}
           break;
         }
 
-        // ── 進行中 更新 ──
+        // 進行中更新
         agentContext.currentStep = result.step > 0 ? result.step : 1;
         agentContext.plan = this.normalizePlan(result);
         setPlanTasks([...agentContext.plan]);
@@ -273,7 +237,7 @@ ${appContext.request.inputText}
           await this.eventManager.addAgentStatus(result.status);
         }
 
-        // ── ツール呼び出し ──
+        // ツール呼び出し
         const toolCalls = await executor.run(result.status, inputFiles);
         for (const call of toolCalls.filter(Boolean)) {
           if (call.function?.name === 'analyzeImage') {

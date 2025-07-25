@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/utils/ChatMessageUtils.tsx
 import { MessageRole } from '@vendor/chat-ui';
 import {
   MessageItem,
@@ -29,7 +28,7 @@ export class ChatMessageUtil {
   ): MessageItem {
     return {
       role: MessageRole.Assistant,
-      content: data, // ★ JSONを文字列化しない
+      content: data,
       type,
       timestamp: Date.now(),
       showCopyButton: false,

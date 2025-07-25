@@ -1,5 +1,3 @@
-// src/renderer/src/api/index.ts
-
 /** LLM 呼び出しの型定義 **/
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -14,7 +12,7 @@ export interface AskLLMOpts {
     description: string;
     parameters: unknown;
   }[];
-  function_call?: any; // ← function_call を追加
+  function_call?: any;
   temperature?: number;
   max_tokens?: number;
 }
@@ -176,4 +174,15 @@ export async function analyzeImageWeb(
     throw new Error(data.error || 'analyzeImage 解析失敗');
   }
   return data.content as string;
+}
+
+/* -------------------------------------------------
+ * analyzeImage（ElectronメインのVision API呼び出し用）
+ * ------------------------------------------------- */
+export async function analyzeImage(path: string): Promise<string> {
+  if (isElectron) {
+    await ensureIpcReady();
+    return ipcClient.analyzeImage({ path });
+  }
+  throw new Error('Web環境ではanalyzeImageは使えません');
 }

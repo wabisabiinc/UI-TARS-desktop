@@ -1,4 +1,3 @@
-// apps/agent-tars/src/renderer/src/agent/Greeter.ts
 import { MessageType } from '@vendor/chat-ui';
 import { Message } from '@agent-infra/shared';
 import {
