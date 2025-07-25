@@ -6,7 +6,6 @@ export interface ChatMessage {
   content: string;
   name?: string;
 }
-
 export interface AskLLMOpts {
   model: string;
   messages: ChatMessage[];
@@ -18,7 +17,6 @@ export interface AskLLMOpts {
   temperature?: number;
   max_tokens?: number;
 }
-
 export interface AskLLMResult {
   tool_calls: { name: string; arguments: string; id?: string }[];
   content: string;
@@ -36,7 +34,7 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
 }
 
 /* -------------------------------------------------
- * /api/generateMessage プロキシ呼び出し
+ * /api/generateMessage プロキシ呼び出し（Web）
  * ------------------------------------------------- */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const resp = await fetch('/api/generateMessage', {
@@ -97,7 +95,9 @@ export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
 /* -------------------------------------------------
  * listTools / getAvailableProviders
  * ------------------------------------------------- */
-export async function listTools() {
+export async function listTools(): Promise<
+  { name: string; description: string }[]
+> {
   if (isElectron) {
     await ensureIpcReady();
     if (ipcClient) return ipcClient.listTools();
@@ -138,16 +138,20 @@ export const onMainStreamEvent = (
 };
 
 /* -------------------------------------------------
- * analyzeImageWeb（Web 版画像解析ラッパー）
+ * analyzeImageWeb（Web 版画像＋プロンプト解析ラッパー）
  * ------------------------------------------------- */
 /**
- * @param image 完全な Data URL ('data:image/png;base64,...') を渡してください
+ * @param image 完全な Data URL ('data:image/png;base64,…')
+ * @param prompt 画像解析に対する追加指示テキスト
  */
-export async function analyzeImageWeb(image: string): Promise<string> {
+export async function analyzeImageWeb(
+  image: string,
+  prompt?: string,
+): Promise<string> {
   const resp = await fetch('/api/analyzeImage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image }),
+    body: JSON.stringify({ image, prompt }),
   });
   if (!resp.ok) {
     const txt = await resp.text();

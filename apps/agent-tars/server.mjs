@@ -1,6 +1,5 @@
 // apps/agent-tars/server.mjs
-
-import 'dotenv/config';
+import 'dotenv/config';            // .env の自動読み込み
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -11,7 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app = express();
-
 // CORS と大きめの JSON ボディを許可
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -34,76 +32,74 @@ app.post('/api/generateMessage', async (req, res) => {
   try {
     const {
       model,
-      messages = [],
+      messages,
       functions,
       temperature = 0.3,
       max_tokens = 1500,
     } = req.body;
 
     if (!openaiApiKey) {
-      return res.status(400).json({ error: 'API key not configured.' });
+      return res
+        .status(400)
+        .json({ error: 'OpenAI API key is not configured.' });
     }
 
-    // システムプロンプトを先頭に追加
+    // ChatGPTライクな system プロンプト
     const systemPrompt = {
       role: 'system',
       content:
-        'You are a domain‑expert AI assistant. Provide concise, authoritative, ' +
-        'and richly detailed answers. Cite examples or data when appropriate.',
+        'You are AgentTARS, a knowledgeable, concise, and helpful assistant. ' +
+        'Answer in Japanese unless the user requests otherwise. ' +
+        'Provide examples or cite sources where appropriate.',
     };
 
-    // チャットメッセージ配列を組み立て
-    const chatMessages = [systemPrompt, ...messages];
+    const chatMessages = Array.isArray(messages)
+      ? [systemPrompt, ...messages]
+      : [systemPrompt];
 
-    // リクエストパラメータを準備
-    const params = {
+    const completion = await openai.chat.completions.create({
       model,
       messages: chatMessages,
+      functions,
+      function_call: 'auto',
       temperature,
       max_tokens,
-    };
+    });
 
-    // functions が渡されていれば function 呼び出しモードに切り替え
-    if (Array.isArray(functions) && functions.length > 0) {
-      params.functions = functions;
-      params.function_call = 'auto';
-    }
-
-    const completion = await openai.chat.completions.create(params);
-    return res.json(completion);
+    res.json(completion);
   } catch (err) {
     console.error('generateMessage error:', err);
-    return res.status(500).json({ error: String(err) });
+    res
+      .status(500)
+      .json({ error: err.message || String(err) });
   }
 });
 
-// ── 画像解析エンドポイント ─────────────────────────────
+// ── 画像＋テキスト指示解析エンドポイント ────────────────────
 app.post('/api/analyzeImage', async (req, res) => {
   try {
-    const { image } = req.body;
-    if (typeof image !== 'string' || !image.startsWith('data:')) {
+    const { image, prompt } = req.body;
+    if (!image) {
       return res
         .status(400)
-        .json({ success: false, error: 'Invalid image format.' });
+        .json({ success: false, error: 'No image provided.' });
     }
 
-    // 画像解析用システムプロンプト
+    // system プロンプト
     const systemPrompt = {
       role: 'system',
       content:
-        'You are a world‑class visual reasoning AI. Describe what you see in 3–5 ' +
-        'structured paragraphs, focusing on objects, relationships, and context.',
+        'You are a world‑class visual reasoning AI. ' +
+        'You receive a user instruction and an image. ' +
+        'Follow the instruction to analyze the image and provide a concise, detailed answer.',
     };
 
-    // attachments をユーザーメッセージに含める
+    // user メッセージに「テキスト指示」と「attachments」を同梱
     const userMessage = {
       role: 'user',
-      content: '以下の画像を解析してください。',
+      content: prompt || '以下の画像を説明してください。',
       attachments: [
-        {
-          type: 'image_url',
-          image_url: { url: image },
-        },
+        { type: 'image_url', image_url: { url: image } },
       ],
     };
 
@@ -118,7 +114,9 @@ app.post('/api/analyzeImage', async (req, res) => {
     return res.json({ success: true, content: text });
   } catch (err) {
     console.error('analyzeImage error:', err);
-    return res.status(500).json({ success: false, error: String(err) });
+    return res
+      .status(500)
+      .json({ success: false, error: err.message || String(err) });
   }
 });
 
@@ -126,13 +124,12 @@ app.post('/api/analyzeImage', async (req, res) => {
 app.get('/api/models', async (_req, res) => {
   try {
     const list = await openai.models.list();
-    const names = list.data.map((m) => m.id);
-    return res.json({ success: true, models: names });
+    const names = list.data.map(m => m.id);
+    res.json({ success: true, models: names });
   } catch (err) {
     console.error('models list error:', err);
-    return res
-      .status(err.status || 500)
-      .json({ success: false, error: err.message || String(err) });
+    const status = err.status || 500;
+    res.status(status).json({ success: false, error: err.message });
   }
 });
 
