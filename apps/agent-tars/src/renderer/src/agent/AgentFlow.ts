@@ -26,6 +26,7 @@ export class AgentFlow {
   private abortController = new AbortController();
   private interruptController = new AbortController();
   private hasFinished = false;
+  private removeTerminateListener: (() => void) | null = null;
 
   getEnvironmentInfo = (
     appContext: AppContext,
@@ -73,10 +74,15 @@ ${appContext.request.inputText}
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // フロー状態を毎回初期化
+    // --- ここ重要!! 前回のabort, terminateリスナをクリーンアップ ---
+    if (this.abortController) this.abortController.abort();
+    if (this.interruptController) this.interruptController.abort();
     this.abortController = new AbortController();
     this.interruptController = new AbortController();
     this.hasFinished = false;
+    if (this.removeTerminateListener) this.removeTerminateListener();
+    // ------------------------------------------------------------
+
     const history = this.parseHistoryEvents();
     this.eventManager = new EventManager(history);
     setPlanTasks([]);
@@ -103,18 +109,23 @@ ${appContext.request.inputText}
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // terminateイベント
+    // terminateイベント: 必ず後で解除できるよう関数保存
+    const terminateHandler = async (e: GlobalEvent) => {
+      if (e.type === 'terminate') {
+        this.abortController.abort();
+        await this.eventManager.addEndEvent('Agent flow has been terminated.');
+      }
+    };
     globalEventEmitter.addListener(
       this.appContext.agentFlowId,
-      async (e: GlobalEvent) => {
-        if (e.type === 'terminate') {
-          this.abortController.abort();
-          await this.eventManager.addEndEvent(
-            'Agent flow has been terminated.',
-          );
-        }
-      },
+      terminateHandler,
     );
+    this.removeTerminateListener = () => {
+      globalEventEmitter.removeListener(
+        this.appContext.agentFlowId,
+        terminateHandler,
+      );
+    };
 
     let omegaMsgId: string | null = null;
 
@@ -138,6 +149,9 @@ ${appContext.request.inputText}
         inputFiles,
       ),
     ]);
+
+    // 終了後 terminateイベント解除
+    if (this.removeTerminateListener) this.removeTerminateListener();
   }
 
   private async launchAgentLoop(
@@ -229,7 +243,18 @@ ${appContext.request.inputText}
           // 他のツール分岐もここに追加
         }
         inputFiles = undefined;
-      } catch (err) {
+      } catch (err: any) {
+        if (
+          err?.name === 'AbortError' ||
+          (typeof err === 'object' && err?.message?.includes('aborted'))
+        ) {
+          // ユーザー中断/Abort時はUIリセットして静かに終わる
+          setPlanTasks([]);
+          setAgentStatusTip('');
+          setEvents([]);
+          break;
+        }
+        // それ以外のエラーは通知
         console.error('[AgentFlow] loop error', err);
         await chatUtils.addMessage(
           ChatMessageUtil.assistantTextMessage(
