@@ -19,7 +19,7 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// Generate ToolCalls, handling image attachments in both Electron and Web
+// ToolCall生成: AIエージェントのプラン内容/入力ファイルを考慮
 async function createToolCalls(
   agentContext: AgentContext,
   status: string,
@@ -28,12 +28,12 @@ async function createToolCalls(
   const plan = agentContext.plan;
   const currentStep = agentContext.currentStep;
 
-  // If images are provided, analyze them
+  // 画像処理ステップ: 画像があれば即tool
   if (inputFiles && inputFiles.length > 0) {
     return Promise.all(
       inputFiles.map(async (f: any, idx: number) => {
         if (isElectron) {
-          // Electron: send file path
+          // Electron: ファイルパス
           return {
             function: {
               name: ExecutorToolType.AnalyzeImage,
@@ -42,7 +42,7 @@ async function createToolCalls(
             id: `toolcall-analyzeImage-${Date.now()}-${idx}`,
           };
         } else {
-          // Web: convert File to base64 and send
+          // Web: base64変換
           const base64 = await fileToBase64(f as File);
           return {
             function: {
@@ -56,7 +56,7 @@ async function createToolCalls(
     );
   }
 
-  // If all tasks are done, idle
+  // 全step完了ならIdle tool
   if (plan.length > 0 && plan.every((t) => t.status === 'Done')) {
     return [
       {
@@ -69,7 +69,7 @@ async function createToolCalls(
     ];
   }
 
-  // Otherwise send chatMessage tool
+  // 現在のstepに合わせてChatMessageツールを生成
   const currentTask = agentContext.plan[agentContext.currentStep - 1];
   if (currentTask?.title) {
     return [
@@ -95,10 +95,7 @@ export class Executor {
     private agentContext: AgentContext,
     private abortSignal: AbortSignal,
   ) {
-    console.log('[DEBUG] Executor constructor called!', {
-      appContext,
-      agentContext,
-    });
+    // DEBUG
   }
 
   public updateSignal(abortSignal: AbortSignal) {
@@ -107,8 +104,6 @@ export class Executor {
 
   /** Decide which tool calls to make based on status + input files */
   public async run(status: string, inputFiles?: any[]): Promise<ToolCall[]> {
-    console.log('[DEBUG] Executor.run called with status:', status);
-    // Always generate tool calls (image or chat), even in Web
     return createToolCalls(this.agentContext, status, inputFiles);
   }
 
@@ -148,15 +143,16 @@ export class Executor {
     }
 
     if (fnName === ExecutorToolType.ChatMessage) {
+      // 現在はダミー。実際にはAIチャット出力や外部サービス連携可能
       return [
         {
-          content: { text: '【ダミーToolCall実行成功】' },
+          content: { text: '【ToolCall実行】' },
           isError: false,
         } as any,
       ];
     }
 
-    // Additional tools can be handled here
+    // 追加tool分岐もここで
     return [];
   }
 }

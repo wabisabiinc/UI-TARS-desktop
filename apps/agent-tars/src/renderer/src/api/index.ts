@@ -15,12 +15,14 @@ export interface AskLLMOpts {
   function_call?: any;
   temperature?: number;
   max_tokens?: number;
+  stream?: boolean;
 }
 export interface AskLLMResult {
-  tool_calls: { name: string; arguments: string; id?: string }[];
+  tool_calls?: { name: string; arguments: string; id?: string }[];
   content: string;
 }
 
+// 環境判定
 export const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
@@ -29,6 +31,7 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
 }
 
+// function_call/functionsを省略可能
 function sanitizeLLMOpts(opts: AskLLMOpts): AskLLMOpts {
   const clean = { ...opts };
   if (!opts.functions || opts.functions.length === 0) {
@@ -38,9 +41,10 @@ function sanitizeLLMOpts(opts: AskLLMOpts): AskLLMOpts {
   return clean;
 }
 
+// /api/generateMessage呼び出し
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), 10000);
+  const id = setTimeout(() => controller.abort(), 15000);
   try {
     const resp = await fetch('/api/generateMessage', {
       method: 'POST',
@@ -56,13 +60,14 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
     const data = await resp.json();
     const choice = data.choices?.[0]?.message;
     const content = choice?.content ?? data.output_text ?? '';
-    const tool_calls: { name: string; arguments: string; id?: string }[] = [];
-    if (choice?.function_call) {
-      tool_calls.push({
-        name: choice.function_call.name,
-        arguments: choice.function_call.arguments,
-      });
-    }
+    const tool_calls = choice?.function_call
+      ? [
+          {
+            name: choice.function_call.name,
+            arguments: choice.function_call.arguments,
+          },
+        ]
+      : [];
     return { tool_calls, content };
   } finally {
     clearTimeout(id);
@@ -136,6 +141,7 @@ export const onMainStreamEvent = (
   };
 };
 
+// Vision: Web経由で画像解析（DataURL＋プロンプト）
 export async function analyzeImageWeb(
   image: string,
   prompt?: string,

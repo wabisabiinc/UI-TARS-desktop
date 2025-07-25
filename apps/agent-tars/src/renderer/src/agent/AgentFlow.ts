@@ -1,3 +1,4 @@
+// apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { Aware, AwareResult } from './Aware';
@@ -74,14 +75,13 @@ ${appContext.request.inputText}
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // --- ここ重要!! 前回のabort, terminateリスナをクリーンアップ ---
+    // 前回abort, terminateリスナをクリーンアップ
     if (this.abortController) this.abortController.abort();
     if (this.interruptController) this.interruptController.abort();
     this.abortController = new AbortController();
     this.interruptController = new AbortController();
     this.hasFinished = false;
     if (this.removeTerminateListener) this.removeTerminateListener();
-    // ------------------------------------------------------------
 
     const history = this.parseHistoryEvents();
     this.eventManager = new EventManager(history);
@@ -141,20 +141,15 @@ ${appContext.request.inputText}
 
     await Promise.all([
       preparePromise,
-      this.launchAgentLoop(
-        executor,
-        aware,
-        agentContext,
-        omegaMsgId,
-        inputFiles,
-      ),
+      this.agentLoop(executor, aware, agentContext, omegaMsgId, inputFiles),
     ]);
 
     // 終了後 terminateイベント解除
     if (this.removeTerminateListener) this.removeTerminateListener();
   }
 
-  private async launchAgentLoop(
+  /** AIエージェント型：stepごとに柔軟にreplan・フィードバック実行 */
+  private async agentLoop(
     executor: Executor,
     aware: Aware,
     agentContext: AgentContext,
@@ -165,11 +160,13 @@ ${appContext.request.inputText}
       this.appContext;
     let firstStep = true;
 
+    // メインループ：stepごとに「実行→replan→まとめ」自己完結
     while (!this.abortController.signal.aborted && !this.hasFinished) {
       try {
         await this.eventManager.addLoadingStatus('Thinking');
         setAgentStatusTip('Thinking');
 
+        // stepごとにプランを「再設計」(直前のstep実行・履歴も全部渡す)
         const result: AwareResult = await aware.run();
 
         // reflectionをメモリに保存
@@ -199,10 +196,13 @@ ${appContext.request.inputText}
           );
 
           setTimeout(async () => {
-            const finalSummary = await new Greeter(
-              this.appContext,
-              this.abortController.signal,
-            ).generateFinalSummary();
+            // summaryがあれば使う
+            const finalSummary =
+              result.summary ||
+              (await new Greeter(
+                this.appContext,
+                this.abortController.signal,
+              ).generateFinalSummary());
             await chatUtils.addMessage(
               ChatMessageUtil.assistantTextMessage(finalSummary),
               {
@@ -234,7 +234,7 @@ ${appContext.request.inputText}
           await this.eventManager.addAgentStatus(result.status);
         }
 
-        // ツール呼び出し
+        // ツール呼び出し/stepごとに柔軟に（tool名があれば実行→再ループ）
         const toolCalls = await executor.run(result.status, inputFiles);
         for (const call of toolCalls.filter(Boolean)) {
           if (call.function?.name === 'analyzeImage') {

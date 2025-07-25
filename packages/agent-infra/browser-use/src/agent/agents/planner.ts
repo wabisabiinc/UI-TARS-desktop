@@ -30,30 +30,33 @@ export const plannerOutputSchema = z.object({
   done: z.boolean().optional(),
   web_task: z.boolean().optional(),
   next_steps: z.string().optional(),
+  reflection: z.string().optional(), // AI自己評価
+  summary: z.string().optional(), // 最終サマリー
 });
 
 export type PlannerOutput = z.infer<typeof plannerOutputSchema>;
 
-// === 2. System Prompt ===
+// === 2. System Prompt（AIエージェント的：自己評価＋再分割） ===
 const SYSTEM_PROMPT = `
-あなたはGUI自動化エージェントです。
-全ての出力は必ず下記のJSON形式のみで返してください:
+あなたは世界最高クラスのAIエージェント・プランナーです。
+・ユーザーや履歴・実行ログ・自己評価をもとに、毎ステップごとに「計画の再設計（replan）」も可能です。
+・必ずJSON形式でのみ出力してください（説明やマークダウンは禁止）
 
 {
-  "thought": "今の考えや状況整理を簡潔に記述",
-  "action": "ユーザーへの返答や次に取るべき具体的なアクションを記述",
+  "thought": "現状の気付きや分析",
+  "action": "次に取るべきアクション、またはユーザー返答",
   "step": 1,
-  "status": "in-progress", // in-progress または completed
+  "status": "in-progress", // in-progress or completed
   "plan": [
-    { "id": "1", "title": "日本の隠れた名所をリサーチする" },
-    { "id": "2", "title": "地域やテーマで分類する" },
-    { "id": "3", "title": "おすすめスポットを出力する" }
-  ]
+    { "id": "1", "title": "最初のサブタスク" },
+    { "id": "2", "title": "2番目のサブタスク" }
+  ],
+  "reflection": "step実行後の自己評価（気付き・改善案・次の方針）",
+  "summary": "（最終stepなら必須）全体まとめ・追加ヒント"
 }
 
-- thought, action, step, status, plan は全て必須です。
-- stepは現在のステップ番号（1始まり）、statusは通常は "in-progress"、最終stepの時のみ "completed" としてください。
-- 出力は必ずJSONのみ、説明やマークダウン記法を絶対につけないこと。
+- thought, action, step, status, plan, reflection（全step）, summary（最終のみ）は必須です。
+- 必ず前stepの実行結果や履歴も考慮・分析してください。
 `;
 
 export class PlannerAgent extends BaseAgent<
@@ -92,9 +95,8 @@ export class PlannerAgent extends BaseAgent<
         modelOutput.plan.length > 0
           ? modelOutput.plan
           : [
-              { id: '1', title: '日本の隠れた名所をリサーチする' },
-              { id: '2', title: '地域やテーマで分類する' },
-              { id: '3', title: 'おすすめスポットを出力する' },
+              { id: '1', title: '最初のサブタスクを実行' },
+              { id: '2', title: '続けて次のタスクを実行' },
             ];
 
       // step/status補正
@@ -107,7 +109,6 @@ export class PlannerAgent extends BaseAgent<
           ? modelOutput.status.toLowerCase()
           : 'in-progress';
 
-      // status補正ロジック
       if (step >= plan.length && plan.length > 0) {
         status = 'completed';
       } else if (
@@ -118,7 +119,7 @@ export class PlannerAgent extends BaseAgent<
         status = 'in-progress';
       }
 
-      // --- 追加: 既存コード用の補助値 ---
+      // 追加: 既存コード用
       const done = status === 'completed';
       const web_task = false;
       const next_steps = plan.map((p) => p.title).join(' → ');
@@ -145,6 +146,8 @@ export class PlannerAgent extends BaseAgent<
           done,
           web_task,
           next_steps,
+          reflection: modelOutput.reflection ?? '',
+          summary: modelOutput.summary ?? '',
         },
       };
     } catch (error) {

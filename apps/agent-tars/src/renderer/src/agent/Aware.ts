@@ -10,21 +10,25 @@ export interface AwareResult {
   step: number;
   status: string;
   plan: PlanTask[];
+  summary?: string; // 新規: 最終サマリーも受け取り可
 }
 
 export class Aware {
   private signal: AbortSignal;
 
+  // “直前のstep・実行内容・履歴も考慮しつつリプラン”できるAIエージェント仕様プロンプト
   private readonly prompt = `
-IGNORE ANY PREVIOUS PLAN OR STEPS UNLESS THE USER EXPLICITLY SAYS "CONTINUE".
-OUTPUT MUST BE STRICT JSON ONLY. DO NOT WRAP IN ANY TEXT.
-You are an AI agent responsible for analyzing the current environment and planning the next actionable step.
-Return only a raw JSON object with the following keys:
-  • reflection (string)
-  • step (number)
-  • status (string)  ← "in-progress" normally, "completed" when step == plan.length
-  • plan (array of { id: string, title: string })
-Do NOT include markdown fences.
+You are an advanced autonomous AI agent for business & research workflows.
+At every invocation, analyze the environment, conversation history, your previous reflections and results,
+then dynamically REPLAN the optimal next step(s) and full plan if necessary.
+- If a tool result or execution log is provided, incorporate it in your reasoning.
+- Your goal is to maximize the quality, depth, and usefulness of your output, balancing step granularity and speed.
+- Return STRICTLY a valid JSON (NO markdown, no extra text). Output must include:
+  • reflection: String, concise self-critique/analysis of the situation (not just a summary)
+  • step: Number, current step index (1-based)
+  • status: "in-progress" (default) or "completed" (if last step or request fulfilled)
+  • plan: Array of {id: string, title: string} -- break down the task into clear multi-step plan, as granular as needed
+  • summary: (optional) String, if completed: provide a dense final summary, with actionable points and reference info if possible
 `.trim();
 
   constructor(
@@ -98,13 +102,13 @@ Do NOT include markdown fences.
     console.log('[Aware] ▶︎ run start, aborted=', this.signal.aborted);
     if (this.signal.aborted) return this.getDefaultResult();
 
-    // 1) Gather environment info
+    // 1) Gather environment info (履歴・実行結果など全て含む)
     const envInfo = this.agentContext.getEnvironmentInfo(
       this.appContext,
       this.agentContext,
     );
 
-    // 2) Choose model and fetch available tools
+    // 2) Use fastest available model
     const useGemini = import.meta.env.VITE_LLM_USE_GEMINI === 'true';
     const model = useGemini
       ? import.meta.env.VITE_LLM_MODEL_GEMINI || 'gemini-2.0-flash'
@@ -121,7 +125,7 @@ Do NOT include markdown fences.
       Message.systemMessage(`Available tools: ${toolList}`),
       Message.userMessage(envInfo),
       Message.userMessage(
-        'Analyze the environment and plan the next step in JSON.',
+        'Analyze the environment, previous results, and plan the next step as high-performing AI agent.',
       ),
     ];
     console.log('[Aware] → askLLMTool', { model });
@@ -132,6 +136,8 @@ Do NOT include markdown fences.
         role: m.role as any,
         content: m.content,
       })),
+      temperature: 0.2, // 低めで安定
+      max_tokens: 1500,
     });
 
     const content = raw?.content?.trim() || '';
@@ -192,6 +198,7 @@ Do NOT include markdown fences.
       step,
       status,
       plan: resultPlan,
+      summary: parsed.summary,
     };
   }
 }

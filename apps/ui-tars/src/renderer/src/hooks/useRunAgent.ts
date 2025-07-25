@@ -1,5 +1,4 @@
 import { useToast } from '@chakra-ui/react';
-import { Conversation } from '@ui-tars/shared/types';
 import { getState } from '@renderer/hooks/useStore';
 import { usePermissions } from './usePermissions';
 import { useSetting } from './useSetting';
@@ -15,6 +14,7 @@ export const useRunAgent = () => {
     callback: () => void = () => {},
     image?: string,
   ) => {
+    // 権限・設定チェック
     if (
       !ensurePermissions?.accessibility ||
       !ensurePermissions?.screenCapture
@@ -35,6 +35,7 @@ export const useRunAgent = () => {
       return;
     }
 
+    // モデル設定確認（適宜カスタムに）
     const ready = settings?.vlmBaseUrl && settings?.vlmModelName;
     if (!ready) {
       toast({
@@ -50,6 +51,10 @@ export const useRunAgent = () => {
       return;
     }
 
+    // 最新履歴取得
+    const previous = getState().messages || [];
+
+    // Vision（画像あり）かテキストのみか判定
     let userMessage;
     if (image) {
       userMessage = {
@@ -66,26 +71,15 @@ export const useRunAgent = () => {
       };
     }
 
-    const initial = [
+    const messages = [
       {
         role: 'system',
         content:
           'You are a highly skilled business assistant. Provide accurate, concise, and deeply detailed answers with examples.',
       },
+      ...previous.filter((m) => m.role !== 'system'), // system重複防止
       userMessage,
     ];
-    const previous = getState().messages || [];
-
-    await api.setInstructions({
-      instructions: initial
-        .map(
-          (m) => `${m.role}: ${typeof m.content === 'string' ? m.content : ''}`,
-        )
-        .join('\n\n'),
-    });
-    await api.setMessages({
-      messages: [...previous, ...initial],
-    });
 
     try {
       await api.runAgent({
@@ -93,7 +87,7 @@ export const useRunAgent = () => {
         max_tokens: 1500,
         stream: true,
         model: 'gpt-4o',
-        messages: [...previous, ...initial], // Vision API対応
+        messages, // Vision/通常どちらもOK
       });
     } catch (e: any) {
       toast({

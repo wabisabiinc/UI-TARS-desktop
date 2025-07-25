@@ -3,7 +3,7 @@ import { StatusEnum } from '@ui-tars/shared/types';
 import { useRunAgent } from '@renderer/hooks/useRunAgent';
 import { useStore } from '@renderer/hooks/useStore';
 import { Button } from '@renderer/components/ui/button';
-import { Play, Send, Square, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Send, Square, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Textarea } from '@renderer/components/ui/textarea';
 import { useSession } from '@renderer/hooks/useSession';
 import { SelectOperator } from './SelectOperator';
@@ -17,12 +17,13 @@ const ChatInput = () => {
     restUserData,
   } = useStore();
   const [localInstructions, setLocalInstructions] = useState('');
-  const [image, setImage] = useState<string | null>(null); // Vision用
+  const [image, setImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { run } = useRunAgent();
   const { currentSessionId, updateSession, createSession } = useSession();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const running = status === StatusEnum.RUNNING;
+  const [sendLock, setSendLock] = useState(false);
 
   const getInstantInstructions = () => {
     if (localInstructions?.trim()) return localInstructions;
@@ -33,8 +34,9 @@ const ChatInput = () => {
   const isCallUser = useMemo(() => status === StatusEnum.CALL_USER, [status]);
 
   const startRun = async () => {
-    if (isSubmitting || running) return;
+    if (isSubmitting || running || sendLock) return;
     setIsSubmitting(true);
+    setSendLock(true);
     try {
       const instructions = getInstantInstructions();
       if (!currentSessionId) {
@@ -47,6 +49,7 @@ const ChatInput = () => {
       setImage(null);
     } finally {
       setIsSubmitting(false);
+      setSendLock(false);
     }
   };
 
@@ -78,16 +81,9 @@ const ChatInput = () => {
   };
 
   const renderButton = () => {
-    if (running) {
+    if (running || isSubmitting) {
       return (
-        <Button
-          variant="secondary"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => {
-            /* 停止処理 */
-          }}
-        >
+        <Button variant="secondary" size="icon" className="h-8 w-8" disabled>
           <Square className="h-4 w-4" />
         </Button>
       );
@@ -120,7 +116,7 @@ const ChatInput = () => {
             }
             className="min-h-[120px] rounded-2xl resize-none px-4 pb-16"
             value={localInstructions}
-            disabled={running}
+            disabled={running || isSubmitting || sendLock}
             onChange={(e) => setLocalInstructions(e.target.value)}
             onKeyDown={handleKeyDown}
           />
@@ -131,7 +127,7 @@ const ChatInput = () => {
           )}
           <SelectOperator />
           <div className="absolute right-4 bottom-4 flex items-center gap-2">
-            {running && (
+            {(running || isSubmitting) && (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}
             <label>
@@ -140,7 +136,7 @@ const ChatInput = () => {
                 accept="image/*"
                 style={{ display: 'none' }}
                 onChange={handleImageChange}
-                disabled={running}
+                disabled={running || isSubmitting || sendLock}
               />
               <ImageIcon
                 className={`h-5 w-5 cursor-pointer ${image ? 'text-blue-500' : 'text-muted-foreground'}`}
