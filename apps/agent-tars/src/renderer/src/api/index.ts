@@ -1,7 +1,7 @@
 /** LLM 呼び出しの型定義 **/
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;
+  content: string | any; // Vision対応: 配列もOK
   name?: string;
 }
 export interface AskLLMOpts {
@@ -21,9 +21,7 @@ export interface AskLLMResult {
   content: string;
 }
 
-/* -------------------------------------------------
- * 環境判定 & キー警告
- * ------------------------------------------------- */
+/* 環境判定 & キー警告 */
 export const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
@@ -32,9 +30,7 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
 }
 
-/* -------------------------------------------------
- * function_callとfunctionsの整合性を保証する関数
- * ------------------------------------------------- */
+/* function_callとfunctionsの整合性を保証する関数 */
 function sanitizeLLMOpts(opts: AskLLMOpts): AskLLMOpts {
   const clean = { ...opts };
   if (!opts.functions || opts.functions.length === 0) {
@@ -44,35 +40,40 @@ function sanitizeLLMOpts(opts: AskLLMOpts): AskLLMOpts {
   return clean;
 }
 
-/* -------------------------------------------------
- * /api/generateMessage プロキシ呼び出し（Web）
- * ------------------------------------------------- */
+/* /api/generateMessage プロキシ呼び出し（Web） */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
-  const resp = await fetch('/api/generateMessage', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(opts),
-  });
-  if (!resp.ok) {
-    const txt = await resp.text();
-    throw new Error(`[api] Proxy error ${resp.status}: ${txt}`);
-  }
-  const data = await resp.json();
-  const choice = data.choices?.[0]?.message;
-  const content = choice?.content ?? data.output_text ?? '';
-  const tool_calls: { name: string; arguments: string; id?: string }[] = [];
-  if (choice?.function_call) {
-    tool_calls.push({
-      name: choice.function_call.name,
-      arguments: choice.function_call.arguments,
+  // タイムアウト例（10秒）
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 10000);
+  try {
+    const resp = await fetch('/api/generateMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(opts),
+      signal: controller.signal,
     });
+    clearTimeout(id);
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`[api] Proxy error ${resp.status}: ${txt}`);
+    }
+    const data = await resp.json();
+    const choice = data.choices?.[0]?.message;
+    const content = choice?.content ?? data.output_text ?? '';
+    const tool_calls: { name: string; arguments: string; id?: string }[] = [];
+    if (choice?.function_call) {
+      tool_calls.push({
+        name: choice.function_call.name,
+        arguments: choice.function_call.arguments,
+      });
+    }
+    return { tool_calls, content };
+  } finally {
+    clearTimeout(id);
   }
-  return { tool_calls, content };
 }
 
-/* -------------------------------------------------
- * Electron IPC クライアント（遅延初期化）
- * ------------------------------------------------- */
+/* Electron IPC クライアント（遅延初期化） */
 export let ipcClient: any = null;
 async function initIpcClient() {
   if (ipcClient || !isElectron) return;
@@ -92,9 +93,7 @@ export async function ensureIpcReady() {
   await initIpcClient();
 }
 
-/* -------------------------------------------------
- * askLLMTool（Electron/Web 両対応、function_call安全化版）
- * ------------------------------------------------- */
+/* askLLMTool（Electron/Web 両対応、function_call安全化版） */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   const safeOpts = sanitizeLLMOpts(opts);
   if (isElectron) {
@@ -104,9 +103,7 @@ export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   return fetchLLM(safeOpts);
 }
 
-/* -------------------------------------------------
- * listTools / getAvailableProviders
- * ------------------------------------------------- */
+/* listTools / getAvailableProviders */
 export async function listTools(): Promise<
   { name: string; description: string }[]
 > {
@@ -124,9 +121,7 @@ export async function getAvailableProviders(): Promise<string[]> {
   return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
 
-/* -------------------------------------------------
- * ストリームイベント購読（Electron のみ）
- * ------------------------------------------------- */
+/* ストリームイベント購読（Electron のみ） */
 export const onMainStreamEvent = (
   streamId: string,
   handlers: {
@@ -149,13 +144,7 @@ export const onMainStreamEvent = (
   };
 };
 
-/* -------------------------------------------------
- * analyzeImageWeb（Web 版画像＋プロンプト解析ラッパー）
- * ------------------------------------------------- */
-/**
- * @param image 完全な Data URL ('data:image/png;base64,…')
- * @param prompt 画像解析に対する追加指示テキスト
- */
+/* Vision: Web経由で画像解析（DataURL＋プロンプト） */
 export async function analyzeImageWeb(
   image: string,
   prompt?: string,
@@ -176,9 +165,7 @@ export async function analyzeImageWeb(
   return data.content as string;
 }
 
-/* -------------------------------------------------
- * analyzeImage（ElectronメインのVision API呼び出し用）
- * ------------------------------------------------- */
+/* Electron: Vision API呼び出し */
 export async function analyzeImage(path: string): Promise<string> {
   if (isElectron) {
     await ensureIpcReady();

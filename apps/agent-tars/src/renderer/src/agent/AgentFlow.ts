@@ -116,33 +116,17 @@ ${appContext.request.inputText}
       },
     );
 
-    // ΩメッセージはaddMessage禁止。必要ならsetEventsで管理
     let omegaMsgId: string | null = null;
 
-    // 初回AI挨拶のみaddMessage。Ωメッセージはチャット欄にaddしない
     const preparePromise = greeter.run();
 
-    // Ω進行管理はsetEventsやupdateMessageで十分（addMessageしない）
     this.eventManager.setUpdateCallback(async () => {
       const visible = [
         ...this.eventManager.getHistoryEvents(),
         ...this.eventManager.getVisibleEvents(),
       ];
       setEvents(visible);
-      // Ω情報を別UIで表示したい場合はupdateMessageのみ
-      // if (omegaMsgId) {
-      //   await chatUtils.updateMessage(
-      //     ChatMessageUtil.assistantOmegaMessage({ events: visible }),
-      //     {
-      //       messageId: omegaMsgId,
-      //       shouldSyncStorage: true,
-      //       shouldScrollToBottom: true,
-      //     },
-      //   );
-      // }
     });
-
-    // user-interrupt等もΩメッセージはaddせず進行stateだけ管理
 
     await Promise.all([
       preparePromise,
@@ -200,7 +184,6 @@ ${appContext.request.inputText}
             result.step,
           );
 
-          // 最終まとめ
           setTimeout(async () => {
             const finalSummary = await new Greeter(
               this.appContext,
@@ -243,7 +226,7 @@ ${appContext.request.inputText}
           if (call.function?.name === 'analyzeImage') {
             await executor.executeTools([call]);
           }
-          // その他ツール分岐はここに追加
+          // 他のツール分岐もここに追加
         }
         inputFiles = undefined;
       } catch (err) {
@@ -256,6 +239,7 @@ ${appContext.request.inputText}
         );
         setPlanTasks([]);
         setAgentStatusTip('');
+        setEvents([]);
         this.hasFinished = true;
         break;
       }

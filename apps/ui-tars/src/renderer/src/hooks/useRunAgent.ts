@@ -1,7 +1,3 @@
-/**
- * Copyright (c) 2025 Bytedance, Inc.
- * SPDX-License-Identifier: Apache-2.0
- */
 import { useToast } from '@chakra-ui/react';
 import { Conversation } from '@ui-tars/shared/types';
 import { getState } from '@renderer/hooks/useStore';
@@ -14,7 +10,11 @@ export const useRunAgent = () => {
   const { settings } = useSetting();
   const { ensurePermissions } = usePermissions();
 
-  const run = async (value: string, callback: () => void = () => {}) => {
+  const run = async (
+    value: string,
+    callback: () => void = () => {},
+    image?: string,
+  ) => {
     // 権限チェック
     if (
       !ensurePermissions?.accessibility ||
@@ -52,39 +52,62 @@ export const useRunAgent = () => {
       return;
     }
 
-    // メッセージ組み立て
-    const initial: Conversation[] = [
-      {
-        from: 'system',
-        value:
-          'You are a highly skilled business assistant. ' +
-          'Provide accurate, concise, and deeply detailed answers with examples.',
-        timing: { start: Date.now(), end: Date.now(), cost: 0 },
-      },
-      {
-        from: 'human',
-        value,
-        timing: { start: Date.now(), end: Date.now(), cost: 0 },
-      },
-    ];
-    const previous = getState().messages;
+    // メッセージ構築（Vision画像対応）
+    let userMessage;
+    if (image) {
+      userMessage = {
+        role: 'user',
+        content: [
+          { type: 'text', text: value || '画像の内容を説明してください' },
+          { type: 'image_url', image_url: { url: image } },
+        ],
+      };
+    } else {
+      userMessage = {
+        role: 'user',
+        content: value,
+      };
+    }
 
-    // システム＋ユーザーをまとめて instructions にセット
+    const initial = [
+      {
+        role: 'system',
+        content:
+          'You are a highly skilled business assistant. Provide accurate, concise, and deeply detailed answers with examples.',
+      },
+      userMessage,
+    ];
+    const previous = getState().messages || [];
+
     await api.setInstructions({
-      instructions: initial.map((m) => `${m.from}: ${m.value}`).join('\n\n'),
+      instructions: initial
+        .map(
+          (m) => `${m.role}: ${typeof m.content === 'string' ? m.content : ''}`,
+        )
+        .join('\n\n'),
     });
-    // 会話履歴はこれまで＋今回の human
     await api.setMessages({
       messages: [...previous, ...initial],
     });
 
-    // モデルパラメータを指定して実行
-    await api.runAgent({
-      temperature: 0.2,
-      max_tokens: 1500,
-      stream: true,
-    });
-
+    try {
+      await api.runAgent({
+        temperature: 0.2,
+        max_tokens: 1500,
+        stream: true,
+        model: 'gpt-4o',
+        messages: [...previous, ...initial], // Vision API対応
+      });
+    } catch (e: any) {
+      toast({
+        title: 'エラーが発生しました',
+        description: e?.message || 'Please try again',
+        position: 'top',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
     callback();
   };
 
