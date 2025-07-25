@@ -1,4 +1,3 @@
-// src/renderer/src/hooks/useAgentFlow.ts
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
 import {
@@ -9,6 +8,8 @@ import {
 } from '@vendor/chat-ui';
 import { useAtom } from 'jotai';
 import { v4 as uuid } from 'uuid';
+import { AgentFlow } from '../agent/AgentFlow'; // ← 追加
+import { PlanTask } from '@renderer/type/agent';
 import {
   agentStatusTipAtom,
   currentAgentFlowIdRefAtom,
@@ -17,10 +18,13 @@ import {
   planTasksAtom,
 } from '@renderer/state/chat';
 import { showCanvasAtom } from '@renderer/state/canvas';
-import { useChatSessions } from './useChatSession';
+import { useChatSessions } from '@renderer/hooks/useChatSession';
 import { DEFAULT_APP_ID } from '@renderer/components/LeftSidebar';
 import { analyzeImageWeb, isElectron, ipcClient } from '@renderer/api';
 
+/**
+ * AgentTARS のメインフロー実行フック
+ */
 export function useAgentFlow() {
   const chatUtils = useAppChat();
   const [, setEvents] = useAtom(eventsAtom);
@@ -33,24 +37,25 @@ export function useAgentFlow() {
     appId: DEFAULT_APP_ID,
   });
 
+  // 会話名を更新するロジック（省略）
   const updateSessionTitle = useCallback(
     async (input: string) => {
-      if (!currentSessionId) return;
-      // …タイトル更新ロジック（省略可）…
+      /* … */
     },
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
+  // planTasks を累積マージするヘルパー
   const setPlanTasksMerged = useCallback(
-    (tasks) => {
-      if (!tasks || tasks.length === 0) {
+    (tasks: PlanTask[]) => {
+      if (!tasks?.length) {
         setPlanTasks([]);
         return;
       }
       const safeTasks = Array.isArray(tasks) ? tasks : [];
       setPlanTasks((prev) => {
-        const existing = new Set(prev.map((t) => t.id));
-        const added = safeTasks.filter((t) => !existing.has(t.id));
+        const seen = new Set(prev.map((t) => t.id));
+        const added = safeTasks.filter((t) => !seen.has(t.id));
         return [...prev, ...added];
       });
     },
@@ -61,38 +66,37 @@ export function useAgentFlow() {
     async (inputText: string, inputFiles: InputFile[]) => {
       const agentFlowId = uuid();
       currentAgentFlowIdRef.current = agentFlowId;
-      setPlanTasks([]);
+      setPlanTasks([]); // プラン初期化
 
-      // ─── 画像＋テキスト指示解析フロー ────────────────────────
+      // ── 画像解析分岐 ───────────────────
       if (inputFiles.length > 0) {
-        const lines: string[] = [];
+        const analyses: string[] = [];
         for (let i = 0; i < inputFiles.length; i++) {
           const file = inputFiles[i];
           if (file.type === InputFileType.Image && file.content) {
-            let analysis: string;
+            let result: string;
             try {
               if (isElectron) {
                 const resp = await ipcClient.invoke(
                   'analyze-image',
                   file.content,
-                  inputText,
                 );
-                analysis =
-                  typeof resp === 'string' ? resp : JSON.stringify(resp);
+                result = typeof resp === 'string' ? resp : JSON.stringify(resp);
               } else {
-                analysis = await analyzeImageWeb(file.content, inputText);
+                result = await analyzeImageWeb(file.content);
               }
             } catch (e: any) {
-              analysis = `解析エラー: ${e.message || e}`;
+              result = `解析エラー: ${e.message || e.toString()}`;
             }
-            lines.push(`--- Image ${i + 1} ---\n${analysis}`);
+            analyses.push(`--- Image ${i + 1} ---\n${result}`);
           }
         }
+        // まとめてアシスタントメッセージとして挿入
         await chatUtils.addMessage(
           {
             role: MessageRole.Assistant,
             type: MessageType.PlainText,
-            content: lines.join('\n\n'),
+            content: analyses.join('\n\n'),
             timestamp: Date.now(),
           },
           { shouldSyncStorage: true },
@@ -100,16 +104,7 @@ export function useAgentFlow() {
         return;
       }
 
-      // ─── テキストのみ通常フロー ────────────────────────────
-      await chatUtils.addMessage(
-        {
-          role: MessageRole.User,
-          type: MessageType.PlainText,
-          content: inputText,
-          timestamp: Date.now(),
-        },
-        { shouldSyncStorage: true },
-      );
+      // ── テキストのみ／テキスト＋ファイル後のフォールバックは AgentFlow 実行 ───────────────────
       const agentFlow = new AgentFlow({
         chatUtils,
         setEvents,
