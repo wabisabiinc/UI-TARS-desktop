@@ -1,6 +1,6 @@
 // apps/agent-tars/server.mjs
 
-import 'dotenv/config';            // .env の自動読み込み
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -11,24 +11,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app = express();
-// CORS と大きめの JSON ボディを許可
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// OpenAI クライアント初期化
 const openaiApiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
 if (!openaiApiKey) {
   console.error('⚠️ OPENAI_API_KEY が未設定です。');
 }
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
-// ── テスト用エンドポイント ─────────────────────────────
+// ── テスト用
 app.post('/api/testModelProvider', (_req, res) => {
   res.json({ success: true });
 });
 
-// ── メッセージ生成エンドポイント ─────────────────────────
+// ── メッセージ生成エンドポイント（テキスト・画像・両方対応）
 app.post('/api/generateMessage', async (req, res) => {
   try {
     const {
@@ -38,20 +36,10 @@ app.post('/api/generateMessage', async (req, res) => {
       temperature = 0.3,
       max_tokens = 1500,
     } = req.body;
-    // ChatGPTライクな system プロンプト
-    const systemPrompt = {
-      role: 'system',
-      content:
-        'You are AgentTARS, a knowledgeable, concise, and helpful assistant. ' +
-        'Answer in Japanese unless the user requests otherwise. ' +
-        'Provide examples or cite sources where appropriate.',
-    };
-    const chatMessages = Array.isArray(messages)
-      ? [systemPrompt, ...messages]
-      : [systemPrompt];
+    // ← messagesを絶対に加工せず、そのまま流す！！
     const completion = await openai.chat.completions.create({
       model,
-      messages: chatMessages,
+      messages,
       functions,
       function_call: functions?.length ? 'auto' : undefined,
       temperature,
@@ -64,30 +52,24 @@ app.post('/api/generateMessage', async (req, res) => {
   }
 });
 
-// ── 画像＋テキスト指示解析エンドポイント ────────────────────
+// ── 画像＋テキスト指示解析エンドポイント（Vision API対応）
 app.post('/api/analyzeImage', async (req, res) => {
   try {
     const { image, prompt } = req.body;
     if (!image) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'No image provided.' });
+      return res.status(400).json({ success: false, error: 'No image provided.' });
     }
-    // system プロンプト
-    const systemPrompt = {
-      role: 'system',
-      content:
-        'You are a world‑class visual reasoning AI. ' +
-        'You receive a user instruction and an image. ' +
-        'Follow the instruction to analyze the image and provide a concise, detailed answer.',
-    };
-    // user メッセージに「テキスト指示」と「attachments」を同梱
+    // Vision対応: content配列で送信
     const userMessage = {
       role: 'user',
-      content: prompt || '以下の画像を説明してください。',
-      attachments: [
-        { type: 'image_url', image_url: { url: image } },
-      ],
+      content: [
+        { type: 'text', text: prompt || '以下の画像を説明してください。' },
+        { type: 'image_url', image_url: { url: image } }
+      ]
+    };
+    const systemPrompt = {
+      role: 'system',
+      content: 'You are a world‑class visual reasoning AI. You receive a user instruction and an image. Follow the instruction to analyze the image and provide a concise, detailed answer.',
     };
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -99,13 +81,11 @@ app.post('/api/analyzeImage', async (req, res) => {
     res.json({ success: true, content: text });
   } catch (err) {
     console.error('analyzeImage error:', err);
-    res
-      .status(500)
-      .json({ success: false, error: err.message || String(err) });
+    res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
 
-// ── モデル一覧取得エンドポイント ───────────────────────────
+// モデル一覧取得
 app.get('/api/models', async (_req, res) => {
   try {
     const list = await openai.models.list();
@@ -117,13 +97,13 @@ app.get('/api/models', async (_req, res) => {
   }
 });
 
-// ── 静的ファイル & SPA フォールバック ───────────────────────
+// 静的ファイル & SPA
 app.use(express.static(path.join(__dirname, 'dist/web')));
 app.use((_, res) => {
   res.sendFile(path.join(__dirname, 'dist/web/index.html'));
 });
 
-// ── サーバー起動 ─────────────────────────────────────────
+// サーバー起動
 const port = process.env.PORT || 4173;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on port ${port}`);

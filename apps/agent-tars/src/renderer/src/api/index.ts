@@ -21,7 +21,6 @@ export interface AskLLMResult {
   content: string;
 }
 
-/* 環境判定 & キー警告 */
 export const isElectron =
   typeof navigator !== 'undefined' &&
   navigator.userAgent.toLowerCase().includes('electron');
@@ -30,7 +29,6 @@ if (!isElectron && !import.meta.env.VITE_OPENAI_API_KEY) {
   console.warn('[api] VITE_OPENAI_API_KEY が未設定です。');
 }
 
-/* function_callとfunctionsの整合性を保証する関数 */
 function sanitizeLLMOpts(opts: AskLLMOpts): AskLLMOpts {
   const clean = { ...opts };
   if (!opts.functions || opts.functions.length === 0) {
@@ -40,9 +38,7 @@ function sanitizeLLMOpts(opts: AskLLMOpts): AskLLMOpts {
   return clean;
 }
 
-/* /api/generateMessage プロキシ呼び出し（Web） */
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
-  // タイムアウト例（10秒）
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), 10000);
   try {
@@ -73,7 +69,6 @@ async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   }
 }
 
-/* Electron IPC クライアント（遅延初期化） */
 export let ipcClient: any = null;
 async function initIpcClient() {
   if (ipcClient || !isElectron) return;
@@ -93,7 +88,6 @@ export async function ensureIpcReady() {
   await initIpcClient();
 }
 
-/* askLLMTool（Electron/Web 両対応、function_call安全化版） */
 export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   const safeOpts = sanitizeLLMOpts(opts);
   if (isElectron) {
@@ -103,7 +97,6 @@ export async function askLLMTool(opts: AskLLMOpts): Promise<AskLLMResult> {
   return fetchLLM(safeOpts);
 }
 
-/* listTools / getAvailableProviders */
 export async function listTools(): Promise<
   { name: string; description: string }[]
 > {
@@ -121,7 +114,6 @@ export async function getAvailableProviders(): Promise<string[]> {
   return ['anthropic', 'openai', 'azure_openai', 'deepseek'];
 }
 
-/* ストリームイベント購読（Electron のみ） */
 export const onMainStreamEvent = (
   streamId: string,
   handlers: {
@@ -144,7 +136,6 @@ export const onMainStreamEvent = (
   };
 };
 
-/* Vision: Web経由で画像解析（DataURL＋プロンプト） */
 export async function analyzeImageWeb(
   image: string,
   prompt?: string,
@@ -165,7 +156,6 @@ export async function analyzeImageWeb(
   return data.content as string;
 }
 
-/* Electron: Vision API呼び出し */
 export async function analyzeImage(path: string): Promise<string> {
   if (isElectron) {
     await ensureIpcReady();

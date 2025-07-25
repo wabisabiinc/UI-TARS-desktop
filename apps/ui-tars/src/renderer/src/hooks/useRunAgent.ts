@@ -15,7 +15,6 @@ export const useRunAgent = () => {
     callback: () => void = () => {},
     image?: string,
   ) => {
-    // 権限チェック
     if (
       !ensurePermissions?.accessibility ||
       !ensurePermissions?.screenCapture
@@ -36,7 +35,6 @@ export const useRunAgent = () => {
       return;
     }
 
-    // 設定チェック
     const ready = settings?.vlmBaseUrl && settings?.vlmModelName;
     if (!ready) {
       toast({
@@ -52,7 +50,6 @@ export const useRunAgent = () => {
       return;
     }
 
-    // メッセージ構築（Vision画像対応）
     let userMessage;
     if (image) {
       userMessage = {
