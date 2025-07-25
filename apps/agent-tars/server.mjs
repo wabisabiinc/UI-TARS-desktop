@@ -1,6 +1,6 @@
 // apps/agent-tars/server.mjs
 
-import 'dotenv/config';            // .env の自動読み込み
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -34,7 +34,7 @@ app.post('/api/generateMessage', async (req, res) => {
   try {
     const {
       model,
-      messages,
+      messages = [],
       functions,
       temperature = 0.3,
       max_tokens = 1500,
@@ -44,7 +44,7 @@ app.post('/api/generateMessage', async (req, res) => {
       return res.status(400).json({ error: 'API key not configured.' });
     }
 
-    // ドメイン専門家プロンプトを先頭に追加
+    // System プロンプトを先頭に追加
     const systemPrompt = {
       role: 'system',
       content:
@@ -52,30 +52,36 @@ app.post('/api/generateMessage', async (req, res) => {
         'and richly detailed answers. Cite examples or data when appropriate.',
     };
 
-    const chatMessages = Array.isArray(messages)
-      ? [systemPrompt, ...messages]
-      : [systemPrompt];
+    // messages 配列を組み立て
+    const chatMessages = [systemPrompt, ...messages];
 
-    const completion = await openai.chat.completions.create({
+    // リクエストパラメータを準備
+    const params: any = {
       model,
       messages: chatMessages,
-      functions,
-      function_call: 'auto',
       temperature,
       max_tokens,
-    });
+    };
 
-    res.json(completion);
+    // functions が渡されていれば付与
+    if (Array.isArray(functions) && functions.length > 0) {
+      params.functions = functions;
+      // function_call は functions 指定時のみ 'auto' に
+      params.function_call = 'auto';
+    }
+
+    const completion = await openai.chat.completions.create(params);
+    return res.json(completion);
+
   } catch (err) {
     console.error('generateMessage error:', err);
-    res.status(500).json({ error: String(err) });
+    return res.status(500).json({ error: String(err) });
   }
 });
 
-// ── 画像解析エンドポイント（GPT‑4o Vision + attachments） ─────────────
+// ── 画像解析エンドポイント ─────────────────────────────
 app.post('/api/analyzeImage', async (req, res) => {
   try {
-    // クライアントから { image: 'data:image/...;base64,...' } を受け取る
     const { image } = req.body;
     if (typeof image !== 'string' || !image.startsWith('data:')) {
       return res
@@ -83,7 +89,7 @@ app.post('/api/analyzeImage', async (req, res) => {
         .json({ success: false, error: 'Invalid image format.' });
     }
 
-    // 画像解析用 system プロンプト
+    // 画像解析用システムプロンプト
     const systemPrompt = {
       role: 'system',
       content:
@@ -91,7 +97,7 @@ app.post('/api/analyzeImage', async (req, res) => {
         'structured paragraphs, focusing on objects, relationships, and context.',
     };
 
-    // attachments を【ユーザー】メッセージ内に含める
+    // attachments をユーザーメッセージに含める
     const userMessage = {
       role: 'user',
       content: '以下の画像を解析してください。',
@@ -111,12 +117,11 @@ app.post('/api/analyzeImage', async (req, res) => {
     });
 
     const text = completion.choices?.[0]?.message?.content || '';
-    res.json({ success: true, content: text });
+    return res.json({ success: true, content: text });
+
   } catch (err) {
     console.error('analyzeImage error:', err);
-    res
-      .status(500)
-      .json({ success: false, error: String(err) });
+    return res.status(500).json({ success: false, error: String(err) });
   }
 });
 
@@ -125,10 +130,12 @@ app.get('/api/models', async (_req, res) => {
   try {
     const list = await openai.models.list();
     const names = list.data.map((m) => m.id);
-    res.json({ success: true, models: names });
-  } catch (err) {
+    return res.json({ success: true, models: names });
+  } catch (err: any) {
     console.error('models list error:', err);
-    res.status(err.status || 500).json({ success: false, error: err.message });
+    return res
+      .status(err.status || 500)
+      .json({ success: false, error: err.message || String(err) });
   }
 });
 
