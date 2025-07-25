@@ -37,25 +37,24 @@ export function useAgentFlow() {
     appId: DEFAULT_APP_ID,
   });
 
+  // 未着手: セッションタイトル更新のロジック
   const updateSessionTitle = useCallback(
     async (input: string) => {
-      if (!currentSessionId) return;
-      // 既存の会話タイトル更新ロジック（省略）
+      /* 省略: 必要に応じて実装 */
     },
     [currentSessionId, updateChatSession, chatUtils.messages],
   );
 
+  // PlanTasks を重複なくマージ
   const setPlanTasksMerged = useCallback(
     (tasks: PlanTask[]) => {
       if (!tasks || tasks.length === 0) {
         setPlanTasks([]);
         return;
       }
-      const safeTasks = Array.isArray(tasks) ? tasks : [];
       setPlanTasks((prev) => {
         const existing = new Set(prev.map((t) => t.id));
-        const added = safeTasks.filter((t) => !existing.has(t.id));
-        return [...prev, ...added];
+        return [...prev, ...tasks.filter((t) => !existing.has(t.id))];
       });
     },
     [setPlanTasks],
@@ -67,46 +66,51 @@ export function useAgentFlow() {
       currentAgentFlowIdRef.current = agentFlowId;
       setPlanTasks([]);
 
-      // ─── 画像解析フロー ───────────────────────────────
+      // ─── 画像解析フロー ────────────────────────────────────
       if (inputFiles.length > 0) {
         const results: string[] = [];
+
         for (let i = 0; i < inputFiles.length; i++) {
           const file = inputFiles[i];
-          if (file.type === InputFileType.Image && file.content) {
-            let analysis: string;
-            try {
-              if (isElectron) {
-                // Electron 環境: IPC 経由で解析
-                const resp = await ipcClient.invoke(
-                  'analyze-image',
-                  file.content,
-                );
-                analysis =
-                  typeof resp === 'string' ? resp : JSON.stringify(resp);
-              } else {
-                // Web 環境: バックエンド API 経由
-                analysis = await analyzeImageWeb(file.content);
-              }
-            } catch (e: any) {
-              analysis = `解析エラー: ${e.message || e}`;
-            }
-            results.push(`--- Image ${i + 1} ---\n${analysis}`);
+          if (file.type !== InputFileType.Image || !file.content) {
+            continue;
           }
+
+          // (A) Electron 環境: IPC 経由
+          // (B) Web 環境: analyzeImageWeb 経由
+          let analysis: string;
+          try {
+            if (isElectron) {
+              const resp = await ipcClient.invoke(
+                'analyze-image',
+                file.content,
+              );
+              analysis = typeof resp === 'string' ? resp : JSON.stringify(resp);
+            } else {
+              analysis = await analyzeImageWeb(file.content);
+            }
+          } catch (e: any) {
+            analysis = `解析エラー: ${e.message || e}`;
+          }
+
+          results.push(`--- Image ${i + 1} ---\n${analysis}`);
         }
-        // 解析結果をまとめてアシスタントメッセージとして追加
+
+        // AI の解析結果をアシスタントメッセージとして追加
         await chatUtils.addMessage(
           {
             role: MessageRole.Assistant,
             type: MessageType.PlainText,
             content: results.join('\n\n'),
+            isFinal: true,
             timestamp: Date.now(),
           },
           { shouldSyncStorage: true },
         );
-        return;
+        return; // ここで完結
       }
 
-      // ─── テキスト通常フロー ─────────────────────────────
+      // ─── テキスト通常フロー ───────────────────────────────────
       await chatUtils.addMessage(
         {
           role: MessageRole.User,
@@ -116,6 +120,7 @@ export function useAgentFlow() {
         },
         { shouldSyncStorage: true },
       );
+
       const agentFlow = new AgentFlow({
         chatUtils,
         setEvents,
@@ -126,6 +131,7 @@ export function useAgentFlow() {
         agentFlowId,
         request: { inputText, inputFiles },
       });
+
       await Promise.all([
         agentFlow.run(inputFiles),
         updateSessionTitle(inputText),

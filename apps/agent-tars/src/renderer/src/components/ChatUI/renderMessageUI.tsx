@@ -11,12 +11,12 @@ export function renderMessageUI({
 }: {
   message: MessageItem;
 }): React.ReactNode {
-  // ファイルメッセージ（画像/その他）をハンドル
+  // 1) ファイルメッセージ（画像／その他）をハンドル
   if (message.type === MessageType.File) {
     const file = message.content as InputFile;
 
+    // 画像ならプレビュー
     if (file.type === InputFileType.Image && file.content) {
-      // サムネイル表示
       return (
         <div style={{ padding: '0.5em 0' }}>
           <img
@@ -28,7 +28,7 @@ export function renderMessageUI({
       );
     }
 
-    // 画像以外はダウンロードリンク
+    // それ以外はダウンロードリンク
     return (
       <a
         href={file.content}
@@ -40,7 +40,12 @@ export function renderMessageUI({
     );
   }
 
-  // それ以外は MarkdownRenderer にフォールバック
+  // 2) OmegaAgent タイプは表示しない
+  if (message.type === MessageType.OmegaAgent) {
+    return null;
+  }
+
+  // 3) それ以外は MarkdownRenderer で描画
   const content =
     typeof message.content === 'string'
       ? message.content
