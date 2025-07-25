@@ -44,7 +44,7 @@ app.post('/api/generateMessage', async (req, res) => {
       return res.status(400).json({ error: 'API key not configured.' });
     }
 
-    // System プロンプトを先頭に追加
+    // システムプロンプトを先頭に追加
     const systemPrompt = {
       role: 'system',
       content:
@@ -52,27 +52,25 @@ app.post('/api/generateMessage', async (req, res) => {
         'and richly detailed answers. Cite examples or data when appropriate.',
     };
 
-    // messages 配列を組み立て
+    // チャットメッセージ配列を組み立て
     const chatMessages = [systemPrompt, ...messages];
 
     // リクエストパラメータを準備
-    const params: any = {
+    const params = {
       model,
       messages: chatMessages,
       temperature,
       max_tokens,
     };
 
-    // functions が渡されていれば付与
+    // functions が渡されていれば function 呼び出しモードに切り替え
     if (Array.isArray(functions) && functions.length > 0) {
       params.functions = functions;
-      // function_call は functions 指定時のみ 'auto' に
       params.function_call = 'auto';
     }
 
     const completion = await openai.chat.completions.create(params);
     return res.json(completion);
-
   } catch (err) {
     console.error('generateMessage error:', err);
     return res.status(500).json({ error: String(err) });
@@ -118,7 +116,6 @@ app.post('/api/analyzeImage', async (req, res) => {
 
     const text = completion.choices?.[0]?.message?.content || '';
     return res.json({ success: true, content: text });
-
   } catch (err) {
     console.error('analyzeImage error:', err);
     return res.status(500).json({ success: false, error: String(err) });
@@ -131,7 +128,7 @@ app.get('/api/models', async (_req, res) => {
     const list = await openai.models.list();
     const names = list.data.map((m) => m.id);
     return res.json({ success: true, models: names });
-  } catch (err: any) {
+  } catch (err) {
     console.error('models list error:', err);
     return res
       .status(err.status || 500)
