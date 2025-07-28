@@ -112,7 +112,7 @@ ${input}
               { type: MessageType.PlainText, content: raw },
               { shouldSyncStorage: true },
             );
-          }, 100); // ⏱ 遅延バッファリングで性能向上
+          }, 100);
         },
         onError: (err) => {
           reject(err);
@@ -139,11 +139,28 @@ ${input}
   private parseAwareResult(jsonStr: string): AwareResult {
     try {
       const obj = JSON.parse(jsonStr.trim());
+
+      // 構造補正：planが配列かどうか確認
+      const plan: PlanTask[] = Array.isArray(obj.plan)
+        ? obj.plan.map((p: any, i: number) => ({
+            id: p.id ?? `${i + 1}`,
+            title: p.step ?? p.title ?? `Step ${i + 1}`,
+            status: (p.status as PlanTask['status']) ?? 'Todo',
+          }))
+        : [];
+
+      const step =
+        typeof obj.step === 'number'
+          ? obj.step
+          : Array.isArray(obj.step)
+            ? obj.step.length
+            : 1;
+
       return {
         reflection: obj.reflection ?? '',
-        step: obj.step ?? 0,
+        step,
         status: obj.status ?? 'failed',
-        plan: obj.plan ?? [],
+        plan,
       };
     } catch (err) {
       console.warn('[Aware] Failed to parse result:', jsonStr);
