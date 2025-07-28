@@ -23,8 +23,8 @@ export class Greeter {
     const res = await askLLMTool({
       model: import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o',
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userInput },
+        Message.systemMessage(systemPrompt),
+        Message.userMessage(userInput),
       ],
     });
     return (res?.content ?? '').trim();
@@ -75,8 +75,8 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
         if (e.type === 'terminate') {
           ipcClient.abortRequest({ requestId: streamId });
           aborted = true;
-          resolve(greetMessage);
           globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
+          resolve(greetMessage);
         }
       };
       globalEventEmitter.addListener(this.appContext.agentFlowId, onTerm);
@@ -92,18 +92,19 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
               { type: MessageType.PlainText, content: greetMessage },
               { shouldSyncStorage: true },
             );
-          }, 100); // ⏱ 遅延バッファリング（ここが高速化のポイント）
+          }, 100);
         },
         onError: (err) => {
-          reject(err);
+          console.warn('[Greeter] Stream error:', err);
           globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
           cleanup();
+          resolve(greetMessage || 'こんにちは！ご相談ありがとうございます 😊');
         },
         onEnd: () => {
           if (updateTimer) clearTimeout(updateTimer);
-          resolve(greetMessage);
           globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
           cleanup();
+          resolve(greetMessage);
         },
       });
     });
@@ -132,15 +133,11 @@ ${planSummary}
     const raw = await askLLMTool({
       model: import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o',
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: 'これまでの内容をまとめてください。' },
+        Message.systemMessage(systemPrompt),
+        Message.userMessage('これまでの内容をまとめてください。'),
       ],
     });
 
-    if (raw && typeof raw.content === 'string') {
-      return raw.content.trim();
-    }
-    console.warn('[Greeter] Unexpected summary response:', raw);
-    return (raw?.content ?? '').toString().trim();
+    return (raw?.content ?? '要約できませんでした。').toString().trim();
   }
 }

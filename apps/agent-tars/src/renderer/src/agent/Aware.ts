@@ -1,4 +1,3 @@
-// ✅ Aware.ts 修正済み完全版
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
 import {
