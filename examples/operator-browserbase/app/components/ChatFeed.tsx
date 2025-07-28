@@ -1,13 +1,15 @@
+// ChatFeed.tsx - 修正後 完全版
 'use client';
 
 import { motion } from 'framer-motion';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWindowSize } from 'usehooks-ts';
 import Image from 'next/image';
-import { useAtom } from 'jotai/react';
+import { useAtom, useAtomValue } from 'jotai/react';
 import { contextIdAtom } from '../atoms';
 import posthog from 'posthog-js';
 import XStream from '../utils/xstream';
+import { messagesAtom } from '@renderer/state/chat';
 
 interface ChatFeedProps {
   initialMessage?: string;
@@ -55,6 +57,8 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
     steps: [],
   });
 
+  const messages = useAtomValue(messagesAtom);
+
   const scrollToBottom = useCallback(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
@@ -70,22 +74,17 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
       setIsAgentFinished(true);
       fetch('/api/session', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: uiState.sessionId,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: uiState.sessionId }),
       });
     }
   }, [uiState.sessionId, uiState.steps]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [uiState.steps, scrollToBottom]);
+  }, [uiState.steps, messages, scrollToBottom]);
 
   useEffect(() => {
-    console.log('useEffect called');
     const abortController = new AbortController();
     const initializeSession = async () => {
       if (initializationRef.current) return;
@@ -96,9 +95,7 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
         try {
           const sessionResponse = await fetch('/api/session', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
               contextId: contextId,
@@ -106,27 +103,15 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
           });
           const sessionData = await sessionResponse.json();
 
-          if (!sessionData.success) {
-            throw new Error(sessionData.error || 'Failed to create session');
-          }
+          if (!sessionData.success)
+            throw new Error(sessionData.error || 'Failed');
 
           setContextId(sessionData.contextId);
-
-          agentStateRef.current = {
-            ...agentStateRef.current,
-            sessionId: sessionData.sessionId,
-            sessionUrl: sessionData.sessionUrl.replace(
-              'https://www.browserbase.com/devtools-fullscreen/inspector.html',
-              'https://www.browserbase.com/devtools-internal-compiled/index.html',
-            ),
-          };
-
+          agentStateRef.current.sessionId = sessionData.sessionId;
+          agentStateRef.current.sessionUrl = sessionData.sessionUrl;
           setUiState({
             sessionId: sessionData.sessionId,
-            sessionUrl: sessionData.sessionUrl.replace(
-              'https://www.browserbase.com/devtools-fullscreen/inspector.html',
-              'https://www.browserbase.com/devtools-internal-compiled/index.html',
-            ),
+            sessionUrl: sessionData.sessionUrl,
             steps: [],
           });
 
@@ -145,15 +130,11 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
             }),
             signal: abortController.signal,
           });
-          console.log('response.body', response.body);
 
           for await (const chunk of XStream({
             readableStream: response.body!,
           })) {
-            console.log('Received chunk:', chunk);
             const data = JSON.parse(chunk.data) || {};
-            console.log('datadatadatadatadata', data);
-
             if (data.success && data.result) {
               const nextStepData = {
                 text: data.result.text,
@@ -163,25 +144,15 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
                 stepNumber: agentStateRef.current.steps.length + 1,
                 done: data.done,
               };
-
-              agentStateRef.current = {
-                ...agentStateRef.current,
-                steps: [...agentStateRef.current.steps, nextStepData],
-              };
-
+              agentStateRef.current.steps.push(nextStepData);
               setUiState((prev) => ({
                 ...prev,
-                steps: agentStateRef.current.steps,
+                steps: [...agentStateRef.current.steps],
               }));
-
-              // Break after adding the CLOSE step to UI
-              if (nextStepData.done || nextStepData.tool === 'CLOSE') {
-                break;
-              }
+              if (nextStepData.done || nextStepData.tool === 'CLOSE') break;
             }
-            if (data?.error) {
+            if (data?.error)
               throw new Error(data.error?.stack || data?.error?.error);
-            }
           }
 
           posthog.capture('agent_start', {
@@ -196,36 +167,9 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
         }
       }
     };
-
     initializeSession();
-    return () => {
-      abortController.abort();
-    };
+    return () => abortController.abort();
   }, [initialMessage]);
-
-  // Spring configuration for smoother animations
-  const springConfig = {
-    type: 'spring',
-    stiffness: 350,
-    damping: 30,
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: {
-        ...springConfig,
-        staggerChildren: 0.1,
-      },
-    },
-    exit: {
-      opacity: 0,
-      scale: 0.95,
-      transition: { duration: 0.2 },
-    },
-  };
 
   const messageVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -234,133 +178,69 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
   };
 
   return (
-    <motion.div
-      className="min-h-screen bg-gray-50 flex flex-col"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-    >
-      <motion.nav
-        className="flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200 shadow-sm"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        <div className="flex items-center gap-2">
-          <Image
-            src="/favicon.svg"
-            alt="Open Operator"
-            className="w-8 h-8"
-            width={32}
-            height={32}
-          />
-          <span className="font-ppneue text-gray-900">Open Operator</span>
-        </div>
-        <motion.button
-          onClick={onClose}
-          className="px-4 py-2 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors rounded-md font-ppsupply flex items-center gap-2"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          Close
-          {!isMobile && (
-            <kbd className="px-2 py-1 text-xs bg-gray-100 rounded-md">ESC</kbd>
-          )}
-        </motion.button>
-      </motion.nav>
+    <motion.div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header省略可 */}
       <main className="flex-1 flex flex-col items-center p-6">
-        <motion.div
-          className="w-full max-w-[1280px] bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="w-full h-12 bg-white border-b border-gray-200 flex items-center px-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-            </div>
-          </div>
-
-          {(() => {
-            console.log('Session URL:', uiState.sessionUrl);
-            return null;
-          })()}
-
+        <motion.div className="w-full max-w-[1280px] bg-white border shadow-sm rounded-lg overflow-hidden">
           <div className="flex flex-col md:flex-row">
-            {uiState.sessionUrl && !isAgentFinished && (
-              <div className="flex-1 p-6 border-b md:border-b-0 md:border-l border-gray-200 order-first md:order-last">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
+            {/* 画面右側: ブラウザビュー or 終了メッセージ */}
+            <div className="flex-1 p-6 border-gray-200">
+              {uiState.sessionUrl && !isAgentFinished ? (
+                <iframe
+                  src={uiState.sessionUrl}
                   className="w-full aspect-video"
-                >
-                  <iframe
-                    src={uiState.sessionUrl}
-                    className="w-full h-full"
-                    sandbox="allow-same-origin allow-scripts allow-forms"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    title="Browser Session"
-                  />
-                </motion.div>
-              </div>
-            )}
+                  sandbox="allow-same-origin allow-scripts allow-forms"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              ) : isAgentFinished ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <p className="text-gray-500 text-center">
+                    The agent has completed the task
+                    <br />"{initialMessage}"
+                  </p>
+                </div>
+              ) : null}
+            </div>
 
-            {isAgentFinished && (
-              <div className="flex-1 p-6 border-b md:border-b-0 md:border-l border-gray-200 order-first md:order-last">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="w-full aspect-video"
-                >
-                  <div className="w-full h-full border border-gray-200 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500 text-center">
-                      The agent has completed the task
-                      <br />
-                      &quot;{initialMessage}&quot;
-                    </p>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-
-            <div className="md:w-[400px] p-6 min-w-0 md:h-[calc(56.25vw-3rem)] md:max-h-[calc(100vh-12rem)]">
+            {/* 左カラム: メッセージリスト */}
+            <div className="md:w-[400px] p-6 md:max-h-[calc(100vh-12rem)]">
               <div
                 ref={chatContainerRef}
                 className="h-full overflow-y-auto space-y-4"
               >
-                {initialMessage && (
-                  <motion.div
-                    variants={messageVariants}
-                    className="p-4 bg-blue-50 rounded-lg font-ppsupply"
-                  >
-                    <p className="font-semibold">Goal:</p>
-                    <p>{initialMessage}</p>
-                  </motion.div>
+                {/* PlainText メッセージ表示 */}
+                {messages.map((msg, index) =>
+                  msg.type === 'PlainText' &&
+                  typeof msg.content === 'string' ? (
+                    <motion.div
+                      key={`msg-${index}`}
+                      variants={messageVariants}
+                      className="p-4 bg-blue-50 rounded-lg font-ppsupply"
+                    >
+                      {msg.content}
+                    </motion.div>
+                  ) : null,
                 )}
 
+                {/* ステップ表示 */}
                 {uiState.steps.map((step, index) => (
                   <motion.div
-                    key={index}
+                    key={`step-${index}`}
                     variants={messageVariants}
-                    className="p-4 bg-white border border-gray-200 rounded-lg font-ppsupply space-y-2"
+                    className="p-4 bg-white border rounded-lg font-ppsupply space-y-2"
                   >
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between">
                       <span className="text-sm text-gray-500">
                         Step {step.stepNumber}
                       </span>
-                      <span className="px-2 py-1 bg-gray-100 rounded text-xs">
+                      <span className="px-2 py-1 bg-gray-100 text-xs rounded">
                         {step.tool}
                       </span>
                     </div>
-                    <p className="font-medium">{step.text}</p>
+                    <p>{step.text}</p>
                     <p className="text-sm text-gray-600">
-                      <span className="font-semibold">Reasoning: </span>
+                      <span className="font-semibold">Reasoning:</span>{' '}
                       {step.reasoning}
                     </p>
                   </motion.div>
@@ -368,7 +248,7 @@ export default function ChatFeed({ initialMessage, onClose }: ChatFeedProps) {
                 {isLoading && (
                   <motion.div
                     variants={messageVariants}
-                    className="p-4 bg-gray-50 rounded-lg font-ppsupply animate-pulse"
+                    className="p-4 bg-gray-50 rounded-lg animate-pulse"
                   >
                     Processing...
                   </motion.div>
