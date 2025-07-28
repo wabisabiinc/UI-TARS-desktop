@@ -1,8 +1,6 @@
-// apps/agent-tars/src/renderer/utils/extractHistoryEvents.ts
 import {
   MessageContentType,
   MessageItem,
-  MessageRole,
   MessageType,
 } from '@renderer/type/chatMessage';
 import { EventItem } from '@renderer/type/event';
@@ -28,13 +26,14 @@ export function extractHistoryEvents(messages: MessageItem[]): EventItem[] {
           results.push(e);
         }
       }
-    } else if (message.role === MessageRole.User) {
-      const key = `${message.timestamp}-${message.role}-${message.content}`;
+    } else if (message.role === 'user') {
+      // ✅ ここを文字列リテラルに
+      const key = `${message.timestamp}-user-${message.content}`;
       if (!seen.has(key)) {
         seen.add(key);
         results.push({
           id: `${message.timestamp}`,
-          role: MessageRole.User,
+          role: 'user',
           type: 'chat-text',
           content: message.content,
         });
