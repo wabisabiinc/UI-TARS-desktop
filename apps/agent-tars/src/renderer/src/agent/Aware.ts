@@ -1,5 +1,3 @@
-// apps/agent-tars/src/renderer/src/agent/Aware.ts
-
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
 import {
@@ -47,7 +45,6 @@ Analyze the following user request and create a step-by-step plan.
 ${input}
 `.trim();
 
-    // 非Electron環境向け fallback
     if (!this.agentContext.useStream) {
       const result = await askLLMTool({
         model: import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o',
@@ -61,7 +58,6 @@ ${input}
       return parsed;
     }
 
-    // Electron: ストリーム
     await ensureIpcReady();
     let raw = '';
 
@@ -140,21 +136,34 @@ ${input}
     try {
       const obj = JSON.parse(jsonStr.trim());
 
-      // 構造補正：planが配列かどうか確認
-      const plan: PlanTask[] = Array.isArray(obj.plan)
-        ? obj.plan.map((p: any, i: number) => ({
-            id: p.id ?? `${i + 1}`,
-            title: p.step ?? p.title ?? `Step ${i + 1}`,
-            status: (p.status as PlanTask['status']) ?? 'Todo',
-          }))
-        : [];
+      let step: number;
+      let plan: PlanTask[] = [];
 
-      const step =
-        typeof obj.step === 'number'
-          ? obj.step
-          : Array.isArray(obj.step)
-            ? obj.step.length
-            : 1;
+      if (Array.isArray(obj.step)) {
+        step = obj.step.length;
+        plan = obj.step.map((s: string, i: number) => ({
+          id: `${i + 1}`,
+          title: s,
+          status: 'Todo',
+        }));
+      } else if (typeof obj.plan === 'string') {
+        const lines = obj.plan.split(/\n+/).filter(Boolean);
+        step = lines.length;
+        plan = lines.map((line, i) => ({
+          id: `${i + 1}`,
+          title: line.trim(),
+          status: 'Todo',
+        }));
+      } else if (Array.isArray(obj.plan)) {
+        step = typeof obj.step === 'number' ? obj.step : obj.plan.length;
+        plan = obj.plan.map((p: any, i: number) => ({
+          id: p.id ?? `${i + 1}`,
+          title: p.step ?? p.title ?? `Step ${i + 1}`,
+          status: (p.status as PlanTask['status']) ?? 'Todo',
+        }));
+      } else {
+        step = typeof obj.step === 'number' ? obj.step : 1;
+      }
 
       return {
         reflection: obj.reflection ?? '',
