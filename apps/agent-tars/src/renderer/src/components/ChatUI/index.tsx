@@ -1,3 +1,4 @@
+// ChatUI/index.tsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatUI as BaseChatUI, InputFile } from '@vendor/chat-ui';
 import './index.scss';
@@ -33,7 +34,7 @@ export function OpenAgentChatUI() {
   const chatUIRef = useRef<any>(null);
   const isDarkMode = useThemeMode();
   const { initMessages, setMessages, messages } = useAppChat();
-  const [, setEvents] = useAtom(eventsAtom);
+  const [events, setEvents] = useAtom(eventsAtom); // ← 変更点
   const [, setPlanTasks] = useAtom(planTasksAtom);
   const [agentStatusTip, setAgentStatusTip] = useAtom(agentStatusTipAtom);
   const [pending, setPending] = useAtom(pendingPromptsAtom);
@@ -44,7 +45,6 @@ export function OpenAgentChatUI() {
     appId: DEFAULT_APP_ID,
   });
 
-  // 実際の送信処理
   const realSend = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       await addUserMessage(inputText, inputFiles);
@@ -66,7 +66,6 @@ export function OpenAgentChatUI() {
     ],
   );
 
-  // 送信ボタン
   const sendMessage = useCallback(
     async (inputText: string, inputFiles: InputFile[]) => {
       if (isReportHtmlMode) return;
@@ -85,7 +84,6 @@ export function OpenAgentChatUI() {
     [isRunning, realSend, setPending, setAgentStatusTip, setPlanTasks],
   );
 
-  // pending 自動送信
   useEffect(() => {
     if (!isRunning && pending.length > 0) {
       const next = pending[0];
@@ -96,7 +94,6 @@ export function OpenAgentChatUI() {
     }
   }, [isRunning, pending, realSend, setPending]);
 
-  // 履歴初期化
   useEffect(() => {
     (async () => {
       setIsInitialized(false);
@@ -104,12 +101,13 @@ export function OpenAgentChatUI() {
         (window as any).__OMEGA_REPORT_DATA__?.messages ??
         (await initMessages());
       setMessages(msgs || []);
-      setEvents(extractHistoryEvents(msgs as MessageItem[]));
+      // ⭐ ここで重複排除付きでイベント抽出
+      const uniqueEvents = extractHistoryEvents(msgs as MessageItem[]);
+      setEvents(uniqueEvents);
       setIsInitialized(true);
     })();
   }, [currentSessionId]);
 
-  // プレースホルダ制御
   useEffect(() => {
     const ta = chatUIRef.current?.getInputTextArea?.();
     if (!ta) return;
@@ -121,7 +119,6 @@ export function OpenAgentChatUI() {
     }
   }, [isRunning]);
 
-  // 停止ボタン
   const StopButton = () =>
     isRunning ? (
       <button
@@ -173,6 +170,8 @@ export function OpenAgentChatUI() {
           renderMessageUI({ message: msg as MessageItem })
         }
         isDark={isDarkMode.value}
+        // ⭐ `messages` に `events` を渡すことで冗長描画を防ぐ
+        messages={events}
         onMessageSend={sendMessage}
         storageDbName={STORAGE_DB_NAME}
         onMessageAbort={() => {
