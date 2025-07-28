@@ -2,12 +2,7 @@
 
 import { useCallback } from 'react';
 import { useAppChat } from './useAppChat';
-import {
-  InputFile,
-  InputFileType,
-  MessageRole,
-  MessageType,
-} from '@vendor/chat-ui';
+import { InputFile, InputFileType } from '@vendor/chat-ui';
 import { useAtom } from 'jotai';
 import { v4 as uuid } from 'uuid';
 import { AgentFlow } from '../agent/AgentFlow';
@@ -95,8 +90,8 @@ export function useAgentFlow() {
 
         await chatUtils.addMessage(
           {
-            role: MessageRole.Assistant,
-            type: MessageType.PlainText,
+            role: 'assistant',
+            type: 'plain-text',
             content: results.join('\n\n'),
             timestamp: Date.now(),
           },
@@ -105,16 +100,8 @@ export function useAgentFlow() {
         return;
       }
 
-      // ── テキスト通常フロー ─────────────────────────────
-      await chatUtils.addMessage(
-        {
-          role: MessageRole.User,
-          type: MessageType.PlainText,
-          content: inputText,
-          timestamp: Date.now(),
-        },
-        { shouldSyncStorage: true },
-      );
+      // ✅【修正ポイント】
+      // テキストフローでのユーザーメッセージ登録は `useAddUserMessage` 側で済んでいるため、ここでは重複させない
 
       const agentFlow = new AgentFlow({
         chatUtils,
