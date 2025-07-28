@@ -16,7 +16,6 @@ export class Greeter {
     private abortSignal: AbortSignal,
   ) {}
 
-  /** 非Electron環境でのフォールバック（まとめ取得） */
   private async fallbackGreet(
     systemPrompt: string,
     userInput: string,
@@ -31,7 +30,6 @@ export class Greeter {
     return (res?.content ?? '').trim();
   }
 
-  /** 起動時のあいさつ */
   public async run(): Promise<string> {
     const inputText = this.appContext.request.inputText;
     const systemPrompt = `
@@ -43,7 +41,6 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
 - Plain text only.
 `.trim();
 
-    // Electron 以外はまとめ取得
     if (!isElectron) {
       const text = await this.fallbackGreet(systemPrompt, inputText);
       await this.appContext.chatUtils.addMessage(
@@ -53,7 +50,6 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
       return text;
     }
 
-    // Electron 環境: ストリーミング
     await ensureIpcReady();
     let greetMessage = '';
     const streamId = await ipcClient.askLLMTextStream({
@@ -64,7 +60,6 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
       requestId: Math.random().toString(36).substring(2),
     });
 
-    // 初期描画用の小休止
     await new Promise((r) => setTimeout(r, 120));
 
     return new Promise<string>((resolve, reject) => {
@@ -74,6 +69,8 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
       }
 
       let aborted = false;
+      let updateTimer: NodeJS.Timeout | null = null;
+
       const onTerm = (e: any) => {
         if (e.type === 'terminate') {
           ipcClient.abortRequest({ requestId: streamId });
@@ -88,10 +85,14 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
         onData: async (chunk: string) => {
           if (aborted) return;
           greetMessage += chunk;
-          await this.appContext.chatUtils.updateMessage(
-            { type: MessageType.PlainText, content: greetMessage },
-            { shouldSyncStorage: true },
-          );
+
+          if (updateTimer) clearTimeout(updateTimer);
+          updateTimer = setTimeout(async () => {
+            await this.appContext.chatUtils.updateMessage(
+              { type: MessageType.PlainText, content: greetMessage },
+              { shouldSyncStorage: true },
+            );
+          }, 100); // ⏱ 遅延バッファリング（ここが高速化のポイント）
         },
         onError: (err) => {
           reject(err);
@@ -99,6 +100,7 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
           cleanup();
         },
         onEnd: () => {
+          if (updateTimer) clearTimeout(updateTimer);
           resolve(greetMessage);
           globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
           cleanup();
@@ -107,7 +109,6 @@ You are a highly skilled, empathetic AI assistant specialized in initiating enga
     });
   }
 
-  /** 全タスク完了後の最終まとめ */
   public async generateFinalSummary(): Promise<string> {
     const planSummary =
       this.appContext.agentContext?.plan
