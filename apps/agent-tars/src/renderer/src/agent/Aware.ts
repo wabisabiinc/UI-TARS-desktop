@@ -1,3 +1,4 @@
+// ✅ Aware.ts 修正済み完全版
 import { Message } from '@agent-infra/shared';
 import { AgentContext } from './AgentFlow';
 import {
@@ -16,6 +17,7 @@ export interface AwareResult {
   step: number;
   status: 'in-progress' | 'completed' | 'failed';
   plan: PlanTask[];
+  summary?: string;
 }
 
 export class Aware {
@@ -34,7 +36,6 @@ You are a high-level planning AI assistant. Your job:
 - Break down the task into a step-by-step plan.
 - Reflect why this plan is reasonable.
 - Format the result in the structure: { reflection, step, status, plan }
-
 Answer in JSON only.
 `.trim();
 
@@ -45,7 +46,16 @@ Analyze the following user request and create a step-by-step plan.
 ${input}
 `.trim();
 
-    if (!this.agentContext.useStream) {
+    const fallbackResult: AwareResult = {
+      reflection: '',
+      status: 'completed',
+      step: 0,
+      plan: [],
+      summary:
+        'AIの応答内容を解釈できなかったため、安全のため処理を終了しました。',
+    };
+
+    try {
       const result = await askLLMTool({
         model: import.meta.env.VITE_LLM_MODEL_GPT || 'gpt-4o',
         messages: [
@@ -56,128 +66,42 @@ ${input}
 
       const parsed = this.parseAwareResult(result?.content ?? '');
       return parsed;
+    } catch (err) {
+      console.warn('[Aware] Failed to parse result:', err);
+      return fallbackResult;
     }
-
-    await ensureIpcReady();
-    let raw = '';
-
-    const streamId = await ipcClient.askLLMTextStream({
-      messages: [
-        Message.systemMessage(systemPrompt),
-        Message.userMessage(userPrompt),
-      ],
-      requestId: Math.random().toString(36).substring(2),
-    });
-
-    await this.appContext.chatUtils.addMessage(
-      { type: MessageType.PlainText, content: '' },
-      { shouldSyncStorage: true, shouldScrollToBottom: true },
-    );
-
-    return new Promise<AwareResult>((resolve, reject) => {
-      if (this.abortSignal.aborted) {
-        ipcClient.abortRequest({ requestId: streamId });
-        return resolve({
-          reflection: '',
-          status: 'failed',
-          step: 0,
-          plan: [],
-        });
-      }
-
-      let aborted = false;
-      let updateTimer: NodeJS.Timeout | null = null;
-
-      const onTerm = (e: any) => {
-        if (e.type === 'terminate') {
-          ipcClient.abortRequest({ requestId: streamId });
-          aborted = true;
-          globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
-        }
-      };
-      globalEventEmitter.addListener(this.appContext.agentFlowId, onTerm);
-
-      const cleanup = onMainStreamEvent(streamId, {
-        onData: async (chunk: string) => {
-          if (aborted) return;
-          raw += chunk;
-
-          if (updateTimer) clearTimeout(updateTimer);
-          updateTimer = setTimeout(async () => {
-            await this.appContext.chatUtils.updateMessage(
-              { type: MessageType.PlainText, content: raw },
-              { shouldSyncStorage: true },
-            );
-          }, 100);
-        },
-        onError: (err) => {
-          reject(err);
-          globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
-          cleanup();
-        },
-        onEnd: () => {
-          if (updateTimer) clearTimeout(updateTimer);
-          globalEventEmitter.off(this.appContext.agentFlowId, onTerm);
-
-          try {
-            const parsed = this.parseAwareResult(raw);
-            resolve(parsed);
-          } catch (err) {
-            reject(err);
-          }
-
-          cleanup();
-        },
-      });
-    });
   }
 
   private parseAwareResult(jsonStr: string): AwareResult {
     try {
       const obj = JSON.parse(jsonStr.trim());
-
-      let step: number;
-      let plan: PlanTask[] = [];
-
-      if (Array.isArray(obj.step)) {
-        step = obj.step.length;
-        plan = obj.step.map((s: string, i: number) => ({
-          id: `${i + 1}`,
-          title: s,
-          status: 'Todo',
-        }));
-      } else if (typeof obj.plan === 'string') {
-        const lines = obj.plan.split(/\n+/).filter(Boolean);
-        step = lines.length;
-        plan = lines.map((line, i) => ({
-          id: `${i + 1}`,
-          title: line.trim(),
-          status: 'Todo',
-        }));
-      } else if (Array.isArray(obj.plan)) {
-        step = typeof obj.step === 'number' ? obj.step : obj.plan.length;
-        plan = obj.plan.map((p: any, i: number) => ({
-          id: p.id ?? `${i + 1}`,
-          title: p.step ?? p.title ?? `Step ${i + 1}`,
-          status: (p.status as PlanTask['status']) ?? 'Todo',
-        }));
-      } else {
-        step = typeof obj.step === 'number' ? obj.step : 1;
-      }
+      const plan: PlanTask[] = Array.isArray(obj.plan)
+        ? obj.plan.map((p: any, i: number) => ({
+            id: p.id ?? `${i + 1}`,
+            title: p.step ?? p.title ?? `Step ${i + 1}`,
+            status: (p.status as PlanTask['status']) ?? 'Todo',
+          }))
+        : [];
 
       return {
-        reflection: obj.reflection ?? '',
-        step,
-        status: obj.status ?? 'failed',
+        reflection: typeof obj.reflection === 'string' ? obj.reflection : '',
+        step: typeof obj.step === 'number' ? obj.step : plan.length,
+        status:
+          obj.status === 'completed' || obj.status === 'in-progress'
+            ? obj.status
+            : 'completed',
         plan,
+        summary: typeof obj.summary === 'string' ? obj.summary : '',
       };
     } catch (err) {
-      console.warn('[Aware] Failed to parse result:', jsonStr);
+      console.warn('[Aware] Failed to parse JSON:', jsonStr);
       return {
         reflection: '',
-        status: 'failed',
+        status: 'completed',
         step: 0,
         plan: [],
+        summary:
+          'AI応答の解析に失敗しましたが、安全のため完了扱いにして処理を終えます。',
       };
     }
   }

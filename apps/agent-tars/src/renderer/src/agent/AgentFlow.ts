@@ -1,4 +1,6 @@
+// 修正済み・完全版 AgentFlow.ts
 // apps/agent-tars/src/renderer/src/agent/AgentFlow.ts
+
 import { ChatMessageUtil } from '@renderer/utils/ChatMessageUtils';
 import { AppContext } from '@renderer/hooks/useAgentFlow';
 import { Aware, AwareResult } from './Aware';
@@ -75,7 +77,6 @@ ${appContext.request.inputText}
     const { chatUtils, setPlanTasks, setAgentStatusTip, setEvents } =
       this.appContext;
 
-    // 前回abort, terminateリスナをクリーンアップ
     if (this.abortController) this.abortController.abort();
     if (this.interruptController) this.interruptController.abort();
     this.abortController = new AbortController();
@@ -109,7 +110,6 @@ ${appContext.request.inputText}
     );
     const greeter = new Greeter(this.appContext, this.abortController.signal);
 
-    // terminateイベント: 必ず後で解除できるよう関数保存
     const terminateHandler = async (e: GlobalEvent) => {
       if (e.type === 'terminate') {
         this.abortController.abort();
@@ -144,11 +144,9 @@ ${appContext.request.inputText}
       this.agentLoop(executor, aware, agentContext, omegaMsgId, inputFiles),
     ]);
 
-    // 終了後 terminateイベント解除
     if (this.removeTerminateListener) this.removeTerminateListener();
   }
 
-  /** AIエージェント型：stepごとに柔軟にreplan・フィードバック実行 */
   private async agentLoop(
     executor: Executor,
     aware: Aware,
@@ -160,22 +158,19 @@ ${appContext.request.inputText}
       this.appContext;
     let firstStep = true;
 
-    // メインループ：stepごとに「実行→replan→まとめ」自己完結
     while (!this.abortController.signal.aborted && !this.hasFinished) {
       try {
         await this.eventManager.addLoadingStatus('Thinking');
         setAgentStatusTip('Thinking');
 
-        // stepごとにプランを「再設計」(直前のstep実行・履歴も全部渡す)
         const result: AwareResult = await aware.run();
 
-        // reflectionをメモリに保存
         if (result.reflection) {
           agentContext.memory.lastReflection = result.reflection;
         }
 
-        // 完了判定
         if (
+          Array.isArray(result.plan) &&
           result.plan.length > 0 &&
           result.step >= result.plan.length &&
           result.status === 'completed'
@@ -196,7 +191,6 @@ ${appContext.request.inputText}
           );
 
           setTimeout(async () => {
-            // summaryがあれば使う
             const finalSummary =
               result.summary ||
               (await new Greeter(
@@ -218,7 +212,6 @@ ${appContext.request.inputText}
           break;
         }
 
-        // 進行中更新
         agentContext.currentStep = result.step > 0 ? result.step : 1;
         agentContext.plan = this.normalizePlan(result);
         setPlanTasks([...agentContext.plan]);
@@ -234,13 +227,11 @@ ${appContext.request.inputText}
           await this.eventManager.addAgentStatus(result.status);
         }
 
-        // ツール呼び出し/stepごとに柔軟に（tool名があれば実行→再ループ）
         const toolCalls = await executor.run(result.status, inputFiles);
         for (const call of toolCalls.filter(Boolean)) {
           if (call.function?.name === 'analyzeImage') {
             await executor.executeTools([call]);
           }
-          // 他のツール分岐もここに追加
         }
         inputFiles = undefined;
       } catch (err: any) {
@@ -248,13 +239,11 @@ ${appContext.request.inputText}
           err?.name === 'AbortError' ||
           (typeof err === 'object' && err?.message?.includes('aborted'))
         ) {
-          // ユーザー中断/Abort時はUIリセットして静かに終わる
           setPlanTasks([]);
           setAgentStatusTip('');
           setEvents([]);
           break;
         }
-        // それ以外のエラーは通知
         console.error('[AgentFlow] loop error', err);
         await chatUtils.addMessage(
           ChatMessageUtil.assistantTextMessage(
@@ -272,7 +261,7 @@ ${appContext.request.inputText}
   }
 
   private normalizePlan(result: AwareResult): PlanTask[] {
-    if (!result.plan.length) {
+    if (!Array.isArray(result.plan) || !result.plan.length) {
       return [
         {
           id: '1',
