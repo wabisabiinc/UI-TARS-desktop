@@ -41,10 +41,10 @@ function sanitizeLLMOpts(opts: AskLLMOpts): AskLLMOpts {
   return clean;
 }
 
-// /api/generateMessage呼び出し
+// /api/generateMessage呼び出し（タイムアウトを60秒に延長）
 async function fetchLLM(opts: AskLLMOpts): Promise<AskLLMResult> {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), 15000);
+  const id = setTimeout(() => controller.abort(), 60000); // ← タイムアウト60秒に設定
   try {
     const resp = await fetch('/api/generateMessage', {
       method: 'POST',
@@ -111,6 +111,7 @@ export async function listTools(): Promise<
   }
   return [];
 }
+
 export async function getAvailableProviders(): Promise<string[]> {
   if (isElectron) {
     await ensureIpcReady();
